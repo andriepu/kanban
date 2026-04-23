@@ -1,6 +1,5 @@
 import { rootCertificates } from "node:tls";
 import { Agent } from "undici";
-import { getInternalToken } from "../security/passcode-manager";
 
 export const DEFAULT_KANBAN_RUNTIME_HOST = "127.0.0.1";
 export const DEFAULT_KANBAN_RUNTIME_PORT = 3484;
@@ -147,21 +146,7 @@ export function getRuntimeFetch(): Promise<typeof globalThis.fetch> {
 				globalThis.fetch(url, { ...init, dispatcher } as RequestInit)) as typeof globalThis.fetch;
 		}
 
-		// Wrap the base fetch to inject the internal CLI auth bearer token
-		// when one is available (propagated via env var from the server process).
-		const internalToken = getInternalToken();
-		if (!internalToken) {
-			return baseFetch;
-		}
-
-		const wrappedFetch = baseFetch;
-		return ((url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
-			const headers = new Headers(init?.headers);
-			if (!headers.has("Authorization")) {
-				headers.set("Authorization", `Bearer ${internalToken}`);
-			}
-			return wrappedFetch(url, { ...init, headers });
-		}) as typeof globalThis.fetch;
+		return baseFetch;
 	})();
 	return _runtimeFetchPromise;
 }

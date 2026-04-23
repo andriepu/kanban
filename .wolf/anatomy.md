@@ -10,13 +10,11 @@
 - `AGENTS.md` — Declares definitions (~2033 tok)
 - `biome.json` — Biome linter/formatter configuration (~665 tok)
 - `CLAUDE.md` — OpenWolf (~60 tok)
-- `CONTRIBUTING.md` — Contributing to Kanban (~946 tok)
 - `DEVELOPMENT.md` — Development (~2054 tok)
 - `LICENSE` — Project license (~3025 tok)
 - `package-lock.json` — npm lock file (~55250 tok)
 - `package.json` — Node.js package manifest (~915 tok)
 - `README.md` — Project documentation (~1010 tok)
-- `RELEASE_WORKFLOW.md` — Kanban release workflow (~589 tok)
 - `tsconfig.base.json` (~139 tok)
 - `tsconfig.build.json` — TypeScript build configuration (~66 tok)
 - `tsconfig.json` — TypeScript configuration (~67 tok)
@@ -58,7 +56,6 @@
 ## .github/workflows/
 
 - `ci.yml` — CI: CI (~74 tok)
-- `publish.yml` — CI: Publish (~1577 tok)
 - `test.yml` — CI: Test (~395 tok)
 
 ## .husky/
@@ -111,63 +108,6 @@
 - `plan.md` — Terminal Core Rewrite (~162 tok)
 - `status.md` — Status (~844 tok)
 
-## .plan/docs/
-
-- `blueprint-ui-docs.md` — Blueprint UI - Complete Documentation Reference (~15708 tok)
-- `cline-sdk-kanban-architecture-cleanup-handoff.md` — Cline SDK Kanban Architecture Cleanup Handoff (~6141 tok)
-- `cline-sdk-kanban-architecture-cleanup-plan.md` — Cline SDK Kanban Architecture Cleanup Plan (~5921 tok)
-- `cline-sdk-native-integration-plan.md` — Cline SDK Native Integration Plan for Kanban (~7108 tok)
-- `cross-platform-compatibility-remediation-plan.md` — Cross-platform Compatibility Remediation Plan (~3185 tok)
-- `detail-terminal-persistence-investigation.md` — Detail Terminal Persistence Investigation (~2259 tok)
-- `dogfood-shutdown-skip-cleanup-handoff-plan.md` — Dogfood shutdown cleanup handoff plan (~403 tok)
-- `git-view-followup-work.md` — Git view follow-up work (~601 tok)
-- `ideation-chat.md` — User (~10030 tok)
-- `kanban-mcp-removal-handoff.md` — Kanban MCP Removal Handoff (~1255 tok)
-- `kanban-terminal-gap-analysis.md` — Kanban Terminal Gap Analysis (~4683 tok)
-- `kick-off-prompt.md` (~411 tok)
-- `node22-ci-hanging-tests-investigation.md` — Node 22 CI Hanging Tests Investigation (~1988 tok)
-- `opencode-terminal-investigation-report.md` — OpenCode Terminal Investigation Report (~4701 tok)
-- `persistent-terminal-refactor-plan.md` — Persistent Terminal Refactor Plan (~1341 tok)
-- `planning-column-research.md` — Planning Column Research (~1956 tok)
-- `runtime-hooks-architecture.md` — Runtime Hooks Architecture (~2637 tok)
-- `terminal-core-rewrite-plan.md` — Terminal Core Rewrite Plan (~1455 tok)
-- `terminal-emulator-investigation.md` — Terminal Emulator Investigation (~4258 tok)
-- `terminal-node-pty-gap-closure-plan.md` — Terminal Node-Pty Gap Closure Plan (~716 tok)
-- `terminal-tui-persistence-rebuild-plan.md` — Terminal TUI Persistence Rebuild Plan (~872 tok)
-- `tui-agent-integration-plan.md` — TUI-Based Agent Integration: Replacing ACP with Embedded Terminal Approach (~4682 tok)
-- `webssh2-reference-investigation.md` — WebSSH2 Reference Investigation (~5792 tok)
-- `worktree-ignored-symlink-investigation.md` — Worktree Ignored Symlink Investigation (~2103 tok)
-
-## .plan/docs/ACP/
-
-- `ACP-docs.md` — Agent Client Protocol Docs (~31747 tok)
-- `ACP-reference-project.md` — ACP Client Reference: formulahendry/vscode-acp (~3219 tok)
-- `ACP-SDK-notes.md` — Agent Client Protocol TypeScript SDK - Reference (~4456 tok)
-
-## .plan/docs/CLI References/
-
-- `claude-code-cli-reference.md` — CLI reference (~6524 tok)
-- `codex-cli-reference.md` — Command line options (~6721 tok)
-- `gemini-cli-reference.md` — Gemini CLI cheatsheet (~3804 tok)
-- `kiro-cli-reference.md` — Resume most recent session (~16133 tok)
-- `opencode-cli-reference.md` — Commands (~4396 tok)
-
-## .plan/docs/Skills/
-
-- `agent-skills-protocol.md` — Overview (~18115 tok)
-- `claude-code-skills.md` — Extend Claude with skills (~9160 tok)
-
-## .plan/docs/hooks-update/
-
-- `claude-code-hooks-docs.md` — Hooks reference (~22257 tok)
-- `cline-cli-hooks-docs.md` — What You Can Build (~3532 tok)
-- `codex-hooks-research.md` — Codex findings (~287 tok)
-- `gemini-cli-configuration.md` — Gemini CLI configuration (~15619 tok)
-- `gemini-cli-hooks-docs.md` — Gemini CLI hooks (~2055 tok)
-- `hooks-implementation-plan.md` — Hooks System for Automatic Card Transitions (~2744 tok)
-- `hooks-update-research.md` — Hooks Research For Kanban Agent Status (~1245 tok)
-- `opencode-hooks-docs.md` — Use a plugin (~2368 tok)
-
 ## docs/
 
 - `architecture.md` — Architecture Overview (~2481 tok)
@@ -201,7 +141,6 @@
 - `build.mjs` — Runtime externals. `node-pty` is a native addon with a compiled binding (~545 tok)
 - `dev-full.mjs` — Starts both the runtime server and Vite web UI dev server on an (~1147 tok)
 - `dogfood.mjs` — here: printHelp, isErrnoException, isProcessAlive + 10 more (~3160 tok)
-- `upload-sentry-sourcemaps.mjs` — SENTRY_ORG: runSentryCli, shouldCopyToNodeStaging, main (~665 tok)
 
 ## src/
 
