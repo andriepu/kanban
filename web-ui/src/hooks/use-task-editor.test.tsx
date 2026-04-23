@@ -82,7 +82,6 @@ function HookHarness({
 		currentProjectId: "project-1",
 		createTaskBranchOptions: [{ value: "main", label: "main" }],
 		defaultTaskBranchRef: "main",
-		selectedAgentId: null,
 		setSelectedTaskId,
 		queueTaskStartAfterEdit,
 	});
