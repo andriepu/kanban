@@ -99,7 +99,7 @@ function createSummary(
 	return {
 		taskId: "task-1",
 		state,
-		agentId: "cline",
+		agentId: "claude",
 		workspacePath: "/tmp/worktree",
 		pid: null,
 		startedAt: 1,
@@ -262,136 +262,7 @@ describe("BoardCard", () => {
 			);
 		});
 
-		expect(container.textContent).toContain("~/.cline/worktrees/trash-task-1/kanban");
-	});
-
-	it("shows formatted agent override details with model name and reasoning effort", async () => {
-		mockWorkspaceSnapshot = {
-			taskId: "task-1",
-			path: "/tmp/worktrees/task-1",
-			branch: "feature/override",
-			isDetached: false,
-			headCommit: "1234567890abcdef",
-			changedFiles: 2,
-			additions: 5,
-			deletions: 1,
-		};
-
-		await act(async () => {
-			root.render(
-				<BoardCard
-					card={createCard({
-						agentId: "cline",
-						clineSettings: {
-							modelId: "openai/gpt-5.4",
-							reasoningEffort: "low",
-						},
-					})}
-					index={0}
-					columnId="review"
-				/>,
-			);
-		});
-
-		expect(container.textContent).toContain("Cline");
-		expect(container.textContent).toContain("GPT-5.4 (Low)");
-		expect(container.textContent).not.toContain("openai/gpt-5.4");
-	});
-
-	it("shows the task-level indicator for reasoning-only overrides", async () => {
-		await act(async () => {
-			root.render(
-				<BoardCard
-					card={createCard({
-						clineSettings: {
-							reasoningEffort: "low",
-						},
-					})}
-					index={0}
-					columnId="backlog"
-					defaultClineModelId="openai/gpt-5.4"
-				/>,
-			);
-		});
-
-		expect(container.textContent).toContain("GPT-5.4 (Low)");
-	});
-
-	it("shows a fallback indicator for reasoning-only overrides without a resolved default model", async () => {
-		await act(async () => {
-			root.render(
-				<BoardCard
-					card={createCard({
-						clineSettings: {
-							reasoningEffort: "low",
-						},
-					})}
-					index={0}
-					columnId="backlog"
-				/>,
-			);
-		});
-
-		expect(container.textContent).toContain("Default model (Low)");
-	});
-
-	it("shows explicit default reasoning metadata for reasoning-only task overrides", async () => {
-		await act(async () => {
-			root.render(
-				<BoardCard
-					card={createCard({
-						agentId: "cline",
-						clineSettings: {},
-					})}
-					index={0}
-					columnId="backlog"
-					defaultClineModelId="openai/gpt-5.4"
-				/>,
-			);
-		});
-
-		expect(container.textContent).toContain("GPT-5.4 (Default)");
-		expect(container.textContent).not.toContain("GPT-5.4 (High)");
-	});
-
-	it("does not mislabel provider-only overrides as the global default model", async () => {
-		await act(async () => {
-			root.render(
-				<BoardCard
-					card={createCard({
-						clineSettings: {
-							providerId: "groq",
-						},
-					})}
-					index={0}
-					columnId="backlog"
-					defaultClineModelId="openai/gpt-5.4"
-				/>,
-			);
-		});
-
-		expect(container.textContent).toContain("Provider: groq");
-		expect(container.textContent).not.toContain("GPT-5.4");
-	});
-
-	it("does not show inherited global reasoning for explicit model overrides using default effort", async () => {
-		await act(async () => {
-			root.render(
-				<BoardCard
-					card={createCard({
-						agentId: "cline",
-						clineSettings: {
-							modelId: "openai/gpt-5.4",
-						},
-					})}
-					index={0}
-					columnId="backlog"
-				/>,
-			);
-		});
-
-		expect(container.textContent).toContain("GPT-5.4");
-		expect(container.textContent).not.toContain("GPT-5.4 (High)");
+		expect(container.textContent).toContain("~/.kanban/worktrees/trash-task-1/kanban");
 	});
 
 	it("shows tool input details in the session preview text", async () => {
@@ -404,7 +275,7 @@ describe("BoardCard", () => {
 					sessionSummary={{
 						taskId: "task-1",
 						state: "running",
-						agentId: "cline",
+						agentId: "claude",
 						workspacePath: "/tmp/worktree",
 						pid: null,
 						startedAt: Date.now(),
@@ -420,7 +291,7 @@ describe("BoardCard", () => {
 							finalMessage: null,
 							hookEventName: "tool_call",
 							notificationType: null,
-							source: "cline-sdk",
+							source: "claude",
 						},
 						latestTurnCheckpoint: null,
 						previousTurnCheckpoint: null,
@@ -468,7 +339,7 @@ describe("BoardCard", () => {
 					index={0}
 					columnId="in_progress"
 					sessionSummary={createSummary("running", {
-						agentId: "kiro",
+						agentId: "claude",
 						latestHookActivity: {
 							activityText: "Using fs_write: src/index.ts",
 							toolName: "fs_write",
@@ -494,7 +365,7 @@ describe("BoardCard", () => {
 					index={0}
 					columnId="in_progress"
 					sessionSummary={createSummary("running", {
-						agentId: "codex",
+						agentId: "claude",
 						latestHookActivity: {
 							activityText: "Calling Read: src/index.ts",
 							toolName: null,
@@ -521,7 +392,7 @@ describe("BoardCard", () => {
 					index={0}
 					columnId="review"
 					sessionSummary={createSummary("awaiting_review", {
-						agentId: "kiro",
+						agentId: "claude",
 						latestHookActivity: {
 							activityText: "Waiting for review",
 							toolName: "fs_write",
@@ -540,7 +411,7 @@ describe("BoardCard", () => {
 		expect(container.textContent).not.toContain("fs_write");
 	});
 
-	it("keeps showing the last cline tool label during assistant streaming", async () => {
+	it("keeps showing the last tool label during assistant streaming", async () => {
 		await act(async () => {
 			root.render(
 				<BoardCard
@@ -550,7 +421,7 @@ describe("BoardCard", () => {
 					sessionSummary={{
 						taskId: "task-1",
 						state: "running",
-						agentId: "cline",
+						agentId: "claude",
 						workspacePath: "/tmp/worktree",
 						pid: null,
 						startedAt: Date.now(),
@@ -566,7 +437,7 @@ describe("BoardCard", () => {
 							finalMessage: "Looking at the file now",
 							hookEventName: "assistant_delta",
 							notificationType: null,
-							source: "cline-sdk",
+							source: "claude",
 						},
 						latestTurnCheckpoint: null,
 						previousTurnCheckpoint: null,
@@ -742,7 +613,7 @@ describe("BoardCard", () => {
 					index={0}
 					columnId="in_progress"
 					sessionSummary={createSummary("running", {
-						agentId: "codex",
+						agentId: "claude",
 						latestHookActivity: {
 							activityText: "Agent: checking the next file",
 							toolName: null,

@@ -41,31 +41,11 @@ function createRuntimeConfigResponse(
 				binary: "claude",
 				command: "claude",
 				defaultArgs: [],
-				installed: selectedAgentId === "claude",
-				configured: selectedAgentId === "claude",
-			},
-			{
-				id: "codex",
-				label: "OpenAI Codex",
-				binary: "codex",
-				command: "codex",
-				defaultArgs: [],
-				installed: selectedAgentId === "codex",
-				configured: selectedAgentId === "codex",
+				installed: true,
+				configured: true,
 			},
 		],
 		shortcuts,
-		clineProviderSettings: {
-			providerId: null,
-			modelId: null,
-			baseUrl: null,
-			apiKeyConfigured: false,
-			oauthProvider: null,
-			oauthAccessTokenConfigured: false,
-			oauthRefreshTokenConfigured: false,
-			oauthAccountId: null,
-			oauthExpiresAt: null,
-		},
 		commitPromptTemplate: "",
 		openPrPromptTemplate: "",
 		commitPromptTemplateDefault: "",
@@ -170,7 +150,7 @@ describe("useRuntimeProjectConfig", () => {
 		expect(snapshots.at(-1)?.config).toBeNull();
 
 		await act(async () => {
-			projectBDeferred.resolve(createRuntimeConfigResponse("codex", []));
+			projectBDeferred.resolve(createRuntimeConfigResponse("claude", []));
 			await projectBDeferred.promise;
 		});
 
@@ -178,7 +158,7 @@ describe("useRuntimeProjectConfig", () => {
 	});
 
 	it("loads runtime config without a selected project", async () => {
-		const startupConfig = createRuntimeConfigResponse("codex", []);
+		const startupConfig = createRuntimeConfigResponse("claude", []);
 		fetchRuntimeConfigMock.mockResolvedValue(startupConfig);
 		let latestSnapshot: HookSnapshot | null = null;
 
@@ -199,7 +179,7 @@ describe("useRuntimeProjectConfig", () => {
 			throw new Error("Expected a runtime project config snapshot.");
 		}
 		const snapshot = latestSnapshot as HookSnapshot;
-		expect(snapshot.config?.selectedAgentId).toBe("codex");
+		expect(snapshot.config?.selectedAgentId).toBe("claude");
 		expect(snapshot.isLoading).toBe(false);
 	});
 });

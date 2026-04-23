@@ -2,12 +2,42 @@ import { ImagePlus, Paperclip } from "lucide-react";
 import type { ChangeEvent, ClipboardEvent, DragEvent, KeyboardEvent, ReactElement } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-	applyClineComposerCompletion,
-	buildMentionInsertText,
-	detectActiveClineComposerToken,
-} from "@/components/detail-panels/cline-chat-composer-completion";
 import { type InlineCompletionItem, InlineCompletionPicker } from "@/components/inline-completion-picker";
+
+// --- Mention completion helpers ---
+
+interface ComposerToken {
+	kind: "mention";
+	query: string;
+	start: number;
+	end: number;
+}
+
+function detectActiveMentionToken(value: string, cursorIndex: number): ComposerToken | null {
+	const textBefore = value.slice(0, cursorIndex);
+	const match = /@([^\s@]*)$/.exec(textBefore);
+	if (!match) {
+		return null;
+	}
+	const start = match.index;
+	return { kind: "mention", query: match[1] ?? "", start, end: cursorIndex };
+}
+
+function buildMentionInsertText(filePath: string): string {
+	return `@${filePath} `;
+}
+
+function applyMentionCompletion(
+	value: string,
+	token: ComposerToken,
+	insertText: string,
+): { value: string; cursor: number } {
+	const before = value.slice(0, token.start);
+	const after = value.slice(token.end);
+	const next = before + insertText + after;
+	return { value: next, cursor: token.start + insertText.length };
+}
+
 import {
 	ACCEPTED_TASK_IMAGE_INPUT_ACCEPT,
 	collectImageFilesFromDataTransfer,
@@ -83,11 +113,7 @@ export function TaskPromptComposer({
 	}, [autoResizeTextarea, value]);
 
 	const activeToken = useMemo(() => {
-		const token = detectActiveClineComposerToken(value, cursorIndex);
-		if (token && token.kind !== "mention") {
-			return null;
-		}
-		return token;
+		return detectActiveMentionToken(value, cursorIndex);
 	}, [cursorIndex, value]);
 
 	useEffect(() => {
@@ -171,7 +197,7 @@ export function TaskPromptComposer({
 				return;
 			}
 			const insertText = mentionInsertTextMap.get(item.id) ?? `@${item.id}`;
-			const next = applyClineComposerCompletion(value, activeToken, insertText);
+			const next = applyMentionCompletion(value, activeToken, insertText);
 			onValueChange(next.value);
 			window.requestAnimationFrame(() => {
 				if (!textareaRef.current) {

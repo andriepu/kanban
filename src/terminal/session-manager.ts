@@ -21,8 +21,6 @@ import {
 	stopWorkspaceTrustTimers,
 	WORKSPACE_TRUST_CONFIRM_DELAY_MS,
 } from "./claude-workspace-trust";
-import { hasCodexWorkspaceTrustPrompt, shouldAutoConfirmCodexWorkspaceTrust } from "./codex-workspace-trust";
-import { stripAnsi } from "./output-utils";
 import { PtySession } from "./pty-session";
 import { reduceSessionTransition, type SessionTransitionEvent } from "./session-state-machine";
 import {
@@ -58,7 +56,6 @@ interface ActiveProcessState {
 	deferredStartupInput: string | null;
 	detectOutputTransition: AgentOutputTransitionDetector | null;
 	shouldInspectOutputForTransition: AgentOutputTransitionInspectionPredicate | null;
-	awaitingCodexPromptAfterEnter: boolean;
 	autoConfirmedWorkspaceTrust: boolean;
 	workspaceTrustConfirmTimer: NodeJS.Timeout | null;
 }
@@ -192,39 +189,9 @@ function buildTerminalEnvironment(
 	};
 }
 
-function hasCodexInteractivePrompt(text: string): boolean {
-	const stripped = stripAnsi(text);
-	return /(?:^|[\n\r])\s*›\s*/u.test(stripped);
-}
-
-function hasCodexStartupUiRendered(text: string): boolean {
-	const stripped = stripAnsi(text).toLowerCase();
-	return stripped.includes("openai codex (v");
-}
-
 export class TerminalSessionManager implements TerminalSessionService {
 	private readonly entries = new Map<string, SessionEntry>();
 	private readonly summaryListeners = new Set<(summary: RuntimeTaskSessionSummary) => void>();
-
-	private trySendDeferredCodexStartupInput(taskId: string): boolean {
-		const entry = this.entries.get(taskId);
-		const active = entry?.active;
-		if (!entry || !active || entry.summary.agentId !== "codex") {
-			return false;
-		}
-		if (active.deferredStartupInput === null) {
-			return false;
-		}
-		const trustPromptVisible =
-			active.workspaceTrustBuffer !== null && hasCodexWorkspaceTrustPrompt(active.workspaceTrustBuffer);
-		if (trustPromptVisible) {
-			return false;
-		}
-		const deferredInput = active.deferredStartupInput;
-		active.deferredStartupInput = null;
-		active.session.write(deferredInput);
-		return true;
-	}
 
 	private hasLiveOutputListener(entry: SessionEntry): boolean {
 		for (const listener of entry.listeners.values()) {
@@ -338,13 +305,8 @@ export class TerminalSessionManager implements TerminalSessionService {
 
 		const env = buildTerminalEnvironment(request.env, launch.env);
 
-		// Adapters can wrap the configured agent binary when they need extra runtime wiring
-		// (for example, Codex uses a wrapper script to watch session logs for hook transitions).
 		const commandBinary = launch.binary ?? request.binary;
 		const commandArgs = [...launch.args];
-		const hasCodexLaunchSignature = [commandBinary, ...commandArgs].some((part) =>
-			part.toLowerCase().includes("codex"),
-		);
 		let session: PtySession;
 		try {
 			session = PtySession.spawn({
@@ -383,8 +345,7 @@ export class TerminalSessionManager implements TerminalSessionService {
 						}
 						if (!entry.active.autoConfirmedWorkspaceTrust && entry.active.workspaceTrustConfirmTimer === null) {
 							const hasClaudePrompt = hasClaudeWorkspaceTrustPrompt(entry.active.workspaceTrustBuffer);
-							const hasCodexPrompt = hasCodexWorkspaceTrustPrompt(entry.active.workspaceTrustBuffer);
-							if (hasClaudePrompt || hasCodexPrompt) {
+							if (hasClaudePrompt) {
 								entry.active.autoConfirmedWorkspaceTrust = true;
 								const trustConfirmDelayMs = WORKSPACE_TRUST_CONFIRM_DELAY_MS;
 								entry.active.workspaceTrustConfirmTimer = setTimeout(() => {
@@ -405,37 +366,13 @@ export class TerminalSessionManager implements TerminalSessionService {
 					}
 					updateSummary(entry, { lastOutputAt: now() });
 
-					// Codex plan-mode startup input is deferred until we know the TUI rendered.
-					// Trigger on either the interactive prompt marker or the startup header text.
-					if (
-						entry.summary.agentId === "codex" &&
-						entry.active.deferredStartupInput !== null &&
-						data.length > 0 &&
-						(hasCodexInteractivePrompt(data) ||
-							hasCodexStartupUiRendered(data) ||
-							(entry.active.workspaceTrustBuffer !== null &&
-								(hasCodexInteractivePrompt(entry.active.workspaceTrustBuffer) ||
-									hasCodexStartupUiRendered(entry.active.workspaceTrustBuffer))))
-					) {
-						this.trySendDeferredCodexStartupInput(request.taskId);
-					}
-
 					const adapterEvent = entry.active.detectOutputTransition?.(data, entry.summary) ?? null;
 					if (adapterEvent) {
-						const requiresEnterForCodex =
-							adapterEvent.type === "agent.prompt-ready" &&
-							entry.summary.agentId === "codex" &&
-							!entry.active.awaitingCodexPromptAfterEnter;
-						if (!requiresEnterForCodex) {
-							const summary = this.applySessionEvent(entry, adapterEvent);
-							if (adapterEvent.type === "agent.prompt-ready" && entry.summary.agentId === "codex") {
-								entry.active.awaitingCodexPromptAfterEnter = false;
-							}
-							for (const taskListener of entry.listeners.values()) {
-								taskListener.onState?.(cloneSummary(summary));
-							}
-							this.emitSummary(summary);
+						const summary = this.applySessionEvent(entry, adapterEvent);
+						for (const taskListener of entry.listeners.values()) {
+							taskListener.onState?.(cloneSummary(summary));
 						}
+						this.emitSummary(summary);
 					}
 
 					for (const taskListener of entry.listeners.values()) {
@@ -506,23 +443,17 @@ export class TerminalSessionManager implements TerminalSessionService {
 
 		const active: ActiveProcessState = {
 			session,
-			workspaceTrustBuffer:
-				shouldAutoConfirmClaudeWorkspaceTrust(request.agentId, request.cwd) ||
-				shouldAutoConfirmCodexWorkspaceTrust(request.agentId, request.cwd) ||
-				hasCodexLaunchSignature
-					? ""
-					: null,
+			workspaceTrustBuffer: shouldAutoConfirmClaudeWorkspaceTrust(request.agentId, request.cwd) ? "" : null,
 			cols,
 			rows,
 			terminalProtocolFilter: createTerminalProtocolFilterState({
 				interceptOscColorQueries: true,
-				suppressDeviceAttributeQueries: request.agentId === "droid",
+				suppressDeviceAttributeQueries: false,
 			}),
 			onSessionCleanup: launch.cleanup ?? null,
 			deferredStartupInput: launch.deferredStartupInput ?? null,
 			detectOutputTransition: launch.detectOutputTransition ?? null,
 			shouldInspectOutputForTransition: launch.shouldInspectOutputForTransition ?? null,
-			awaitingCodexPromptAfterEnter: false,
 			autoConfirmedWorkspaceTrust: false,
 			workspaceTrustConfirmTimer: null,
 		};
@@ -675,7 +606,6 @@ export class TerminalSessionManager implements TerminalSessionService {
 			deferredStartupInput: null,
 			detectOutputTransition: null,
 			shouldInspectOutputForTransition: null,
-			awaitingCodexPromptAfterEnter: false,
 			autoConfirmedWorkspaceTrust: false,
 			workspaceTrustConfirmTimer: null,
 		};
@@ -738,16 +668,6 @@ export class TerminalSessionManager implements TerminalSessionService {
 		const entry = this.entries.get(taskId);
 		if (!entry?.active) {
 			return null;
-		}
-		if (
-			entry.summary.agentId === "codex" &&
-			entry.summary.state === "awaiting_review" &&
-			(entry.summary.reviewReason === "hook" ||
-				entry.summary.reviewReason === "attention" ||
-				entry.summary.reviewReason === "error") &&
-			(data.includes(13) || data.includes(10))
-		) {
-			entry.active.awaitingCodexPromptAfterEnter = true;
 		}
 		entry.active.session.write(data);
 		return cloneSummary(entry.summary);
@@ -952,9 +872,6 @@ export class TerminalSessionManager implements TerminalSessionService {
 			if (entry.active.workspaceTrustBuffer !== null) {
 				entry.active.workspaceTrustBuffer = "";
 			}
-		}
-		if (entry.active && transition.changed && transition.patch.state === "awaiting_review") {
-			entry.active.awaitingCodexPromptAfterEnter = false;
 		}
 		return updateSummary(entry, transition.patch);
 	}

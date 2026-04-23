@@ -81,7 +81,7 @@ function createSession(taskId: string, state: "running" | "awaiting_review" | "i
 	return {
 		taskId,
 		state,
-		agentId: "codex",
+		agentId: "claude",
 		workspacePath: `/tmp/${taskId}`,
 		pid: state === "idle" ? null : 1234,
 		startedAt: state === "idle" ? null : Date.now() - 1_000,

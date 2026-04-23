@@ -191,7 +191,7 @@ async function waitForProcessStart(process: ChildProcess, timeoutMs = 10_000): P
 			} else {
 				stderr += text;
 			}
-			const match = stdout.match(/Cline Kanban running at (http:\/\/127\.0\.0\.1:\d+(?:\/[^\s]*)?)/);
+			const match = stdout.match(/Kanban running at (http:\/\/127\.0\.0\.1:\d+(?:\/[^\s]*)?)/);
 			if (!match || settled) {
 				return;
 			}
@@ -1175,7 +1175,7 @@ describe.sequential("runtime state stream integration", () => {
 						[taskId]: {
 							taskId,
 							state: "awaiting_review",
-							agentId: "codex",
+							agentId: "claude",
 							workspacePath: projectPath,
 							pid: null,
 							startedAt: now - 2_000,
@@ -1295,7 +1295,7 @@ describe.sequential("runtime state stream integration", () => {
 						[taskId]: {
 							taskId,
 							state: "awaiting_review",
-							agentId: "codex",
+							agentId: "claude",
 							workspacePath: projectPath,
 							pid: null,
 							startedAt: now - 2_000,

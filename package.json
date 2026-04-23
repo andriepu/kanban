@@ -13,14 +13,10 @@
     "task-management",
     "typescript"
   ],
-  "homepage": "https://github.com/cline/kanban",
-  "bugs": {
-    "url": "https://github.com/cline/kanban/issues"
-  },
-  "author": "Cline",
+  "author": "",
   "repository": {
     "type": "git",
-    "url": "https://github.com/cline/kanban"
+    "url": ""
   },
   "type": "module",
   "bin": {
@@ -91,8 +87,6 @@
     "@rolldown/binding-linux-x64-gnu": "1.0.0-rc.9"
   },
   "dependencies": {
-    "@clinebot/core": "^0.0.36",
-    "@clinebot/shared": "^0.0.36",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@sentry/node": "^10.45.0",
     "@trpc/client": "^11.11.0",

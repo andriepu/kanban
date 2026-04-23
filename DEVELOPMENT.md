@@ -246,7 +246,7 @@ Local development:
 
 Release builds:
 - The publish workflow injects `POSTHOG_KEY` and `POSTHOG_HOST` from GitHub Secrets.
-- `POSTHOG_HOST` is optional and defaults to `https://data.cline.bot`.
+- `POSTHOG_HOST` is optional. No default — telemetry host must be set explicitly.
 
 Result:
 - Official releases have telemetry enabled.

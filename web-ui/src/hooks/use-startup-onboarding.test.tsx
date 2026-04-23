@@ -23,30 +23,19 @@ function createRuntimeConfigResponse(selectedAgentId: RuntimeConfigResponse["sel
 		globalConfigPath: "/tmp/.cline/kanban/config.json",
 		projectConfigPath: "/tmp/project/.cline/kanban/config.json",
 		readyForReviewNotificationsEnabled: true,
-		detectedCommands: ["codex"],
+		detectedCommands: ["claude"],
 		agents: [
 			{
-				id: "codex",
+				id: "claude",
 				label: "OpenAI Codex",
-				binary: "codex",
-				command: "codex",
+				binary: "claude",
+				command: "claude",
 				defaultArgs: [],
 				installed: true,
-				configured: selectedAgentId === "codex",
+				configured: selectedAgentId === "claude",
 			},
 		],
 		shortcuts: [],
-		clineProviderSettings: {
-			providerId: null,
-			modelId: null,
-			baseUrl: null,
-			apiKeyConfigured: false,
-			oauthProvider: null,
-			oauthAccessTokenConfigured: false,
-			oauthRefreshTokenConfigured: false,
-			oauthAccountId: null,
-			oauthExpiresAt: null,
-		},
 		commitPromptTemplate: "",
 		openPrPromptTemplate: "",
 		commitPromptTemplateDefault: "",
@@ -91,7 +80,7 @@ describe("useStartupOnboarding", () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		saveRuntimeConfigMock.mockReset();
-		saveRuntimeConfigMock.mockResolvedValue(createRuntimeConfigResponse("codex"));
+		saveRuntimeConfigMock.mockResolvedValue(createRuntimeConfigResponse("claude"));
 		previousActEnvironment = (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
 			.IS_REACT_ACT_ENVIRONMENT;
 		(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -146,7 +135,7 @@ describe("useStartupOnboarding", () => {
 			root.render(
 				<HookHarness
 					currentProjectId={null}
-					runtimeProjectConfig={createRuntimeConfigResponse("cline")}
+					runtimeProjectConfig={createRuntimeConfigResponse("claude")}
 					isRuntimeProjectConfigLoading={false}
 					isTaskAgentReady={false}
 					onSnapshot={(snapshot) => {
@@ -162,10 +151,10 @@ describe("useStartupOnboarding", () => {
 		}
 
 		const snapshot = latestSnapshot as HookSnapshot;
-		const result = await snapshot.handleSelectOnboardingAgent("codex");
+		const result = await snapshot.handleSelectOnboardingAgent("claude");
 
 		expect(result).toEqual({ ok: true });
-		expect(saveRuntimeConfigMock).toHaveBeenCalledWith(null, { selectedAgentId: "codex" });
+		expect(saveRuntimeConfigMock).toHaveBeenCalledWith(null, { selectedAgentId: "claude" });
 	});
 
 	it("waits for runtime config to finish loading before opening onboarding", async () => {
@@ -202,7 +191,7 @@ describe("useStartupOnboarding", () => {
 			root.render(
 				<HookHarness
 					currentProjectId={"project-1"}
-					runtimeProjectConfig={createRuntimeConfigResponse("cline")}
+					runtimeProjectConfig={createRuntimeConfigResponse("claude")}
 					isRuntimeProjectConfigLoading={false}
 					isTaskAgentReady={false}
 					onSnapshot={(snapshot) => {
@@ -228,7 +217,7 @@ describe("useStartupOnboarding", () => {
 			root.render(
 				<HookHarness
 					currentProjectId={null}
-					runtimeProjectConfig={createRuntimeConfigResponse("cline")}
+					runtimeProjectConfig={createRuntimeConfigResponse("claude")}
 					isRuntimeProjectConfigLoading={false}
 					isTaskAgentReady={false}
 					onSnapshot={(snapshot) => {
@@ -262,7 +251,7 @@ describe("useStartupOnboarding", () => {
 			root.render(
 				<HookHarness
 					currentProjectId={"project-1"}
-					runtimeProjectConfig={createRuntimeConfigResponse("cline")}
+					runtimeProjectConfig={createRuntimeConfigResponse("claude")}
 					isRuntimeProjectConfigLoading={false}
 					isTaskAgentReady={false}
 					onSnapshot={(nextSnapshot) => {
@@ -289,7 +278,7 @@ describe("useStartupOnboarding", () => {
 			root.render(
 				<HookHarness
 					currentProjectId={"project-1"}
-					runtimeProjectConfig={createRuntimeConfigResponse("codex")}
+					runtimeProjectConfig={createRuntimeConfigResponse("claude")}
 					isRuntimeProjectConfigLoading={false}
 					isTaskAgentReady={true}
 					onSnapshot={(snapshot) => {

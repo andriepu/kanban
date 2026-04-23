@@ -20,7 +20,7 @@ import { createGitProcessEnv } from "../core/git-process-env";
 import { updateTaskDependencies } from "../core/task-board-mutations";
 import { type LockRequest, lockedFileSystem } from "../fs/locked-file-system";
 
-const RUNTIME_HOME_PARENT_DIR = ".cline";
+const RUNTIME_HOME_PARENT_DIR = ".kanban";
 const RUNTIME_HOME_DIR = "kanban";
 const RUNTIME_WORKTREES_DIR = "worktrees";
 const WORKSPACES_DIR = "workspaces";
@@ -213,6 +213,55 @@ function getWorkspacesRootLockRequest(): LockRequest {
 	};
 }
 
+function scrubLegacyClineFieldsFromRawBoard(raw: unknown): unknown {
+	if (typeof raw !== "object" || raw === null) {
+		return raw;
+	}
+	const board = raw as Record<string, unknown>;
+	const columns = board.columns;
+	if (!Array.isArray(columns)) {
+		return raw;
+	}
+	return {
+		...board,
+		columns: columns.map((column: unknown) => {
+			if (typeof column !== "object" || column === null) {
+				return column;
+			}
+			const col = column as Record<string, unknown>;
+			const cards = col.cards;
+			if (!Array.isArray(cards)) {
+				return column;
+			}
+			return {
+				...col,
+				cards: cards.map((card: unknown) => {
+					if (typeof card !== "object" || card === null) {
+						return card;
+					}
+					const { agentId, ...rest } = card as Record<string, unknown>;
+					return agentId === "claude" ? { ...rest, agentId } : rest;
+				}),
+			};
+		}),
+	};
+}
+
+function scrubLegacyClineFieldsFromRawSessions(raw: unknown): unknown {
+	if (typeof raw !== "object" || raw === null) {
+		return raw;
+	}
+	return Object.fromEntries(
+		Object.entries(raw as Record<string, unknown>).map(([key, session]) => {
+			if (typeof session !== "object" || session === null) {
+				return [key, session];
+			}
+			const { agentId, ...rest } = session as Record<string, unknown>;
+			return [key, { ...rest, agentId: agentId === "claude" ? "claude" : null }];
+		}),
+	);
+}
+
 function isNodeErrorWithCode(error: unknown, code: string): boolean {
 	return typeof error === "object" && error !== null && "code" in error && (error as { code?: unknown }).code === code;
 }
@@ -294,7 +343,7 @@ function parseWorkspaceStateSavePayload(payload: RuntimeWorkspaceStateSaveReques
 
 async function readWorkspaceBoard(workspaceId: string): Promise<RuntimeBoardData> {
 	const boardPath = getWorkspaceBoardPath(workspaceId);
-	const rawBoard = await readJsonFile(boardPath);
+	const rawBoard = scrubLegacyClineFieldsFromRawBoard(await readJsonFile(boardPath));
 	return updateTaskDependencies(
 		parsePersistedStateFile(boardPath, BOARD_FILENAME, rawBoard, runtimeBoardDataSchema, createEmptyBoard()),
 	);
@@ -306,7 +355,7 @@ export async function loadWorkspaceBoardById(workspaceId: string): Promise<Runti
 
 async function readWorkspaceSessions(workspaceId: string): Promise<Record<string, RuntimeTaskSessionSummary>> {
 	const sessionsPath = getWorkspaceSessionsPath(workspaceId);
-	const rawSessions = await readJsonFile(sessionsPath);
+	const rawSessions = scrubLegacyClineFieldsFromRawSessions(await readJsonFile(sessionsPath));
 	return parsePersistedStateFile(sessionsPath, SESSIONS_FILENAME, rawSessions, workspaceSessionsSchema, {});
 }
 

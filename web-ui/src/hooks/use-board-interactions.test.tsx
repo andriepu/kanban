@@ -545,11 +545,7 @@ describe("useBoardInteractions", () => {
 			startInPlanMode: false,
 			autoReviewEnabled: false,
 			autoReviewMode: "commit",
-			agentId: "codex",
-			clineSettings: {
-				providerId: "my-provider",
-				modelId: "my-model",
-			},
+			agentId: "claude",
 			baseRef: "main",
 			createdAt: 2,
 			updatedAt: 2,
@@ -607,15 +603,10 @@ describe("useBoardInteractions", () => {
 		});
 
 		// After restore, disableTaskAutoReview is called via setBoard updater.
-		// Verify model fields survived the restore flow.
 		const reviewCards = currentBoard.columns.find((col) => col.id === "review")?.cards ?? [];
 		const restoredTask = reviewCards.find((card) => card.id === "task-trash-model");
 		expect(restoredTask).toBeDefined();
-		expect(restoredTask?.clineSettings).toEqual({
-			providerId: "my-provider",
-			modelId: "my-model",
-		});
-		expect(restoredTask?.agentId).toBe("codex");
+		expect(restoredTask?.agentId).toBe("claude");
 	});
 
 	it("ignores card selection requests for trashed tasks", async () => {

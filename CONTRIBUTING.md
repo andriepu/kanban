@@ -4,20 +4,19 @@ Thanks for your interest in contributing to Kanban! This project is in research 
 
 ## What We're Looking For
 
-Kanban currently supports Claude, Codex, Gemini, OpenCode, Droid, and Cline as runtime agents, and runs on macOS, Linux, and Windows. The surface area for cross-compatibility issues is large, and that's where contributions have the most impact.
+Kanban runs Claude Code as its runtime agent, and runs on macOS, Linux, and Windows. The surface area for cross-platform issues is large, and that's where contributions have the most impact.
 
 We are actively looking for help with:
 
 - Cross-platform support: fixing bugs and inconsistencies across macOS, Linux, and Windows (terminal behavior, path handling, symlinks, shell detection, etc.)
-- Agent compatibility: adding support for new CLI agents, fixing integration issues with existing ones, and improving agent detection/lifecycle management
 - Bug fixes: anything that makes the current feature set more stable and reliable
-- Test coverage: adding tests for untested paths, especially platform-specific and agent-specific behavior
+- Test coverage: adding tests for untested paths, especially platform-specific behavior
 
-We are not currently accepting feature PRs. If you have a feature idea, please open a [Feature Request discussion](https://github.com/cline/kanban/discussions/categories/feature-requests) instead. We may incorporate it into the roadmap, but the priority right now is stability and compatibility.
+We are not currently accepting feature PRs. The priority right now is stability and compatibility.
 
 ## Reporting Bugs
 
-Before opening a new issue, search [existing issues](https://github.com/cline/kanban/issues) to avoid duplicates. When filing a bug, include:
+Before opening a new issue, search existing issues to avoid duplicates. When filing a bug, include:
 
 - Your OS and version
 - Which CLI agent you're using (and its version)
@@ -25,7 +24,7 @@ Before opening a new issue, search [existing issues](https://github.com/cline/ka
 - Expected vs. actual behavior
 - Any relevant terminal output or screenshots
 
-If you discover a security vulnerability, please report it privately using [GitHub's security advisory tool](https://github.com/cline/kanban/security/advisories/new).
+If you discover a security vulnerability, please report it privately via GitHub's security advisory tool.
 
 ## Before Contributing
 
@@ -37,7 +36,7 @@ PRs without a corresponding issue may be closed.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/cline/kanban.git
+   git clone <repo-url>
    cd kanban
    ```
 
@@ -82,7 +81,7 @@ If you'd like to add support for a new CLI agent, open an issue first to discuss
 - Terminal integration and hook support
 - Tests covering the above
 
-Look at the existing agent implementations in `src/` for reference. The agent list lives in `src/cli.ts` and the runtime abstractions are nearby.
+Look at the existing Claude adapter in `src/terminal/agent-session-adapters.ts` for reference.
 
 ## Philosophy
 
@@ -90,9 +89,7 @@ Kanban is in foundation mode. Favor clear primitives and good tooling over early
 
 ## Community
 
-- [Discord](https://discord.gg/cline) (join the #kanban channel)
-- [Feature Requests](https://github.com/cline/kanban/discussions/categories/feature-requests)
-- [Issues](https://github.com/cline/kanban/issues)
+- Issues: open a GitHub issue on this repository
 
 ## License
 

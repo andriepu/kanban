@@ -79,7 +79,7 @@ describe("telemetry events", () => {
 	});
 
 	it("normalizes nullable agent ids for telemetry", () => {
-		expect(toTelemetrySelectedAgentId("codex")).toBe("codex");
+		expect(toTelemetrySelectedAgentId("claude")).toBe("claude");
 		expect(toTelemetrySelectedAgentId(null)).toBe("unknown");
 		expect(toTelemetrySelectedAgentId(undefined)).toBe("unknown");
 	});
