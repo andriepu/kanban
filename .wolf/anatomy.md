@@ -149,15 +149,13 @@
 
 ## src/commands/
 
-- `hooks.ts` — Exports inferHookSourceFromPayload (~6874 tok)
+- `hooks.ts` — Exports inferHookSourceFromPayload, registerHooksCommand. Claude-only hook ingestion. (~3500 tok)
 - `task.ts` — RuntimeAddTaskDependencyResult: toErrorMessage, printJson, parseListColumn + 20 more (~10150 tok)
 
 ## src/commands/hook-events/
 
-- `codex-hook-events.ts` — Exports CodexMappedHookEvent, CodexSessionWatcherNotify, CodexSessionWatcherOptions, resolveCodexRolloutFinalMessageForCwd (~7884 tok)
-- `droid-hook-events.ts` — Exports resolveDroidFinalMessageFromTranscriptText, enrichDroidReviewMetadata (~1344 tok)
 - `hook-utils.ts` — Exports normalizeWhitespace, asRecord, readStringField, readNestedString (~297 tok)
-- `kiro-hook-events.ts` — Exports normalizeKiroHookMetadata (~2867 tok)
+  Note: codex-hook-events.ts, droid-hook-events.ts, kiro-hook-events.ts deleted (personal-use simplification)
 
 ## src/config/
 
@@ -194,7 +192,7 @@
 
 ## src/security/
 
-- `passcode-manager.ts` — Passcode manager for remotely-hosted Kanban instances. (~2324 tok)
+  Note: directory deleted — passcode-manager.ts removed (personal-use simplification, no remote hosting needed)
 
 ## src/server/
 
@@ -215,7 +213,7 @@
 
 ## src/telemetry/
 
-- `sentry-node.ts` — Exports captureNodeException, flushNodeTelemetry, isNodeSentryEnabled (~373 tok)
+  Note: directory deleted — sentry-node.ts removed (personal-use simplification, no telemetry needed)
 
 ## src/terminal/
 
@@ -284,13 +282,8 @@
 - `git-history.test.ts` — runGit: initRepository, commitAll (~2031 tok)
 - `git-utils.test.ts` — childProcessMocks: createExecError (~585 tok)
 - `graceful-shutdown.test.ts` — GracefulShutdownProcess: createDeferredPromise, createProcessDouble (~1160 tok)
-- `hooks-codex-parser.test.ts` — createCodexLogLine: createCodexOpLine (~1320 tok)
-- `hooks-codex-rollout-fallback.test.ts` — Declares tempDir (~1107 tok)
-- `hooks-codex-watcher.test.ts` — createCodexLogLine: createCodexOpLine, createRolloutLine (~1969 tok)
-- `hooks-codex-wrapper.test.ts` — Declares args (~470 tok)
-- `hooks-source-inference.test.ts` — Declares when (~867 tok)
+- `hooks-source-inference.test.ts` — Tests inferHookSourceFromPayload (Claude-only) (~200 tok)
 - `kanban-command.test.ts` — Declares parts (~555 tok)
-- `kiro-hook-events.test.ts` — Declares metadata (~1061 tok)
 - `locked-file-system.test.ts` — Declares lockfileMocks (~524 tok)
 - `process-termination.test.ts` — Declares kill (~364 tok)
 - `runtime-endpoint.test.ts` — Declares originalRuntimePort (~1074 tok)
@@ -311,8 +304,7 @@
 
 ## test/runtime/server/
 
-- `internal-auth-token.test.ts` — Unit tests for the internal CLI auth token mechanism in passcode-manager.ts. (~2264 tok)
-- `ws-upgrade-passcode.test.ts` — Unit tests for the WebSocket upgrade passcode gate in runtime-server.ts. (~1254 tok)
+  Note: internal-auth-token.test.ts and ws-upgrade-passcode.test.ts deleted (personal-use simplification — passcode and auth token code removed)
 
 ## test/runtime/state/
 
@@ -400,11 +392,10 @@
 - `kanban-board.test.tsx` — dndMock — uses useEffect (~1704 tok)
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
 - `open-workspace-button.tsx` — OpenTargetIcon — uses useState (~891 tok)
-- `passcode-gate.tsx` — Wraps children with a passcode gate. On mount it checks (~1988 tok)
+  Note: passcode-gate.tsx deleted (personal-use simplification)
 - `project-navigation-panel.test.tsx` — Wrapper that owns the sidebar layout state via the hook and passes it as props. (~1996 tok)
 - `project-navigation-panel.tsx` — COLLAPSED_WIDTH — uses useState, useEffect, useCallback (~6896 tok)
-- `remote-file-browser-dialog.test.tsx` — mockQuery (~2830 tok)
-- `remote-file-browser-dialog.tsx` — RemoteFileBrowserDialog — renders form, modal — uses useState, useRef, useCallback, useEffect (~2779 tok)
+  Note: remote-file-browser-dialog.tsx and remote-file-browser-dialog.test.tsx deleted (personal-use simplification)
 - `runtime-settings-dialog.test.tsx` — RadixSelectCtx — uses useContext (~2853 tok)
 - `runtime-settings-dialog.tsx` — Settings dialog composition for Kanban. (~11026 tok)
 - `search-select-dropdown.tsx` — MATCHED_TEXT_STYLE — uses useState, useMemo, useCallback, useEffect (~3277 tok)
@@ -582,11 +573,7 @@
 
 ## web-ui/src/telemetry/
 
-- `events.test.ts` — Declares captureMock (~685 tok)
-- `events.ts` — Exports TelemetrySelectedAgentId, toTelemetrySelectedAgentId, trackTaskCreated, trackTaskDependencyCreated + 2 more (~480 tok)
-- `posthog-config.ts` — Exports posthogApiKey, posthogHost, posthogOptions, isTelemetryEnabled (~235 tok)
-- `posthog-provider.tsx` — TelemetryProvider (~140 tok)
-- `sentry.ts` — Exports initializeSentry, isSentryEnabled (~184 tok)
+  Note: entire directory deleted — sentry.ts, posthog-config.ts, posthog-provider.tsx, events.ts, events.test.ts all removed (personal-use simplification, no telemetry needed)
 
 ## web-ui/src/terminal/
 
