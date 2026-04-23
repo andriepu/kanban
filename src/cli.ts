@@ -71,9 +71,9 @@ interface ShutdownIndicator {
 /**
  * Decide whether this CLI invocation should auto-open a browser tab.
  *
- * This uses a positive allowlist for app-launch shapes like `kanban`,
- * `kanban --agent codex`, and `kanban --port 3484`. Any subcommand or
- * unexpected argument is treated as a command-style invocation instead.
+ * This uses a positive allowlist for app-launch shapes like `kanban`
+ * and `kanban --port 3484`. Any subcommand or unexpected argument is
+ * treated as a command-style invocation instead.
  */
 function shouldAutoOpenBrowserTabForInvocation(argv: string[]): boolean {
 	const launchFlags = new Set(["--open", "--no-open", "--skip-shutdown-cleanup"]);
