@@ -1,29 +1,10 @@
-import { spawn } from "node:child_process";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { createTRPCProxyClient, httpBatchLink, TRPCClientError } from "@trpc/client";
 import type { Command } from "commander";
 import type { RuntimeHookEvent, RuntimeTaskHookActivity } from "../core/api-contract";
-import { buildKanbanCommandParts } from "../core/kanban-command";
 import { buildKanbanRuntimeUrl, getRuntimeFetch } from "../core/runtime-endpoint";
-import { buildWindowsCmdArgsArray, resolveWindowsComSpec, shouldUseWindowsCmdLaunch } from "../core/windows-cmd-launch";
 import { parseHookRuntimeContextFromEnv } from "../terminal/hook-runtime-context";
 import type { RuntimeAppRouter } from "../trpc/app-router";
-import {
-	type CodexMappedHookEvent,
-	resolveCodexRolloutFinalMessageForCwd,
-	startCodexSessionWatcher,
-} from "./hook-events/codex-hook-events";
-import { enrichDroidReviewMetadata } from "./hook-events/droid-hook-events";
 import { asRecord, normalizeWhitespace, readNestedString, readStringField } from "./hook-events/hook-utils";
-import { normalizeKiroHookMetadata } from "./hook-events/kiro-hook-events";
-
-export {
-	createCodexWatcherState,
-	parseCodexEventLine,
-	resolveCodexRolloutFinalMessageForCwd,
-	startCodexSessionWatcher,
-} from "./hook-events/codex-hook-events";
 
 const VALID_EVENTS = new Set<RuntimeHookEvent>(["to_review", "to_in_progress", "activity"]);
 
@@ -43,11 +24,6 @@ interface HookCommandMetadataOptionValues {
 	hookEventName?: string;
 	notificationType?: string;
 	metadataBase64?: string;
-}
-
-interface CodexWrapperArgs {
-	realBinary: string;
-	agentArgs: string[];
 }
 
 function formatError(error: unknown): string {
@@ -203,20 +179,8 @@ function inferActivityText(
 			readStringField(payload, "hookName"))
 		: null;
 	const normalizedHookEvent = hookEventName?.toLowerCase() ?? "";
-	const codexType = payload ? readStringField(payload, "type") : null;
-	const normalizedCodexType = codexType?.toLowerCase() ?? "";
 	const toolInput = payload ? extractToolInput(payload) : null;
 	const toolOperation = describeToolOperation(toolName, toolInput);
-
-	if (normalizedCodexType === "task_started") {
-		return "Working on task";
-	}
-	if (normalizedCodexType === "exec_command_begin") {
-		return "Running command";
-	}
-	if (normalizedCodexType.endsWith("_approval_request")) {
-		return "Waiting for approval";
-	}
 
 	if (normalizedHookEvent === "pretooluse" || normalizedHookEvent === "beforetool") {
 		return toolOperation ? `Using ${toolOperation}` : "Using tool";
@@ -275,15 +239,6 @@ export function inferHookSourceFromPayload(payload: Record<string, unknown> | nu
 	if (normalizedTranscriptPath?.includes("/.claude/")) {
 		return "claude";
 	}
-	if (normalizedTranscriptPath?.includes("/.kiro/")) {
-		return "kiro";
-	}
-	if (normalizedTranscriptPath?.includes("/.factory/")) {
-		return "droid";
-	}
-	if (payload && readStringField(payload, "type") === "agent-turn-complete") {
-		return "codex";
-	}
 	return null;
 }
 
@@ -293,18 +248,6 @@ function normalizeHookMetadata(
 	flagMetadata: Partial<RuntimeTaskHookActivity>,
 ): Partial<RuntimeTaskHookActivity> | undefined {
 	const inferredSource = inferHookSourceFromPayload(payload);
-	const sourceHint = flagMetadata.source ?? inferredSource;
-	if (sourceHint?.toLowerCase() === "kiro") {
-		const kiroMetadata = normalizeKiroHookMetadata({
-			event,
-			payload,
-			flagMetadata,
-			sourceHint,
-		});
-		if (kiroMetadata) {
-			return kiroMetadata;
-		}
-	}
 
 	const hookEventName = payload
 		? (readStringField(payload, "hook_event_name") ??
@@ -403,93 +346,6 @@ async function ingestHookEvent(args: HooksIngestArgs): Promise<void> {
 	}
 }
 
-function spawnBackgroundKanban(args: string[]): void {
-	try {
-		const commandParts = buildKanbanCommandParts(args);
-		const child = spawn(commandParts[0], commandParts.slice(1), {
-			detached: false,
-			stdio: "ignore",
-			env: process.env,
-		});
-		child.unref();
-	} catch {
-		// Best effort: hook notification failures should never block agents.
-	}
-}
-
-function appendMetadataFlags(args: string[], metadata?: Partial<RuntimeTaskHookActivity>): string[] {
-	if (!metadata) {
-		return args;
-	}
-	if (metadata.source) {
-		args.push("--source", metadata.source);
-	}
-	if (metadata.activityText) {
-		args.push("--activity-text", metadata.activityText);
-	}
-	if (metadata.toolName) {
-		args.push("--tool-name", metadata.toolName);
-	}
-	if (metadata.finalMessage) {
-		args.push("--final-message", metadata.finalMessage);
-	}
-	if (metadata.hookEventName) {
-		args.push("--hook-event-name", metadata.hookEventName);
-	}
-	if (metadata.notificationType) {
-		args.push("--notification-type", metadata.notificationType);
-	}
-	return args;
-}
-
-function notifyCodexSessionWatcherEvent(mapped: CodexMappedHookEvent): void {
-	spawnBackgroundKanban(appendMetadataFlags(["hooks", "notify", "--event", mapped.event], mapped.metadata));
-}
-
-async function enrichCodexReviewMetadata(args: HooksIngestArgs, cwd: string): Promise<HooksIngestArgs> {
-	if (args.event !== "to_review") {
-		return args;
-	}
-	const metadata = args.metadata ?? {};
-	const source = metadata.source?.toLowerCase();
-	if (source !== "codex") {
-		return args;
-	}
-	const existingFinalMessage =
-		typeof metadata.finalMessage === "string" && metadata.finalMessage.trim().length > 0
-			? metadata.finalMessage
-			: null;
-	if (existingFinalMessage) {
-		return {
-			...args,
-			metadata: {
-				...metadata,
-				activityText: metadata.activityText ?? `Final: ${existingFinalMessage}`,
-			},
-		};
-	}
-
-	const fallbackFinalMessage = await resolveCodexRolloutFinalMessageForCwd(cwd);
-	if (!fallbackFinalMessage) {
-		return {
-			...args,
-			metadata: {
-				...metadata,
-				activityText: metadata.activityText ?? "Waiting for review",
-			},
-		};
-	}
-
-	return {
-		...args,
-		metadata: {
-			...metadata,
-			finalMessage: fallbackFinalMessage,
-			activityText: metadata.activityText ?? `Final: ${fallbackFinalMessage}`,
-		},
-	};
-}
-
 async function runHooksNotify(
 	event: RuntimeHookEvent,
 	options: HookCommandMetadataOptionValues,
@@ -497,9 +353,7 @@ async function runHooksNotify(
 ): Promise<void> {
 	try {
 		const stdinPayload = await readStdinText();
-		const parsedArgs = parseHooksIngestArgs(event, options, payloadArg, stdinPayload);
-		const codexEnrichedArgs = await enrichCodexReviewMetadata(parsedArgs, process.cwd());
-		const args = await enrichDroidReviewMetadata(codexEnrichedArgs);
+		const args = parseHooksIngestArgs(event, options, payloadArg, stdinPayload);
 		await ingestHookEvent(args);
 	} catch {
 		// Best effort only.
@@ -518,200 +372,6 @@ async function readStdinText(): Promise<string> {
 	return chunks.join("");
 }
 
-function mapGeminiHookEvent(eventName: string): RuntimeHookEvent | null {
-	if (eventName === "AfterAgent") {
-		return "to_review";
-	}
-	if (eventName === "BeforeAgent") {
-		return "to_in_progress";
-	}
-	if (eventName === "AfterTool" || eventName === "BeforeTool" || eventName === "Notification") {
-		return "activity";
-	}
-	return null;
-}
-
-async function runGeminiHookSubcommand(): Promise<void> {
-	let payload = "";
-	try {
-		payload = await readStdinText();
-	} catch {
-		payload = "";
-	}
-
-	let hookEventName = "";
-	let payloadRecord: Record<string, unknown> | null = null;
-	try {
-		const parsed = JSON.parse(payload || "{}") as { hook_event_name?: unknown };
-		payloadRecord = asRecord(parsed);
-		hookEventName =
-			typeof parsed.hook_event_name === "string"
-				? parsed.hook_event_name
-				: payloadRecord && typeof payloadRecord.hookEventName === "string"
-					? payloadRecord.hookEventName
-					: "";
-	} catch {
-		hookEventName = "";
-		payloadRecord = null;
-	}
-
-	process.stdout.write("{}\n");
-
-	const mappedEvent = mapGeminiHookEvent(hookEventName);
-	if (!mappedEvent) {
-		return;
-	}
-	const metadata = normalizeHookMetadata(mappedEvent, payloadRecord, {
-		source: "gemini",
-		hookEventName: hookEventName || undefined,
-	});
-	spawnBackgroundKanban(appendMetadataFlags(["hooks", "notify", "--event", mappedEvent], metadata));
-}
-
-export function buildCodexWrapperChildArgs(agentArgs: string[]): string[] {
-	const childArgs = [...agentArgs];
-	const hasNotifyOverride = childArgs.some((arg, index) => {
-		if (arg === "-c" || arg === "--config") {
-			const next = childArgs[index + 1];
-			return typeof next === "string" && next.startsWith("notify=");
-		}
-		return arg.startsWith("-cnotify=") || arg.startsWith("--config=notify=");
-	});
-	if (hasNotifyOverride) {
-		return childArgs;
-	}
-	// Session log formats can change across Codex versions. Always wire legacy notify
-	// so task completion still transitions to review when watcher parsing misses events.
-	const reviewNotifyCommandParts = buildKanbanCommandParts([
-		"hooks",
-		"notify",
-		"--event",
-		"to_review",
-		"--source",
-		"codex",
-	]);
-	const notifyConfig = `notify=${JSON.stringify(reviewNotifyCommandParts)}`;
-	childArgs.unshift(notifyConfig);
-	childArgs.unshift("-c");
-	return childArgs;
-}
-
-export function buildCodexWrapperSpawn(
-	realBinary: string,
-	agentArgs: string[],
-	platform: NodeJS.Platform = process.platform,
-	env: NodeJS.ProcessEnv = process.env,
-): { binary: string; args: string[] } {
-	const childArgs = buildCodexWrapperChildArgs(agentArgs);
-	if (!shouldUseWindowsCmdLaunch(realBinary, platform, env)) {
-		return {
-			binary: realBinary,
-			args: childArgs,
-		};
-	}
-	return {
-		binary: resolveWindowsComSpec(env),
-		args: buildWindowsCmdArgsArray(realBinary, childArgs),
-	};
-}
-
-async function runCodexWrapperSubcommand(wrapperArgs: CodexWrapperArgs): Promise<void> {
-	const childEnv: NodeJS.ProcessEnv = { ...process.env };
-	let shuttingDown = false;
-	let stopWatcher: () => Promise<void> = async () => {};
-	let watcherStartPromise: Promise<void> | null = null;
-
-	let shouldWatchSessionLog = false;
-	try {
-		parseHookRuntimeContextFromEnv(childEnv);
-		shouldWatchSessionLog = true;
-	} catch {
-		shouldWatchSessionLog = false;
-	}
-
-	if (shouldWatchSessionLog) {
-		childEnv.CODEX_TUI_RECORD_SESSION = "1";
-		if (!childEnv.CODEX_TUI_SESSION_LOG_PATH) {
-			childEnv.CODEX_TUI_SESSION_LOG_PATH = join(
-				tmpdir(),
-				`kanban-codex-session-${process.pid}_${Date.now()}.jsonl`,
-			);
-		}
-		const sessionLogPath = childEnv.CODEX_TUI_SESSION_LOG_PATH;
-		if (sessionLogPath) {
-			watcherStartPromise = (async () => {
-				const startedStopWatcher = await startCodexSessionWatcher(
-					sessionLogPath,
-					notifyCodexSessionWatcherEvent,
-					undefined,
-					{
-						cwd: process.cwd(),
-					},
-				);
-				if (shuttingDown) {
-					await startedStopWatcher();
-					return;
-				}
-				stopWatcher = startedStopWatcher;
-			})().catch(() => {
-				// Best effort only.
-			});
-		}
-	}
-
-	const childLaunch = buildCodexWrapperSpawn(wrapperArgs.realBinary, wrapperArgs.agentArgs);
-	const child = spawn(childLaunch.binary, childLaunch.args, {
-		stdio: "inherit",
-		env: childEnv,
-	});
-
-	const forwardSignal = (signal: NodeJS.Signals) => {
-		if (!child.killed) {
-			child.kill(signal);
-		}
-	};
-
-	const onSigint = () => {
-		forwardSignal("SIGINT");
-	};
-	const onSigterm = () => {
-		forwardSignal("SIGTERM");
-	};
-
-	process.on("SIGINT", onSigint);
-	process.on("SIGTERM", onSigterm);
-
-	const cleanup = async () => {
-		shuttingDown = true;
-		await watcherStartPromise;
-		await stopWatcher();
-		process.off("SIGINT", onSigint);
-		process.off("SIGTERM", onSigterm);
-	};
-
-	await new Promise<void>((resolve) => {
-		let finished = false;
-		const finish = (exitCode: number) => {
-			if (finished) {
-				return;
-			}
-			finished = true;
-			void (async () => {
-				await cleanup();
-				process.exitCode = exitCode;
-				resolve();
-			})();
-		};
-
-		child.on("error", () => {
-			finish(1);
-		});
-		child.on("exit", (code) => {
-			finish(code ?? 1);
-		});
-	});
-}
-
 async function runHooksIngest(
 	event: RuntimeHookEvent,
 	options: HookCommandMetadataOptionValues,
@@ -720,9 +380,7 @@ async function runHooksIngest(
 	let args: HooksIngestArgs;
 	try {
 		const stdinPayload = await readStdinText();
-		const parsedArgs = parseHooksIngestArgs(event, options, payloadArg, stdinPayload);
-		const codexEnrichedArgs = await enrichCodexReviewMetadata(parsedArgs, process.cwd());
-		args = await enrichDroidReviewMetadata(codexEnrichedArgs);
+		args = parseHooksIngestArgs(event, options, payloadArg, stdinPayload);
 	} catch (error) {
 		process.stderr.write(`kanban hooks ingest: ${formatError(error)}\n`);
 		process.exitCode = 1;
@@ -779,23 +437,4 @@ export function registerHooksCommand(program: Command): void {
 				await runHooksNotify(options.event, options, payload);
 			},
 		);
-
-	hooks
-		.command("gemini-hook")
-		.description("Gemini hook entrypoint.")
-		.action(async () => {
-			await runGeminiHookSubcommand();
-		});
-
-	hooks
-		.command("codex-wrapper [agentArgs...]")
-		.description("Codex wrapper that emits Kanban hook notifications.")
-		.requiredOption("--real-binary <path>", "Path to the actual codex binary.")
-		.allowUnknownOption(true)
-		.action(async (agentArgs: string[] | undefined, options: { realBinary: string }) => {
-			await runCodexWrapperSubcommand({
-				realBinary: options.realBinary,
-				agentArgs: agentArgs ?? [],
-			});
-		});
 }
