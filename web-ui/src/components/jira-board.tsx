@@ -25,7 +25,7 @@ export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraB
 	}
 
 	return (
-		<div className="flex h-full flex-1 gap-3 overflow-x-auto p-4">
+		<div className="flex h-full flex-1 gap-2 overflow-x-auto p-2">
 			{COLUMNS.map((col) => {
 				const cards = board.cards.filter((c) => c.status === col.id);
 				return (
@@ -80,18 +80,18 @@ function JiraBoardColumn({
 
 	return (
 		<div
-			className="flex flex-1 min-w-56 flex-col gap-2 rounded-lg bg-surface-1 p-3"
+			className="flex flex-1 min-w-56 min-h-0 flex-col rounded-lg bg-surface-1 overflow-hidden border border-border"
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
-			<div className="flex items-center justify-between">
+			<div className="flex h-10 items-center justify-between px-3">
 				<div className="flex items-center gap-1.5">
 					<ColumnIndicator columnId={columnId} />
-					<span className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{label}</span>
+					<span className="font-semibold text-sm">{label}</span>
 				</div>
 				<span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-text-tertiary">{cards.length}</span>
 			</div>
-			<div className="flex flex-col gap-2">
+			<div className="flex flex-col gap-2 p-1.5 overflow-y-auto min-h-0">
 				{onImportFromJira ? (
 					<Button
 						variant="default"
