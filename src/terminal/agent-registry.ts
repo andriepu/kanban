@@ -115,5 +115,8 @@ export function buildRuntimeConfigResponse(runtimeConfig: RuntimeConfigState): R
 		openPrPromptTemplate: runtimeConfig.openPrPromptTemplate,
 		commitPromptTemplateDefault: runtimeConfig.commitPromptTemplateDefault,
 		openPrPromptTemplateDefault: runtimeConfig.openPrPromptTemplateDefault,
+		worktreesRoot: runtimeConfig.worktreesRoot,
+		reposRoot: runtimeConfig.reposRoot,
+		jiraProjectKey: runtimeConfig.jiraProjectKey,
 	};
 }

@@ -17,6 +17,9 @@ interface RuntimeGlobalConfigFileShape {
 	readyForReviewNotificationsEnabled?: boolean;
 	commitPromptTemplate?: string;
 	openPrPromptTemplate?: string;
+	worktreesRoot?: string;
+	reposRoot?: string;
+	jiraProjectKey?: string;
 }
 
 interface RuntimeProjectConfigFileShape {
@@ -35,6 +38,9 @@ export interface RuntimeConfigState {
 	openPrPromptTemplate: string;
 	commitPromptTemplateDefault: string;
 	openPrPromptTemplateDefault: string;
+	worktreesRoot: string | null;
+	reposRoot: string | null;
+	jiraProjectKey: string | null;
 }
 
 export interface RuntimeConfigUpdateInput {
@@ -45,6 +51,9 @@ export interface RuntimeConfigUpdateInput {
 	shortcuts?: RuntimeProjectShortcut[];
 	commitPromptTemplate?: string;
 	openPrPromptTemplate?: string;
+	worktreesRoot?: string | null;
+	reposRoot?: string | null;
+	jiraProjectKey?: string | null;
 }
 
 const RUNTIME_HOME_PARENT_DIR = ".kanban";
@@ -184,6 +193,12 @@ function normalizeShortcutLabel(value: unknown): string | null {
 	return normalized.length > 0 ? normalized : null;
 }
 
+function normalizeOptionalString(value: unknown): string | null {
+	if (typeof value !== "string") return null;
+	const trimmed = value.trim();
+	return trimmed.length > 0 ? trimmed : null;
+}
+
 function hasOwnKey<T extends object>(value: T | null, key: keyof T): boolean {
 	if (!value) {
 		return false;
@@ -282,6 +297,9 @@ function toRuntimeConfigState({
 		),
 		commitPromptTemplateDefault: DEFAULT_COMMIT_PROMPT_TEMPLATE,
 		openPrPromptTemplateDefault: DEFAULT_OPEN_PR_PROMPT_TEMPLATE,
+		worktreesRoot: normalizeOptionalString(globalConfig?.worktreesRoot),
+		reposRoot: normalizeOptionalString(globalConfig?.reposRoot),
+		jiraProjectKey: normalizeOptionalString(globalConfig?.jiraProjectKey),
 	};
 }
 
@@ -303,6 +321,9 @@ async function writeRuntimeGlobalConfigFile(
 		readyForReviewNotificationsEnabled?: boolean;
 		commitPromptTemplate?: string;
 		openPrPromptTemplate?: string;
+		worktreesRoot?: string | null;
+		reposRoot?: string | null;
+		jiraProjectKey?: string | null;
 	},
 ): Promise<void> {
 	const existing = await readRuntimeConfigFile<RuntimeGlobalConfigFileShape>(configPath);
@@ -364,6 +385,43 @@ async function writeRuntimeGlobalConfigFile(
 	}
 	if (hasOwnKey(existing, "openPrPromptTemplate") || openPrPromptTemplate !== DEFAULT_OPEN_PR_PROMPT_TEMPLATE) {
 		payload.openPrPromptTemplate = openPrPromptTemplate;
+	}
+
+	const worktreesRoot = config.worktreesRoot === undefined ? undefined : normalizeOptionalString(config.worktreesRoot);
+	const existingWorktreesRoot = hasOwnKey(existing, "worktreesRoot")
+		? normalizeOptionalString(existing?.worktreesRoot)
+		: undefined;
+	if (worktreesRoot !== undefined) {
+		if (worktreesRoot) {
+			payload.worktreesRoot = worktreesRoot;
+		}
+	} else if (existingWorktreesRoot) {
+		payload.worktreesRoot = existingWorktreesRoot;
+	}
+
+	const reposRoot = config.reposRoot === undefined ? undefined : normalizeOptionalString(config.reposRoot);
+	const existingReposRoot = hasOwnKey(existing, "reposRoot")
+		? normalizeOptionalString(existing?.reposRoot)
+		: undefined;
+	if (reposRoot !== undefined) {
+		if (reposRoot) {
+			payload.reposRoot = reposRoot;
+		}
+	} else if (existingReposRoot) {
+		payload.reposRoot = existingReposRoot;
+	}
+
+	const jiraProjectKey =
+		config.jiraProjectKey === undefined ? undefined : normalizeOptionalString(config.jiraProjectKey);
+	const existingJiraProjectKey = hasOwnKey(existing, "jiraProjectKey")
+		? normalizeOptionalString(existing?.jiraProjectKey)
+		: undefined;
+	if (jiraProjectKey !== undefined) {
+		if (jiraProjectKey) {
+			payload.jiraProjectKey = jiraProjectKey;
+		}
+	} else if (existingJiraProjectKey) {
+		payload.jiraProjectKey = existingJiraProjectKey;
 	}
 
 	await lockedFileSystem.writeJsonFileAtomic(configPath, payload, {
@@ -447,6 +505,9 @@ function createRuntimeConfigStateFromValues(input: {
 	shortcuts: RuntimeProjectShortcut[];
 	commitPromptTemplate: string;
 	openPrPromptTemplate: string;
+	worktreesRoot?: string | null;
+	reposRoot?: string | null;
+	jiraProjectKey?: string | null;
 }): RuntimeConfigState {
 	return {
 		globalConfigPath: input.globalConfigPath,
@@ -466,6 +527,9 @@ function createRuntimeConfigStateFromValues(input: {
 		openPrPromptTemplate: normalizePromptTemplate(input.openPrPromptTemplate, DEFAULT_OPEN_PR_PROMPT_TEMPLATE),
 		commitPromptTemplateDefault: DEFAULT_COMMIT_PROMPT_TEMPLATE,
 		openPrPromptTemplateDefault: DEFAULT_OPEN_PR_PROMPT_TEMPLATE,
+		worktreesRoot: normalizeOptionalString(input.worktreesRoot),
+		reposRoot: normalizeOptionalString(input.reposRoot),
+		jiraProjectKey: normalizeOptionalString(input.jiraProjectKey),
 	};
 }
 
@@ -480,10 +544,13 @@ export function toGlobalRuntimeConfigState(current: RuntimeConfigState): Runtime
 		shortcuts: [],
 		commitPromptTemplate: current.commitPromptTemplate,
 		openPrPromptTemplate: current.openPrPromptTemplate,
+		worktreesRoot: current.worktreesRoot,
+		reposRoot: current.reposRoot,
+		jiraProjectKey: current.jiraProjectKey,
 	});
 }
 
-export async function loadRuntimeConfig(cwd: string): Promise<RuntimeConfigState> {
+export async function loadRuntimeConfig(cwd: string | null): Promise<RuntimeConfigState> {
 	const configFiles = await readRuntimeConfigFiles(cwd);
 	if (configFiles.globalConfig !== null) {
 		return toRuntimeConfigState(configFiles);
@@ -559,6 +626,9 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			shortcuts: projectConfigPath ? (updates.shortcuts ?? current.shortcuts) : current.shortcuts,
 			commitPromptTemplate: updates.commitPromptTemplate ?? current.commitPromptTemplate,
 			openPrPromptTemplate: updates.openPrPromptTemplate ?? current.openPrPromptTemplate,
+			worktreesRoot: updates.worktreesRoot === undefined ? current.worktreesRoot : updates.worktreesRoot,
+			reposRoot: updates.reposRoot === undefined ? current.reposRoot : updates.reposRoot,
+			jiraProjectKey: updates.jiraProjectKey === undefined ? current.jiraProjectKey : updates.jiraProjectKey,
 		};
 
 		const hasChanges =
@@ -568,6 +638,9 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			nextConfig.readyForReviewNotificationsEnabled !== current.readyForReviewNotificationsEnabled ||
 			nextConfig.commitPromptTemplate !== current.commitPromptTemplate ||
 			nextConfig.openPrPromptTemplate !== current.openPrPromptTemplate ||
+			nextConfig.worktreesRoot !== current.worktreesRoot ||
+			nextConfig.reposRoot !== current.reposRoot ||
+			nextConfig.jiraProjectKey !== current.jiraProjectKey ||
 			!areRuntimeProjectShortcutsEqual(nextConfig.shortcuts, current.shortcuts);
 
 		if (!hasChanges) {
@@ -581,6 +654,9 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			readyForReviewNotificationsEnabled: nextConfig.readyForReviewNotificationsEnabled,
 			commitPromptTemplate: nextConfig.commitPromptTemplate,
 			openPrPromptTemplate: nextConfig.openPrPromptTemplate,
+			worktreesRoot: nextConfig.worktreesRoot,
+			reposRoot: nextConfig.reposRoot,
+			jiraProjectKey: nextConfig.jiraProjectKey,
 		});
 		await writeRuntimeProjectConfigFile(projectConfigPath, {
 			shortcuts: nextConfig.shortcuts,
@@ -595,6 +671,9 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			shortcuts: nextConfig.shortcuts,
 			commitPromptTemplate: nextConfig.commitPromptTemplate,
 			openPrPromptTemplate: nextConfig.openPrPromptTemplate,
+			worktreesRoot: nextConfig.worktreesRoot,
+			reposRoot: nextConfig.reposRoot,
+			jiraProjectKey: nextConfig.jiraProjectKey,
 		});
 	});
 }
@@ -624,6 +703,9 @@ export async function updateGlobalRuntimeConfig(
 				shortcuts: current.shortcuts,
 				commitPromptTemplate: updates.commitPromptTemplate ?? current.commitPromptTemplate,
 				openPrPromptTemplate: updates.openPrPromptTemplate ?? current.openPrPromptTemplate,
+				worktreesRoot: updates.worktreesRoot === undefined ? current.worktreesRoot : updates.worktreesRoot,
+				reposRoot: updates.reposRoot === undefined ? current.reposRoot : updates.reposRoot,
+				jiraProjectKey: updates.jiraProjectKey === undefined ? current.jiraProjectKey : updates.jiraProjectKey,
 			};
 
 			const hasChanges =
@@ -632,7 +714,10 @@ export async function updateGlobalRuntimeConfig(
 				nextConfig.agentAutonomousModeEnabled !== current.agentAutonomousModeEnabled ||
 				nextConfig.readyForReviewNotificationsEnabled !== current.readyForReviewNotificationsEnabled ||
 				nextConfig.commitPromptTemplate !== current.commitPromptTemplate ||
-				nextConfig.openPrPromptTemplate !== current.openPrPromptTemplate;
+				nextConfig.openPrPromptTemplate !== current.openPrPromptTemplate ||
+				nextConfig.worktreesRoot !== current.worktreesRoot ||
+				nextConfig.reposRoot !== current.reposRoot ||
+				nextConfig.jiraProjectKey !== current.jiraProjectKey;
 
 			if (!hasChanges) {
 				return current;
@@ -645,6 +730,9 @@ export async function updateGlobalRuntimeConfig(
 				readyForReviewNotificationsEnabled: nextConfig.readyForReviewNotificationsEnabled,
 				commitPromptTemplate: nextConfig.commitPromptTemplate,
 				openPrPromptTemplate: nextConfig.openPrPromptTemplate,
+				worktreesRoot: nextConfig.worktreesRoot,
+				reposRoot: nextConfig.reposRoot,
+				jiraProjectKey: nextConfig.jiraProjectKey,
 			});
 
 			return createRuntimeConfigStateFromValues({
@@ -657,6 +745,9 @@ export async function updateGlobalRuntimeConfig(
 				shortcuts: nextConfig.shortcuts,
 				commitPromptTemplate: nextConfig.commitPromptTemplate,
 				openPrPromptTemplate: nextConfig.openPrPromptTemplate,
+				worktreesRoot: nextConfig.worktreesRoot,
+				reposRoot: nextConfig.reposRoot,
+				jiraProjectKey: nextConfig.jiraProjectKey,
 			});
 		},
 	);

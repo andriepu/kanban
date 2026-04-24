@@ -1,9 +1,11 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { delimiter, join } from "node:path";
+import fs from "node:fs/promises";
+import path, { delimiter, join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import {
+	getRuntimeGlobalConfigPath,
 	loadGlobalRuntimeConfig,
 	loadRuntimeConfig,
 	pickBestInstalledAgentIdFromDetected,
@@ -463,6 +465,67 @@ describe.sequential("runtime-config auto agent selection", () => {
 			});
 		} finally {
 			cleanupProject();
+			cleanupHome();
+		}
+	});
+
+	it("reads worktreesRoot from global config", async () => {
+		const { path: tempHome, cleanup: cleanupHome } = createTempDir("kanban-home-runtime-config-worktrees-root-");
+
+		try {
+			await withTemporaryEnv({ home: tempHome }, async () => {
+				const configPath = getRuntimeGlobalConfigPath();
+				await fs.mkdir(path.dirname(configPath), { recursive: true });
+				await fs.writeFile(configPath, JSON.stringify({ worktreesRoot: "/tmp/worktrees" }));
+				const config = await loadRuntimeConfig(null);
+				expect(config.worktreesRoot).toBe("/tmp/worktrees");
+			});
+		} finally {
+			cleanupHome();
+		}
+	});
+
+	it("returns null worktreesRoot when not set", async () => {
+		const { path: tempHome, cleanup: cleanupHome } = createTempDir("kanban-home-runtime-config-worktrees-root-null-");
+
+		try {
+			await withTemporaryEnv({ home: tempHome }, async () => {
+				const config = await loadRuntimeConfig(null);
+				expect(config.worktreesRoot).toBeNull();
+			});
+		} finally {
+			cleanupHome();
+		}
+	});
+
+	it("reads reposRoot from global config", async () => {
+		const { path: tempHome, cleanup: cleanupHome } = createTempDir("kanban-home-runtime-config-repos-root-");
+
+		try {
+			await withTemporaryEnv({ home: tempHome }, async () => {
+				const configPath = getRuntimeGlobalConfigPath();
+				await fs.mkdir(path.dirname(configPath), { recursive: true });
+				await fs.writeFile(configPath, JSON.stringify({ reposRoot: "/tmp/repos" }));
+				const config = await loadRuntimeConfig(null);
+				expect(config.reposRoot).toBe("/tmp/repos");
+			});
+		} finally {
+			cleanupHome();
+		}
+	});
+
+	it("reads jiraProjectKey from global config", async () => {
+		const { path: tempHome, cleanup: cleanupHome } = createTempDir("kanban-home-runtime-config-jira-key-");
+
+		try {
+			await withTemporaryEnv({ home: tempHome }, async () => {
+				const configPath = getRuntimeGlobalConfigPath();
+				await fs.mkdir(path.dirname(configPath), { recursive: true });
+				await fs.writeFile(configPath, JSON.stringify({ jiraProjectKey: "POL" }));
+				const config = await loadRuntimeConfig(null);
+				expect(config.jiraProjectKey).toBe("POL");
+			});
+		} finally {
 			cleanupHome();
 		}
 	});

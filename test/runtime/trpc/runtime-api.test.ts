@@ -64,6 +64,9 @@ function createRuntimeConfigState(): RuntimeConfigState {
 		openPrPromptTemplateDefault: "pr",
 		globalConfigPath: "/tmp/global-config.json",
 		projectConfigPath: "/tmp/project-config.json",
+		worktreesRoot: null,
+		reposRoot: null,
+		jiraProjectKey: null,
 	};
 }
 
