@@ -80,7 +80,7 @@ function JiraBoardColumn({
 
 	return (
 		<div
-			className="flex flex-1 min-w-56 shrink-0 flex-col gap-2 rounded-lg bg-surface-1 p-3"
+			className="flex flex-1 min-w-56 flex-col gap-2 rounded-lg bg-surface-1 p-3"
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
