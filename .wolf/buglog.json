@@ -218,6 +218,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-24T03:40:48.327Z"
+    },
+    {
+      "id": "bug-014",
+      "timestamp": "2026-04-24T09:32:07.974Z",
+      "error_message": "Type error",
+      "file": "web-ui/src/components/project-navigation-panel.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T09:32:07.974Z"
+    },
+    {
+      "id": "bug-015",
+      "timestamp": "2026-04-24T10:15:09.868Z",
+      "error_message": "CSS fix: hover",
+      "file": "web-ui/src/components/project-navigation-panel.tsx",
+      "root_cause": "hover: text-text-primary\" → text-text-primary hover:bg-surface-3\"",
+      "fix": "Changed hover: text-text-primary\" → text-text-primary hover:bg-surface-3\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T10:15:09.868Z"
     }
   ]
 }

@@ -1,11 +1,15 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-24T03:40:48.315Z
-> Files: 410 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-24T10:15:28.369Z
+> Files: 411 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../../.claude/plans/
+
+- `collapsed-tab-sidebar-styling-cryptic-kitten.md` — Restore collapsed project-tab sidebar button styling (~877 tok)
 
 ## ./
 
-- `.gitignore` — Git ignore rules (~62 tok)
+- `.gitignore` — Git ignore rules (~70 tok)
 - `.npmrc` (~0 tok)
 - `AGENTS.md` — Declares definitions (~2033 tok)
 - `biome.json` — Biome linter/formatter configuration (~665 tok)
@@ -412,8 +416,8 @@
 - `kanban-board.test.tsx` — dndMock — uses useEffect (~1704 tok)
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
 - `open-workspace-button.tsx` — OpenTargetIcon — uses useState (~891 tok)
-- `project-navigation-panel.test.tsx` — Wrapper that owns the sidebar layout state via the hook and passes it as props. (~2050 tok)
-- `project-navigation-panel.tsx` — COLLAPSED_WIDTH — uses useState, useEffect, useCallback. Now accepts sidebarTab/"task"|"project", onSidebarTabChange, hasJiraConfig props. Renders tab switcher below header. (~7200 tok)
+- `project-navigation-panel.test.tsx` — Wrapper that owns the sidebar layout state via the hook and passes it as props. (~2217 tok)
+- `project-navigation-panel.tsx` — COLLAPSED_WIDTH (~6730 tok)
 - `runtime-settings-dialog.test.tsx` — RadixSelectCtx — uses useContext (~2853 tok)
 - `runtime-settings-dialog.tsx` — Settings dialog composition for Kanban. (~11026 tok)
 - `search-select-dropdown.tsx` — MATCHED_TEXT_STYLE — uses useState, useMemo, useCallback, useEffect (~3277 tok)

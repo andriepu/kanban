@@ -15,3 +15,5 @@ web-ui/.env.*
 packages/desktop/out
 packages/desktop/*.tgz
 docs/superpowers/
+.superpowers
+.playwright-mcp

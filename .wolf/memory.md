@@ -69,3 +69,34 @@
 | 10:40 | Edited web-ui/src/App.tsx | 2→1 lines | ~8 |
 | 10:40 | Edited web-ui/src/App.tsx | 4→2 lines | ~36 |
 | 10:41 | Session end: 15 writes across 6 files (2026-04-24-remove-onboarding-design.md, 2026-04-24-remove-onboarding.md, use-debug-tools.ts, debug-dialog.tsx, App.tsx) | 7 reads | ~21746 tok |
+| 15:50 | Task 3: merged sidebar asides into single CSS-transitioned element, added projectFilter/onFilterProject props, stubbed in App.tsx | project-navigation-panel.tsx, project-navigation-panel.test.tsx, App.tsx | committed 832923a, 288/288 tests pass | ~3500 |
+| 16:01 | Task 4 complete: wired JiraSubtaskBoard into App.tsx project tab, removed KanbanBoard, added projectFilter flow and handleSubtaskClick | App.tsx, use-programmatic-card-moves.ts, kanban-board.tsx (deleted) | committed, 287 tests pass | ~800 |
+| 16:27 | Session end: 15 writes across 6 files (2026-04-24-remove-onboarding-design.md, 2026-04-24-remove-onboarding.md, use-debug-tools.ts, debug-dialog.tsx, App.tsx) | 7 reads | ~21746 tok |
+
+## Session: 2026-04-24 16:28
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:31 | Created ../../../.claude/plans/collapsed-tab-sidebar-styling-cryptic-kitten.md | — | ~936 |
+| 16:32 | Edited web-ui/src/components/project-navigation-panel.tsx | 7→8 lines | ~129 |
+| 16:32 | Edited web-ui/src/components/project-navigation-panel.tsx | 1→4 lines | ~72 |
+| 16:32 | restore collapsed sidebar button sizing from padding-based to fixed w-8/h-8 squares | project-navigation-panel.tsx | restored pre-832923a visual, kept crossfade arch | ~200 |
+| 16:32 | Session end: 3 writes across 2 files (collapsed-tab-sidebar-styling-cryptic-kitten.md, project-navigation-panel.tsx) | 1 reads | ~7930 tok |
+
+## Session: 2026-04-24 16:33
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:33 | Edited .gitignore | 2→4 lines | ~13 |
+| 16:33 | Session end: 1 writes across 1 files (.gitignore) | 1 reads | ~76 tok |
+| 17:15 | Edited web-ui/src/components/project-navigation-panel.tsx | 28 → 48 | ~8 |
+| 17:15 | Edited web-ui/src/components/project-navigation-panel.tsx | 19→19 lines | ~218 |
+| 17:15 | Edited web-ui/src/components/project-navigation-panel.test.tsx | 4→4 lines | ~64 |
+| 17:15 | Edited web-ui/src/components/project-navigation-panel.test.tsx | inline fix | ~21 |
+| 17:15 | bump TASK_RAIL_WIDTH 28→48, rail buttons rounded-md+px-2 py-3 | project-navigation-panel.tsx,.test.tsx | rail now 48px matching project collapsed, tests updated 8/8 pass | ~250 |
+| 17:15 | Session end: 5 writes across 3 files (.gitignore, project-navigation-panel.tsx, project-navigation-panel.test.tsx) | 2 reads | ~2437 tok |
+
+## Session: 2026-04-24 18:31
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

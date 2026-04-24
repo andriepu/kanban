@@ -28,7 +28,7 @@ const SIDEBAR_MAX_EXPANDED_WIDTH = 600;
 const AGENT_PANEL_MIN_HEIGHT = 120;
 const AGENT_PANEL_DEFAULT_HEIGHT = 240;
 const AGENT_PANEL_MAX_HEIGHT = 500;
-const TASK_RAIL_WIDTH = 28;
+const TASK_RAIL_WIDTH = 48;
 
 interface TaskCountBadge {
 	id: string;
@@ -250,7 +250,7 @@ export function ProjectNavigationPanel({
 		const isRail = jiraDetailContent == null;
 		return (
 			<aside
-				className="flex flex-col min-h-0 overflow-hidden bg-surface-1 shrink-0 relative"
+				className="flex flex-col min-h-0 overflow-hidden bg-surface-1 shrink-0 relative pt-10"
 				style={{
 					width: isRail ? TASK_RAIL_WIDTH : sidebarWidth,
 					minWidth: isRail ? TASK_RAIL_WIDTH : SIDEBAR_MIN_EXPANDED_WIDTH,
@@ -260,13 +260,13 @@ export function ProjectNavigationPanel({
 				}}
 			>
 				{isRail ? (
-					<div className="flex flex-col items-center py-3 gap-2">
+					<div className="flex flex-col items-center py-2 gap-1.5">
 						<button
 							type="button"
 							aria-current="true"
 							onClick={() => onSidebarTabChange("task")}
 							style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
-							className="cursor-pointer rounded-sm px-1.5 py-2 text-xs font-semibold text-accent bg-surface-3 border border-border"
+							className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold text-accent bg-surface-3 border border-border"
 						>
 							Tasks
 						</button>
@@ -274,7 +274,7 @@ export function ProjectNavigationPanel({
 							type="button"
 							onClick={() => onSidebarTabChange("project")}
 							style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
-							className="cursor-pointer rounded-sm px-1.5 py-2 text-xs font-medium text-text-secondary hover:text-text-primary"
+							className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-3"
 						>
 							Projects
 						</button>
@@ -379,7 +379,8 @@ export function ProjectNavigationPanel({
 							}}
 							// Collapsed icons switch workspace; highlight tracks currentProjectId, not projectFilter.
 							className={cn(
-								"rounded-md text-xs font-semibold shrink-0 border-0 cursor-pointer flex items-center justify-center py-3 px-1.5",
+								"rounded-md text-xs font-semibold shrink-0 border-0 cursor-pointer flex items-center justify-center",
+								isMobile ? "w-11 h-11" : "w-8 h-8",
 								currentProjectId === project.id
 									? "bg-accent text-accent-fg"
 									: "bg-surface-3 text-text-secondary hover:text-text-primary hover:bg-surface-4",
@@ -394,7 +395,10 @@ export function ProjectNavigationPanel({
 					title="Add project"
 					onClick={onAddProject}
 					disabled={removingProjectId !== null}
-					className="rounded-md text-xs shrink-0 border-0 cursor-pointer flex items-center justify-center bg-transparent text-text-tertiary hover:text-text-secondary hover:bg-surface-2 mt-auto py-3 px-1.5"
+					className={cn(
+						"rounded-md text-xs shrink-0 border-0 cursor-pointer flex items-center justify-center bg-transparent text-text-tertiary hover:text-text-secondary hover:bg-surface-2 mt-auto",
+						isMobile ? "w-11 h-11" : "w-8 h-8",
+					)}
 				>
 					<Plus size={16} />
 				</button>
