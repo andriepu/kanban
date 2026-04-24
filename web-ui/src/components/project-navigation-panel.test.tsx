@@ -181,4 +181,29 @@ describe("ProjectNavigationPanel width persistence", () => {
 		});
 		expect(container.querySelector('[data-testid="agent-panel"]')).not.toBeNull();
 	});
+
+	it("renders 28px vertical-text rail when sidebarTab is 'task' and no jiraDetailContent", () => {
+		renderPanel({ sidebarTab: "task" });
+		const sidebar = getSidebar(container);
+		expect(sidebar.style.width).toBe("28px");
+		// vertical text buttons present
+		const buttons = container.querySelectorAll("button");
+		const texts = Array.from(buttons).map((b) => b.textContent?.trim());
+		expect(texts).toContain("Tasks");
+		expect(texts).toContain("Projects");
+		// project list NOT rendered
+		expect(container.querySelector(".kb-project-row")).toBeNull();
+	});
+
+	it("renders detail panel when sidebarTab is 'task' and jiraDetailContent provided", () => {
+		renderPanel({
+			sidebarTab: "task",
+			jiraDetailContent: <div data-testid="jira-detail">KAN-38</div>,
+		});
+		const sidebar = getSidebar(container);
+		expect(Number.parseInt(sidebar.style.width, 10)).toBeGreaterThan(28);
+		expect(container.querySelector('[data-testid="jira-detail"]')).not.toBeNull();
+		// project list NOT rendered
+		expect(container.querySelector(".kb-project-row")).toBeNull();
+	});
 });

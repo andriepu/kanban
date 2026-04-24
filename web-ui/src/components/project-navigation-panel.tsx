@@ -28,6 +28,7 @@ const SIDEBAR_MAX_EXPANDED_WIDTH = 600;
 const AGENT_PANEL_MIN_HEIGHT = 120;
 const AGENT_PANEL_DEFAULT_HEIGHT = 240;
 const AGENT_PANEL_MAX_HEIGHT = 500;
+const TASK_RAIL_WIDTH = 28;
 
 interface TaskCountBadge {
 	id: string;
@@ -43,6 +44,7 @@ export function ProjectNavigationPanel({
 	currentProjectId,
 	removingProjectId,
 	agentSectionContent,
+	jiraDetailContent,
 	onSelectProject,
 	onRemoveProject,
 	onAddProject,
@@ -59,6 +61,7 @@ export function ProjectNavigationPanel({
 	currentProjectId: string | null;
 	removingProjectId: string | null;
 	agentSectionContent?: ReactNode;
+	jiraDetailContent?: ReactNode;
 	onSelectProject: (projectId: string) => void;
 	onRemoveProject: (projectId: string) => Promise<boolean>;
 	onAddProject: () => void;
@@ -237,6 +240,81 @@ export function ProjectNavigationPanel({
 
 	if (isMobile && isCollapsed && !isMobileClosing) {
 		return <></>;
+	}
+
+	if (sidebarTab === "task") {
+		const isRail = jiraDetailContent == null;
+		return (
+			<aside
+				className="flex flex-col min-h-0 overflow-hidden bg-surface-1 shrink-0 relative"
+				style={{
+					width: isRail ? TASK_RAIL_WIDTH : sidebarWidth,
+					minWidth: isRail ? TASK_RAIL_WIDTH : SIDEBAR_MIN_EXPANDED_WIDTH,
+					maxWidth: isRail ? TASK_RAIL_WIDTH : SIDEBAR_MAX_EXPANDED_WIDTH,
+					borderRight: "1px solid var(--color-divider)",
+					transition: "width 250ms ease, min-width 250ms ease, max-width 250ms ease",
+				}}
+			>
+				{isRail ? (
+					<div
+						style={{
+							display: "flex",
+							flexDirection: "column",
+							alignItems: "center",
+							padding: "12px 0",
+							gap: "8px",
+						}}
+					>
+						<button
+							type="button"
+							onClick={() => onSidebarTabChange("task")}
+							style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
+							className="cursor-pointer rounded-sm px-1.5 py-2 text-xs font-semibold text-accent bg-surface-3 border border-border"
+						>
+							Tasks
+						</button>
+						<button
+							type="button"
+							onClick={() => onSidebarTabChange("project")}
+							style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
+							className="cursor-pointer rounded-sm px-1.5 py-2 text-xs font-medium text-text-secondary hover:text-text-primary"
+						>
+							Projects
+						</button>
+					</div>
+				) : (
+					<div className="flex flex-col min-h-0 flex-1 overflow-hidden">
+						<div style={{ padding: "12px 12px 8px" }}>
+							<div className="mt-2 rounded-md bg-surface-2 border border-border p-1">
+								<div className="grid grid-cols-2 gap-1">
+									<button
+										type="button"
+										onClick={() => onSidebarTabChange("task")}
+										className="relative cursor-pointer rounded-sm px-2 py-1 text-xs font-medium bg-surface-4 text-text-primary border border-border"
+									>
+										Tasks
+										{!hasJiraConfig && (
+											<span
+												className="ml-1 inline-flex size-2 rounded-full bg-status-orange"
+												title="Jira & Repos not configured"
+											/>
+										)}
+									</button>
+									<button
+										type="button"
+										onClick={() => onSidebarTabChange("project")}
+										className="cursor-pointer rounded-sm px-2 py-1 text-xs font-medium text-text-secondary hover:text-text-primary border border-transparent"
+									>
+										Projects
+									</button>
+								</div>
+							</div>
+						</div>
+						<div className="flex-1 min-h-0 overflow-hidden">{jiraDetailContent}</div>
+					</div>
+				)}
+			</aside>
+		);
 	}
 
 	const collapsedWidth = COLLAPSED_WIDTH;
