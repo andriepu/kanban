@@ -12,6 +12,7 @@ import { ClearTrashDialog } from "@/components/clear-trash-dialog";
 import { DebugDialog } from "@/components/debug-dialog";
 import { AgentTerminalPanel } from "@/components/detail-panels/agent-terminal-panel";
 import { GitHistoryView } from "@/components/git-history-view";
+import { JiraBoardView } from "@/components/jira-board";
 import { KanbanBoard } from "@/components/kanban-board";
 import { ProjectNavigationPanel } from "@/components/project-navigation-panel";
 import { RuntimeSettingsDialog, type RuntimeSettingsSection } from "@/components/runtime-settings-dialog";
@@ -80,6 +81,8 @@ export default function App(): ReactElement {
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [settingsInitialSection, setSettingsInitialSection] = useState<RuntimeSettingsSection | null>(null);
 	const [homeSidebarSection, setHomeSidebarSection] = useState<"projects" | "agent">("projects");
+	const [sidebarTab, setSidebarTab] = useState<"task" | "project">("project");
+	const [selectedJiraKey, setSelectedJiraKey] = useState<string | null>(null);
 	const [isClearTrashDialogOpen, setIsClearTrashDialogOpen] = useState(false);
 	const [isGitHistoryOpen, setIsGitHistoryOpen] = useState(false);
 	const [pendingTaskStartAfterEditId, setPendingTaskStartAfterEditId] = useState<string | null>(null);
@@ -749,6 +752,9 @@ export default function App(): ReactElement {
 						setExpandedSidebarWidth={sidebarLayout.setExpandedSidebarWidth}
 						isCollapsed={sidebarLayout.isCollapsed}
 						setSidebarCollapsed={sidebarLayout.setSidebarCollapsed}
+						sidebarTab={sidebarTab}
+						onSidebarTabChange={setSidebarTab}
+						hasJiraConfig={Boolean(runtimeProjectConfig?.worktreesRoot && runtimeProjectConfig?.reposRoot)}
 					/>
 				) : null}
 				<div className="flex flex-col flex-1 min-w-0 overflow-hidden">
@@ -851,7 +857,7 @@ export default function App(): ReactElement {
 												}}
 												isDiscardWorkingChangesPending={isDiscardingHomeWorkingChanges}
 											/>
-										) : (
+										) : sidebarTab === "project" ? (
 											<KanbanBoard
 												data={board}
 												taskSessions={sessions}
@@ -881,6 +887,8 @@ export default function App(): ReactElement {
 												}
 												onDragEnd={handleDragEnd}
 											/>
+										) : (
+											<JiraBoardView onCardClick={setSelectedJiraKey} selectedJiraKey={selectedJiraKey} />
 										)}
 									</div>
 									{showHomeBottomTerminal ? (

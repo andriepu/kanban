@@ -1,6 +1,5 @@
-import * as Collapsible from "@radix-ui/react-collapsible";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { ChevronDown, ChevronUp, Ellipsis, ExternalLink, Info, Lightbulb, Plus, X } from "lucide-react";
+import { Ellipsis, ExternalLink, Info, Lightbulb, Plus, X } from "lucide-react";
 import { type MouseEvent as ReactMouseEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
@@ -14,7 +13,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/dialog";
-import { Kbd } from "@/components/ui/kbd";
 import { Spinner } from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { RuntimeAgentId, RuntimeProjectSummary } from "@/runtime/types";
@@ -25,7 +23,6 @@ import {
 	writeLocalStorageItem,
 } from "@/storage/local-storage-store";
 import { formatPathForDisplay } from "@/utils/path-display";
-import { isMacPlatform, modifierKeyLabel } from "@/utils/platform";
 import { useUnmount, useWindowEvent } from "@/utils/react-use";
 
 const COLLAPSED_WIDTH = 48;
@@ -59,6 +56,9 @@ export function ProjectNavigationPanel({
 	setExpandedSidebarWidth,
 	isCollapsed,
 	setSidebarCollapsed,
+	sidebarTab,
+	onSidebarTabChange,
+	hasJiraConfig,
 }: {
 	projects: RuntimeProjectSummary[];
 	isLoadingProjects?: boolean;
@@ -76,6 +76,9 @@ export function ProjectNavigationPanel({
 	setExpandedSidebarWidth: (width: number) => void;
 	isCollapsed: boolean;
 	setSidebarCollapsed: (collapsed: boolean, persist?: boolean) => void;
+	sidebarTab: "task" | "project";
+	onSidebarTabChange: (tab: "task" | "project") => void;
+	hasJiraConfig: boolean;
 }): React.ReactElement {
 	const sortedProjects = [...projects].sort((a, b) => a.path.localeCompare(b.path));
 
@@ -332,57 +335,84 @@ export function ProjectNavigationPanel({
 				</div>
 			</div>
 
+			{!isCollapsed && (
+				<div className="flex border-b border-border px-2 pt-2">
+					{(["task", "project"] as const).map((tab) => (
+						<button
+							key={tab}
+							type="button"
+							onClick={() => onSidebarTabChange(tab)}
+							className={cn(
+								"flex-1 py-1.5 text-sm font-medium capitalize rounded-t-sm transition-colors relative",
+								sidebarTab === tab
+									? "text-text-primary border-b-2 border-accent -mb-px"
+									: "text-text-secondary hover:text-text-primary",
+							)}
+						>
+							{tab === "task" ? "Task" : "Project"}
+							{tab === "task" && !hasJiraConfig && (
+								<span
+									className="ml-1 inline-flex size-2 rounded-full bg-status-orange"
+									title="Jira & Repos not configured"
+								/>
+							)}
+						</button>
+					))}
+				</div>
+			)}
+
 			{activeSection === "projects" ? (
 				<>
-					<div
-						className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1"
-						style={{ padding: "4px 12px" }}
-					>
-						{sortedProjects.length === 0 && isLoadingProjects ? (
-							<div style={{ padding: "4px 0" }}>
-								{Array.from({ length: 3 }).map((_, index) => (
-									<ProjectRowSkeleton key={`project-skeleton-${index}`} />
-								))}
-							</div>
-						) : null}
+					{sidebarTab === "project" && (
+						<div
+							className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1"
+							style={{ padding: "4px 12px" }}
+						>
+							{sortedProjects.length === 0 && isLoadingProjects ? (
+								<div style={{ padding: "4px 0" }}>
+									{Array.from({ length: 3 }).map((_, index) => (
+										<ProjectRowSkeleton key={`project-skeleton-${index}`} />
+									))}
+								</div>
+							) : null}
 
-						{sortedProjects.map((project) => (
-							<ProjectRow
-								key={project.id}
-								project={project}
-								isCurrent={currentProjectId === project.id}
-								removingProjectId={removingProjectId}
-								onSelect={(projectId) => {
-									onSelectProject(projectId);
-									if (isMobile) {
-										setCollapsed(true);
-									}
-								}}
-								onRemove={(projectId) => {
-									const found = sortedProjects.find((item) => item.id === projectId);
-									if (!found) {
-										return;
-									}
-									setPendingProjectRemoval(found);
-								}}
-							/>
-						))}
+							{sortedProjects.map((project) => (
+								<ProjectRow
+									key={project.id}
+									project={project}
+									isCurrent={currentProjectId === project.id}
+									removingProjectId={removingProjectId}
+									onSelect={(projectId) => {
+										onSelectProject(projectId);
+										if (isMobile) {
+											setCollapsed(true);
+										}
+									}}
+									onRemove={(projectId) => {
+										const found = sortedProjects.find((item) => item.id === projectId);
+										if (!found) {
+											return;
+										}
+										setPendingProjectRemoval(found);
+									}}
+								/>
+							))}
 
-						{!isLoadingProjects ? (
-							<button
-								type="button"
-								className="kb-project-row flex cursor-pointer items-center gap-1.5 rounded-md text-text-secondary hover:text-text-primary"
-								style={{ padding: "6px 8px" }}
-								onClick={onAddProject}
-								disabled={removingProjectId !== null}
-							>
-								<Plus size={14} className="shrink-0" />
-								<span className="text-sm">Add Project</span>
-							</button>
-						) : null}
-					</div>
-					<ShortcutsCard />
-					<ProjectSupportFooter />
+							{!isLoadingProjects ? (
+								<button
+									type="button"
+									className="kb-project-row flex cursor-pointer items-center gap-1.5 rounded-md text-text-secondary hover:text-text-primary"
+									style={{ padding: "6px 8px" }}
+									onClick={onAddProject}
+									disabled={removingProjectId !== null}
+								>
+									<Plus size={14} className="shrink-0" />
+									<span className="text-sm">Add Project</span>
+								</button>
+							) : null}
+						</div>
+					)}
+					{sidebarTab === "project" && <ProjectSupportFooter />}
 				</>
 			) : (
 				<div className="flex flex-1 min-h-0 flex-col">
@@ -545,72 +575,6 @@ function ProjectSupportFooter(): React.ReactElement {
 						Report issue <ExternalLink size={11} />
 					</button>
 				</div>
-			</div>
-		</div>
-	);
-}
-
-const MOD = isMacPlatform ? "⌘" : modifierKeyLabel;
-const ALT = isMacPlatform ? "⌥" : "Alt";
-
-const ESSENTIAL_SHORTCUTS = [
-	{ keys: ["C"], label: "New task" },
-	{ keys: [MOD, "B"], label: "Start backlog tasks" },
-	{ keys: [MOD, "Shift", "S"], label: "Settings" },
-	{ keys: ["Click", MOD], label: "Hold to link tasks" },
-	{ keys: [MOD, "G"], label: "Toggle git view" },
-	{ keys: [MOD, "J"], label: "Toggle terminal" },
-];
-
-const MORE_SHORTCUTS = [
-	{ keys: [MOD, "Shift", "A"], label: "Toggle plan / act" },
-	{ keys: [ALT, "Shift", "Enter"], label: "Start and open task" },
-	{ keys: [MOD, "M"], label: "Expand terminal" },
-	{ keys: ["Esc"], label: "Close / back" },
-];
-
-function ShortcutHint({ keys, label }: { keys: string[]; label: string }): React.ReactElement {
-	return (
-		<div className="flex justify-between items-center py-px">
-			<span className="text-text-tertiary text-xs">{label}</span>
-			<span className="inline-flex items-center gap-0.5">
-				{keys.map((key, i) => (
-					<Kbd key={`${key}-${i}`}>{key}</Kbd>
-				))}
-			</span>
-		</div>
-	);
-}
-
-function ShortcutsCard(): React.ReactElement {
-	const [expanded, setExpanded] = useState(false);
-
-	return (
-		<div style={{ padding: "8px 12px" }}>
-			<div style={{ padding: "0 8px" }}>
-				<div className="flex flex-col gap-0.5">
-					{ESSENTIAL_SHORTCUTS.map((s) => (
-						<ShortcutHint key={s.label} keys={s.keys} label={s.label} />
-					))}
-				</div>
-				<Collapsible.Root open={expanded} onOpenChange={setExpanded}>
-					<Collapsible.Content>
-						<div className="flex flex-col gap-0.5">
-							{MORE_SHORTCUTS.map((s) => (
-								<ShortcutHint key={s.label} keys={s.keys} label={s.label} />
-							))}
-						</div>
-					</Collapsible.Content>
-					<Collapsible.Trigger asChild>
-						<button
-							type="button"
-							className="flex items-center gap-1 mt-1.5 text-xs text-text-tertiary hover:text-text-secondary cursor-pointer bg-transparent border-none p-0"
-						>
-							{expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-							{expanded ? "Less" : "All shortcuts"}
-						</button>
-					</Collapsible.Trigger>
-				</Collapsible.Root>
 			</div>
 		</div>
 	);
