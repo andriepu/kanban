@@ -110,14 +110,12 @@ describe("JiraBoardView", () => {
 		expect(onCardClick).toHaveBeenCalledWith("POL-1");
 	});
 
-	it("shows Import To-Do button", async () => {
+	it("shows syncing statusline when isImporting is true", async () => {
+		const importingBoard: UseJiraBoardResult = { ...mockJiraBoard, isImporting: true };
 		await act(async () => {
-			root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={mockJiraBoard} />);
+			root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={importingBoard} />);
 		});
-		const importButton = Array.from(container.querySelectorAll("button")).find((btn) =>
-			/import to-do/i.test(btn.textContent ?? ""),
-		);
-		expect(importButton).toBeDefined();
+		expect(container.textContent).toContain("Syncing JIRA issues");
 	});
 
 	it("shows subtask count chip on card", async () => {

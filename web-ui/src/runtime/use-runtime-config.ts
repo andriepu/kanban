@@ -91,6 +91,7 @@ export function useRuntimeConfig(
 			worktreesRoot?: string | null;
 			reposRoot?: string | null;
 			jiraProjectKey?: string | null;
+			jiraSyncIntervalMs?: number | null;
 		}): Promise<RuntimeConfigResponse | null> => {
 			setIsSaving(true);
 			try {
