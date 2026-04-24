@@ -22,13 +22,11 @@ export function DebugDialog({
 	open,
 	onOpenChange,
 	isResetAllStatePending,
-	onShowStartupOnboardingDialog,
 	onResetAllState,
 }: {
 	open: boolean;
 	onOpenChange: (nextOpen: boolean) => void;
 	isResetAllStatePending: boolean;
-	onShowStartupOnboardingDialog: () => void;
 	onResetAllState: () => void;
 }): ReactElement {
 	const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
@@ -44,21 +42,6 @@ export function DebugDialog({
 			<Dialog open={open} onOpenChange={onOpenChange}>
 				<DialogHeader title="Debug tools" icon={<Bug size={16} />} />
 				<DialogBody className="space-y-4">
-					<div className="rounded-md border border-border bg-surface-2 p-3">
-						<p className="text-sm font-medium text-text-primary">Show onboarding dialog</p>
-						<p className="mt-1 text-xs text-text-secondary">
-							Reopen the startup onboarding dialog so you can verify onboarding flows.
-						</p>
-						<Button
-							variant="default"
-							size="sm"
-							disabled={isResetAllStatePending}
-							onClick={onShowStartupOnboardingDialog}
-							className="mt-3"
-						>
-							Show onboarding
-						</Button>
-					</div>
 					<div className="rounded-md border border-border bg-surface-2 p-3">
 						<p className="text-sm font-medium text-text-primary">Reset all state</p>
 						<p className="mt-1 text-xs text-text-secondary">

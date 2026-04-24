@@ -8,8 +8,15 @@
       "file": "test/runtime/jira/jira-worktree.test.ts",
       "root_cause": "Inline dynamic imports used in type positions are explicitly forbidden by AGENTS.md. The mock was cast using `as unknown as typeof import('node:fs/promises').readdir` instead of a named type import.",
       "fix": "Added `import type { readdir as ReaddirFn } from 'node:fs/promises'` at top of test file; replaced all inline type casts with `as unknown as typeof ReaddirFn`.",
-      "tags": ["type-import", "agents-md-violation", "test", "readdir"],
-      "related_bugs": ["bug-002"],
+      "tags": [
+        "type-import",
+        "agents-md-violation",
+        "test",
+        "readdir"
+      ],
+      "related_bugs": [
+        "bug-002"
+      ],
       "occurrences": 1,
       "last_seen": "2026-04-24T00:58:00Z"
     },
@@ -20,8 +27,15 @@
       "file": "src/jira/jira-worktree.ts",
       "root_cause": "node:fs/promises `readdir` has many overloads making the type impractical to mock without ugly casts. The options interface used the full overloaded type.",
       "fix": "Introduced purpose-built `ReaddirWithFileTypes` type alias and `ScanReposOptions` interface. The real `readdir` is wrapped in a small lambda that narrows the return type. Tests now use `as unknown as typeof ReaddirFn` (named import) instead of `as unknown as typeof import(...).readdir`.",
-      "tags": ["type-narrowing", "readdir", "dependency-injection", "scanReposInRoot"],
-      "related_bugs": ["bug-001"],
+      "tags": [
+        "type-narrowing",
+        "readdir",
+        "dependency-injection",
+        "scanReposInRoot"
+      ],
+      "related_bugs": [
+        "bug-001"
+      ],
       "occurrences": 1,
       "last_seen": "2026-04-24T00:58:00Z"
     },
@@ -32,7 +46,12 @@
       "file": "src/jira/jira-worktree.ts",
       "root_cause": "Single try/catch around both `access()` and `symlink()` swallowed symlink failures, leaving the worktree in an inconsistent state without any signal to the caller.",
       "fix": "Split into two blocks: access() failure sets envExists=false (silent skip); symlink() runs outside the catch and propagates errors to the caller.",
-      "tags": ["error-handling", "symlink", "createSubtaskWorktree", "env"],
+      "tags": [
+        "error-handling",
+        "symlink",
+        "createSubtaskWorktree",
+        "env"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-24T00:58:00Z"
@@ -44,7 +63,12 @@
       "file": "test/runtime/jira/jira-board-state.test.ts",
       "root_cause": "Import used .js extension which is wrong for this project's moduleResolution=Bundler tsconfig. Bundler resolution does not allow .js suffix on TypeScript source imports.",
       "fix": "Removed .js extension from import path: '../../../src/jira/jira-board-state.js' → '../../../src/jira/jira-board-state'",
-      "tags": ["import", "module-resolution", "js-extension", "tsconfig-bundler"],
+      "tags": [
+        "import",
+        "module-resolution",
+        "js-extension",
+        "tsconfig-bundler"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-24T01:30:00Z"
@@ -56,7 +80,11 @@
       "file": "test/runtime/trpc/jira-api.test.ts",
       "root_cause": "beforeEach was imported from vitest but not used in any test suite in jira-api.test.ts.",
       "fix": "Removed beforeEach from the vitest import statement.",
-      "tags": ["unused-import", "vitest", "typescript-diagnostic"],
+      "tags": [
+        "unused-import",
+        "vitest",
+        "typescript-diagnostic"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-24T01:30:00Z"
@@ -68,7 +96,12 @@
       "file": "src/server/runtime-server.ts",
       "root_cause": "trpcHttpHandler is http.RequestListener (returns void), not a Promise. createHTTPHandler from @trpc/server/adapters/standalone returns a synchronous request listener.",
       "fix": "Removed unnecessary await before trpcHttpHandler(req, res) call.",
-      "tags": ["await", "typescript-diagnostic", "trpc", "http-handler"],
+      "tags": [
+        "await",
+        "typescript-diagnostic",
+        "trpc",
+        "http-handler"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-24T01:30:00Z"
@@ -80,7 +113,12 @@
       "file": "src/trpc/jira-api.ts",
       "root_cause": "callJiraMcp returns `unknown`; direct `as` cast without runtime type check is unsafe when raw is null, string, or number.",
       "fix": "Added runtime guard: `raw !== null && typeof raw === 'object' ? (raw as ...) : {}`",
-      "tags": ["unsafe-cast", "runtime-guard", "fetchIssue", "type-safety"],
+      "tags": [
+        "unsafe-cast",
+        "runtime-guard",
+        "fetchIssue",
+        "type-safety"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-24T08:22:00Z"
@@ -92,7 +130,11 @@
       "file": "src/trpc/jira-api.ts",
       "root_cause": "Dependency was added to the interface but never consumed; test mock also referenced it.",
       "fix": "Removed getJiraProjectKey from CreateJiraApiDependencies interface, from createJiraApi call in runtime-server.ts, and from jira-api.test.ts mock.",
-      "tags": ["dead-code", "unused-dep", "interface-cleanup"],
+      "tags": [
+        "dead-code",
+        "unused-dep",
+        "interface-cleanup"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-24T08:22:00Z"
@@ -104,10 +146,78 @@
       "file": "src/trpc/jira-api.ts",
       "root_cause": "Second call was a defensive re-fetch before writing status, but unnecessary because lockedFileSystem.writeJsonFileAtomic handles atomic writes; the first call's result is still valid.",
       "fix": "Removed second loadJiraSubtasks call; reuse first call's `subtasks` map, mutate subtasks[subtaskId] directly, then write atomically.",
-      "tags": ["double-fetch", "redundant-io", "startSubtaskSession"],
+      "tags": [
+        "double-fetch",
+        "redundant-io",
+        "startSubtaskSession"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-24T08:22:00Z"
+    },
+    {
+      "id": "bug-010",
+      "timestamp": "2026-04-24T03:37:28.240Z",
+      "error_message": "Incorrect value in code",
+      "file": "web-ui/src/App.tsx",
+      "root_cause": "Had \"@/hooks/use-startup-onboarding\"",
+      "fix": "Changed to \"@/hooks/use-task-branch-options\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T03:37:28.240Z"
+    },
+    {
+      "id": "bug-011",
+      "timestamp": "2026-04-24T03:37:31.710Z",
+      "error_message": "Significant refactor of ",
+      "file": "web-ui/src/App.tsx",
+      "root_cause": "12 lines replaced/restructured",
+      "fix": "Rewrote 16→3 lines (12 removed) | Also: handleShowStartupOnboardingDialog,; onOpenStartupOnboardingDialog: handleOpenStartupOn | Also: <StartupOnboardingDialog; open={isStartupOnboardingDialogOpen}",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-04-24T03:37:40.461Z"
+    },
+    {
+      "id": "bug-012",
+      "timestamp": "2026-04-24T03:40:28.090Z",
+      "error_message": "Wrong reference: isTaskAgentReady should be settingsWorkspaceId",
+      "file": "web-ui/src/App.tsx",
+      "root_cause": "Used \"isTaskAgentReady\" instead of \"settingsWorkspaceId\"",
+      "fix": "Changed isTaskAgentReady → settingsWorkspaceId",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T03:40:28.090Z"
+    },
+    {
+      "id": "bug-013",
+      "timestamp": "2026-04-24T03:40:48.327Z",
+      "error_message": "CSS fix: config",
+      "file": "web-ui/src/App.tsx",
+      "root_cause": "config: runtimeProjectConfig, → runtimeProjectConfig, refresh: refreshRuntimeProjectConfig",
+      "fix": "Changed config: runtimeProjectConfig, → runtimeProjectConfig, refresh: refreshRuntimeProjectConfig",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T03:40:48.327Z"
     }
   ]
 }

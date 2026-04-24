@@ -33,3 +33,39 @@
 | 09:36 | Add Jira & Repos section to runtime settings dialog | runtime-settings-dialog.tsx, runtime-config-query.ts, use-runtime-config.ts | committed 0b38d12 | ~3500 |
 | 09:43 | Added jira-repos nav entry (Network icon), section anchor, sticky header; applied .trim() to initial dirty-tracking values | web-ui/src/components/runtime-settings-dialog.tsx | committed e7c2b56, tsc 0 errors, 300 tests pass | ~400 |
 | 10:10 | Task 9: Created jira-utils.ts (deriveSubtaskBranchName), subtask-create-dialog.tsx (proxy TRPC pattern), jira-card-detail-view.tsx (AgentTerminalPanel integration); lifted useJiraBoard to App.tsx; fixed addWorkspace to return workspaceId; added workspaceId to startSubtaskSession response | web-ui/src/utils/jira-utils.ts, web-ui/src/components/subtask-create-dialog.tsx, web-ui/src/components/jira-card-detail-view.tsx, web-ui/src/App.tsx, web-ui/src/components/jira-board.tsx, web-ui/src/components/jira-board.test.tsx, src/core/api-contract.ts, src/trpc/jira-api.ts, src/server/runtime-server.ts | 331 backend + 281 frontend tests pass, TypeScript clean | ~5000 |
+
+## Session: 2026-04-24 10:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:23 | Edited .gitignore | inline fix | ~5 |
+| 10:23 | Session end: 1 writes across 1 files (.gitignore) | 1 reads | ~63 tok |
+
+## Session: 2026-04-24 10:24
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-24 10:24
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:27 | Created docs/superpowers/specs/2026-04-24-remove-onboarding-design.md | — | ~586 |
+| 10:27 | Session end: 1 writes across 1 files (2026-04-24-remove-onboarding-design.md) | 6 reads | ~15303 tok |
+| 10:29 | Created docs/superpowers/plans/2026-04-24-remove-onboarding.md | — | ~3083 |
+| 10:29 | Session end: 2 writes across 2 files (2026-04-24-remove-onboarding-design.md, 2026-04-24-remove-onboarding.md) | 7 reads | ~19670 tok |
+| 10:37 | Created web-ui/src/hooks/use-debug-tools.ts | — | ~564 |
+| 10:37 | Created web-ui/src/components/debug-dialog.tsx | — | ~890 |
+| 10:37 | Edited web-ui/src/App.tsx | 10→9 lines | ~186 |
+| 10:37 | Edited web-ui/src/App.tsx | 3→2 lines | ~40 |
+| 10:37 | Edited web-ui/src/App.tsx | reduced (-13 lines) | ~44 |
+| 10:37 | Edited web-ui/src/App.tsx | 13→11 lines | ~68 |
+| 10:37 | Edited web-ui/src/App.tsx | 7→6 lines | ~57 |
+| 10:37 | Edited web-ui/src/App.tsx | reduced (-9 lines) | ~62 |
+| 10:37 | Edited web-ui/src/storage/local-storage-store.ts | 4→3 lines | ~60 |
+| 10:39 | Tasks 2–5 completed: rewrote use-debug-tools.ts (removed onOpenStartupOnboardingDialog param), rewrote debug-dialog.tsx (removed "Show onboarding dialog" section), edited App.tsx (6 edits: removed imports, hooks, handler, JSX blocks, props), removed OnboardingDialogShown from LocalStorageKey; grep verified all refs gone | use-debug-tools.ts, debug-dialog.tsx, App.tsx, local-storage-store.ts | No remaining refs to deleted symbols, no compile errors | ~1000 |
+| 10:40 | Edited web-ui/src/App.tsx | inline fix | ~19 |
+| 10:40 | Edited web-ui/src/App.tsx | 5→4 lines | ~37 |
+| 10:40 | Edited web-ui/src/App.tsx | 2→1 lines | ~8 |
+| 10:40 | Edited web-ui/src/App.tsx | 4→2 lines | ~36 |
+| 10:41 | Session end: 15 writes across 6 files (2026-04-24-remove-onboarding-design.md, 2026-04-24-remove-onboarding.md, use-debug-tools.ts, debug-dialog.tsx, App.tsx) | 7 reads | ~21746 tok |

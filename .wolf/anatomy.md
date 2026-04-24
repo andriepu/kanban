@@ -1,11 +1,11 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-23T16:02:00.367Z
-> Files: 458 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-24T03:40:48.315Z
+> Files: 410 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
-- `.gitignore` — Git ignore rules (~58 tok)
+- `.gitignore` — Git ignore rules (~62 tok)
 - `.npmrc` (~0 tok)
 - `AGENTS.md` — Declares definitions (~2033 tok)
 - `biome.json` — Biome linter/formatter configuration (~665 tok)
@@ -113,6 +113,14 @@
 - `architecture.md` — Architecture Overview (~2481 tok)
 - `README.md` — Project documentation (~238 tok)
 
+## docs/superpowers/plans/
+
+- `2026-04-24-remove-onboarding.md` — Remove "Get Started" Onboarding Implementation Plan (~2890 tok)
+
+## docs/superpowers/specs/
+
+- `2026-04-24-remove-onboarding-design.md` — Remove "Get Started" Onboarding — Design Spec (~549 tok)
+
 ## grit/
 
 - `no-console.grit` (~70 tok)
@@ -155,7 +163,6 @@
 ## src/commands/hook-events/
 
 - `hook-utils.ts` — Exports normalizeWhitespace, asRecord, readStringField, readNestedString (~297 tok)
-  Note: codex-hook-events.ts, droid-hook-events.ts, kiro-hook-events.ts deleted (personal-use simplification)
 
 ## src/config/
 
@@ -178,15 +185,15 @@
 - `task-title.ts` — Exports DEFAULT_TASK_TITLE_MAX_CHARS, deriveTaskTitleFromPrompt, resolveTaskTitle (~496 tok)
 - `windows-cmd-launch.ts` — Exports resolveWindowsComSpec, buildWindowsCmdArgsCommandLine, buildWindowsCmdArgsArray, shouldUseWindowsCmdLaunch (~1444 tok)
 
+## src/fs/
+
+- `locked-file-system.ts` — Exports FileLockRequest, DirectoryLockRequest, LockRequest, AtomicTextWriteOptions + 2 more (~1339 tok)
+
 ## src/jira/
 
 - `jira-board-state.ts` — Exports JiraCard, JiraBoard, JiraSubtask, loadJiraBoard, saveJiraBoard, loadJiraSubtasks, createJiraSubtask, deleteJiraSubtask. Atomic JSON persistence to ~/.kanban/kanban/jira-board.json and jira-subtasks.json via lockedFileSystem. Multi-file locking for create/delete subtask operations. (~500 tok)
 - `jira-mcp.ts` — Exports SpawnClaudeResult, SpawnClaudeFn, callJiraMcp. Spawns `claude -p <prompt> --output-format json --max-turns 1` and parses JSON result. Dependency-injected spawn for testability. (~200 tok)
 - `jira-worktree.ts` — Exports RepoInfo, deriveSubtaskBranchName, buildSubtaskWorktreePath, scanReposInRoot, createSubtaskWorktree, removeSubtaskWorktree. Git worktree operations and repo scanning for Jira subtasks. (~350 tok)
-
-## src/fs/
-
-- `locked-file-system.ts` — Exports FileLockRequest, DirectoryLockRequest, LockRequest, AtomicTextWriteOptions + 2 more (~1339 tok)
 
 ## src/projects/
 
@@ -198,7 +205,6 @@
 
 ## src/security/
 
-  Note: directory deleted — passcode-manager.ts removed (personal-use simplification, no remote hosting needed)
 
 ## src/server/
 
@@ -219,7 +225,6 @@
 
 ## src/telemetry/
 
-  Note: directory deleted — sentry-node.ts removed (personal-use simplification, no telemetry needed)
 
 ## src/terminal/
 
@@ -301,12 +306,6 @@
 - `task-worktree-turbopack.test.ts` — Declares repoPath (~1806 tok)
 - `task-worktree.test.ts` — childProcessMocks: createGitError, stripConfigFlags, getCommandArgs (~2456 tok)
 
-## test/runtime/jira/
-
-- `jira-board-state.test.ts` — Tests for loadJiraBoard, saveJiraBoard, loadJiraSubtasks, createJiraSubtask, deleteJiraSubtask. Uses temp HOME override for isolation. (~350 tok)
-- `jira-mcp.test.ts` — Tests for callJiraMcp: JSON parsing, non-zero exit error, invalid JSON error. Uses vi.fn() mock spawn. (~120 tok)
-- `jira-worktree.test.ts` — Tests for deriveSubtaskBranchName, buildSubtaskWorktreePath, scanReposInRoot. Uses injected readdir/access mocks. (~200 tok)
-
 ## test/runtime/config/
 
 - `runtime-config.test.ts` — withTemporaryEnv: writeFakeCommand (~4727 tok)
@@ -315,9 +314,14 @@
 
 - `windows-cmd-launch.test.ts` — Declares createWindowsBinary (~894 tok)
 
+## test/runtime/jira/
+
+- `jira-board-state.test.ts` — Tests for loadJiraBoard, saveJiraBoard, loadJiraSubtasks, createJiraSubtask, deleteJiraSubtask. Uses temp HOME override for isolation. (~350 tok)
+- `jira-mcp.test.ts` — Tests for callJiraMcp: JSON parsing, non-zero exit error, invalid JSON error. Uses vi.fn() mock spawn. (~120 tok)
+- `jira-worktree.test.ts` — Tests for deriveSubtaskBranchName, buildSubtaskWorktreePath, scanReposInRoot. Uses injected readdir/access mocks. (~200 tok)
+
 ## test/runtime/server/
 
-  Note: internal-auth-token.test.ts and ws-upgrade-passcode.test.ts deleted (personal-use simplification — passcode and auth token code removed)
 
 ## test/runtime/state/
 
@@ -382,7 +386,7 @@
 
 ## web-ui/src/
 
-- `App.tsx` — Main React composition root for the browser app. (~10876 tok)
+- `App.tsx` — Main React composition root for the browser app. (~10838 tok)
 - `main.tsx` — _savedTheme (~441 tok)
 - `vite-env.d.ts` — / <reference types="vite/client" /> (~66 tok)
 
@@ -398,20 +402,18 @@
 - `card-detail-view.test.tsx` — mockUseRuntimeWorkspaceChanges (~5389 tok)
 - `card-detail-view.tsx` — Shared factory for the three horizontal resize-drag handlers in the detail view. (~8495 tok)
 - `clear-trash-dialog.tsx` — ClearTrashDialog (~385 tok)
-- `debug-dialog.tsx` — DebugDialog — renders modal — uses useState, useEffect (~1064 tok)
+- `debug-dialog.tsx` — DebugDialog — renders modal (~890 tok)
 - `directory-autocomplete.tsx` — DirectoryAutocomplete — uses useState, useRef, useCallback, useEffect (~2636 tok)
 - `git-history-view.test.tsx` — mockGitRefsPanel (~1332 tok)
 - `git-history-view.tsx` — CommitDiffHeader — uses useState, useCallback, useEffect (~2740 tok)
 - `inline-completion-picker.tsx` — InlineCompletionPicker — uses useRef, useCallback, useEffect (~1125 tok)
+- `jira-board.test.tsx` — 5 tests: renders three columns, shows cards, onCardClick, Import To-Do button, subtask count chip. Uses createRoot+act pattern. (~300 tok)
+- `jira-board.tsx` — JiraBoardView: three-column Jira board (To-Do/In-Progress/Done), drag-and-drop cards, Import To-Do button. Subcomponents: JiraBoardColumn, JiraBoardCard. Uses useJiraBoard hook. (~450 tok)
 - `kanban-board.test.tsx` — dndMock — uses useEffect (~1704 tok)
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
 - `open-workspace-button.tsx` — OpenTargetIcon — uses useState (~891 tok)
-  Note: passcode-gate.tsx deleted (personal-use simplification)
-- `jira-board.tsx` — JiraBoardView: three-column Jira board (To-Do/In-Progress/Done), drag-and-drop cards, Import To-Do button. Subcomponents: JiraBoardColumn, JiraBoardCard. Uses useJiraBoard hook. (~450 tok)
-- `jira-board.test.tsx` — 5 tests: renders three columns, shows cards, onCardClick, Import To-Do button, subtask count chip. Uses createRoot+act pattern. (~300 tok)
 - `project-navigation-panel.test.tsx` — Wrapper that owns the sidebar layout state via the hook and passes it as props. (~2050 tok)
 - `project-navigation-panel.tsx` — COLLAPSED_WIDTH — uses useState, useEffect, useCallback. Now accepts sidebarTab/"task"|"project", onSidebarTabChange, hasJiraConfig props. Renders tab switcher below header. (~7200 tok)
-  Note: remote-file-browser-dialog.tsx and remote-file-browser-dialog.test.tsx deleted (personal-use simplification)
 - `runtime-settings-dialog.test.tsx` — RadixSelectCtx — uses useContext (~2853 tok)
 - `runtime-settings-dialog.tsx` — Settings dialog composition for Kanban. (~11026 tok)
 - `search-select-dropdown.tsx` — MATCHED_TEXT_STYLE — uses useState, useMemo, useCallback, useEffect (~3277 tok)
@@ -425,6 +427,11 @@
 - `task-trash-warning-dialog.tsx` — getTrashWarningGuidance (~806 tok)
 - `top-bar.test.tsx` — findButtonByText (~1210 tok)
 - `top-bar.tsx` — MOBILE_TOUCH_TARGET — uses useState (~7300 tok)
+
+## web-ui/src/components/ (continued)
+
+- `jira-card-detail-view.tsx` — JiraCardDetailView: detail panel for selected Jira card showing issue metadata, subtask list with click-to-start session, AgentTerminalPanel integration, SubtaskCreateDialog trigger. (~280 tok)
+- `subtask-create-dialog.tsx` — SubtaskCreateDialog: modal for creating a new subtask with repo selection, auto-derived branch name, base ref, and prompt fields. Uses proxy TRPC client pattern. (~250 tok)
 
 ## web-ui/src/components/dependencies/
 
@@ -492,7 +499,7 @@
 - `use-app-hotkeys.ts` — Exports useAppHotkeys (~890 tok)
 - `use-board-interactions.test.tsx` — notifyErrorMock — uses useState, useEffect (~6010 tok)
 - `use-board-interactions.ts` — Exports UseBoardInteractionsResult, useBoardInteractions (~8405 tok)
-- `use-debug-tools.ts` — Exports useDebugTools (~658 tok)
+- `use-debug-tools.ts` — Exports useDebugTools (~564 tok)
 - `use-detail-task-navigation.test.tsx` — createBoard — uses useEffect (~1293 tok)
 - `use-detail-task-navigation.ts` — Exports UseDetailTaskNavigationResult, useDetailTaskNavigation (~1011 tok)
 - `use-document-visibility.ts` — Exports useDocumentVisibility (~137 tok)
@@ -579,7 +586,7 @@
 
 ## web-ui/src/storage/
 
-- `local-storage-store.ts` — Exports LocalStorageKey, LAYOUT_CUSTOMIZATION_LOCAL_STORAGE_KEYS, readLocalStorageItem, writeLocalStorageItem + 2 more (~865 tok)
+- `local-storage-store.ts` — Exports LocalStorageKey, LAYOUT_CUSTOMIZATION_LOCAL_STORAGE_KEYS, readLocalStorageItem, writeLocalSt (~848 tok)
 
 ## web-ui/src/stores/
 
@@ -591,7 +598,6 @@
 
 ## web-ui/src/telemetry/
 
-  Note: entire directory deleted — sentry.ts, posthog-config.ts, posthog-provider.tsx, events.ts, events.test.ts all removed (personal-use simplification, no telemetry needed)
 
 ## web-ui/src/terminal/
 
@@ -614,21 +620,16 @@
 - `index.ts` (~8 tok)
 - `jira.ts` — Exports JiraCardStatus, JiraSubtaskStatus, JiraCard, JiraBoard, JiraSubtask, RepoOption. Pure type definitions for frontend Jira board feature. (~120 tok)
 
-## web-ui/src/components/ (continued)
-
-- `jira-card-detail-view.tsx` — JiraCardDetailView: detail panel for selected Jira card showing issue metadata, subtask list with click-to-start session, AgentTerminalPanel integration, SubtaskCreateDialog trigger. (~280 tok)
-- `subtask-create-dialog.tsx` — SubtaskCreateDialog: modal for creating a new subtask with repo selection, auto-derived branch name, base ref, and prompt fields. Uses proxy TRPC client pattern. (~250 tok)
-
 ## web-ui/src/utils/
 
 - `detail-view-task-order.test.ts` — Declares nextTaskId (~1264 tok)
-- `jira-utils.ts` — Exports deriveSubtaskBranchName. Derives a git branch name from a Jira key and title. (~40 tok)
 - `detail-view-task-order.ts` — Exports isDetailViewColumnId, getNextDetailTaskIdAfterTrashMove (~204 tok)
 - `file-tree.ts` — Exports FileTreeNode, buildFileTree (~330 tok)
 - `file-url.test.ts` (~231 tok)
 - `file-url.ts` — Exports toFileUrl (~193 tok)
 - `is-binary-file-path.test.ts` (~195 tok)
 - `is-binary-file-path.ts` — Exports isBinaryFilePath (~204 tok)
+- `jira-utils.ts` — Exports deriveSubtaskBranchName. Derives a git branch name from a Jira key and title. (~40 tok)
 - `localhost-detection.test.ts` — Declares setHostname (~369 tok)
 - `localhost-detection.ts` — Returns true when the browser is accessing Kanban from the same machine (~157 tok)
 - `notification-badge-sync.ts` — Exports createNotificationBadgeSyncSourceId, broadcastNotificationBadgeClear, subscribeToNotificationBadgeClear (~686 tok)

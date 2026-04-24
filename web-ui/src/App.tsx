@@ -17,7 +17,6 @@ import { JiraCardDetailView } from "@/components/jira-card-detail-view";
 import { KanbanBoard } from "@/components/kanban-board";
 import { ProjectNavigationPanel } from "@/components/project-navigation-panel";
 import { RuntimeSettingsDialog, type RuntimeSettingsSection } from "@/components/runtime-settings-dialog";
-import { StartupOnboardingDialog } from "@/components/startup-onboarding-dialog";
 import { TaskCreateDialog } from "@/components/task-create-dialog";
 import { TaskInlineCreateCard } from "@/components/task-inline-create-card";
 import { TopBar } from "@/components/top-bar";
@@ -49,7 +48,6 @@ import { parseRemovedProjectPathFromStreamError, useProjectNavigation } from "@/
 import { useProjectUiState } from "@/hooks/use-project-ui-state";
 import { useReviewReadyNotifications } from "@/hooks/use-review-ready-notifications";
 import { useShortcutActions } from "@/hooks/use-shortcut-actions";
-import { useStartupOnboarding } from "@/hooks/use-startup-onboarding";
 import { useTaskBranchOptions } from "@/hooks/use-task-branch-options";
 import { useTaskEditor } from "@/hooks/use-task-editor";
 import { useTaskSessions } from "@/hooks/use-task-sessions";
@@ -59,7 +57,7 @@ import { useWorkspaceSync } from "@/hooks/use-workspace-sync";
 import { LayoutCustomizationsProvider } from "@/resize/layout-customizations";
 import { ResizableBottomPane } from "@/resize/resizable-bottom-pane";
 import { useProjectNavigationLayout } from "@/resize/use-project-navigation-layout";
-import { getTaskAgentNavbarHint, isTaskAgentSetupSatisfied } from "@/runtime/native-agent";
+import { getTaskAgentNavbarHint } from "@/runtime/native-agent";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
 import { useRuntimeProjectConfig } from "@/runtime/use-runtime-project-config";
 import { useTerminalConnectionReady } from "@/runtime/use-terminal-connection-ready";
@@ -127,43 +125,24 @@ export default function App(): ReactElement {
 	const isInitialRuntimeLoad =
 		!hasReceivedSnapshot && currentProjectId === null && projects.length === 0 && !streamError;
 	const isAwaitingWorkspaceSnapshot = currentProjectId !== null && streamedWorkspaceState === null;
-	const {
-		config: runtimeProjectConfig,
-		isLoading: isRuntimeProjectConfigLoading,
-		refresh: refreshRuntimeProjectConfig,
-	} = useRuntimeProjectConfig(currentProjectId);
+	const { config: runtimeProjectConfig, refresh: refreshRuntimeProjectConfig } =
+		useRuntimeProjectConfig(currentProjectId);
 	const { isBlocked: isKanbanAccessBlocked } = useKanbanAccessGate({
 		workspaceId: currentProjectId,
 	});
-	const isTaskAgentReady = isTaskAgentSetupSatisfied(runtimeProjectConfig);
 	const settingsWorkspaceId = navigationCurrentProjectId ?? currentProjectId;
 	const { config: settingsRuntimeProjectConfig, refresh: refreshSettingsRuntimeProjectConfig } =
 		useRuntimeProjectConfig(settingsWorkspaceId);
-	const {
-		isStartupOnboardingDialogOpen,
-		handleOpenStartupOnboardingDialog,
-		handleCloseStartupOnboardingDialog,
-		handleSelectOnboardingAgent,
-	} = useStartupOnboarding({
-		currentProjectId,
-		runtimeProjectConfig,
-		isRuntimeProjectConfigLoading,
-		isTaskAgentReady,
-		refreshRuntimeProjectConfig,
-		refreshSettingsRuntimeProjectConfig,
-	});
 	const {
 		debugModeEnabled,
 		isDebugDialogOpen,
 		isResetAllStatePending,
 		handleOpenDebugDialog,
-		handleShowStartupOnboardingDialog,
 		handleDebugDialogOpenChange,
 		handleResetAllState,
 	} = useDebugTools({
 		runtimeProjectConfig,
 		settingsRuntimeProjectConfig,
-		onOpenStartupOnboardingDialog: handleOpenStartupOnboardingDialog,
 	});
 	const {
 		markConnectionReady: markTerminalConnectionReady,
@@ -1040,7 +1019,6 @@ export default function App(): ReactElement {
 					open={isDebugDialogOpen}
 					onOpenChange={handleDebugDialogOpenChange}
 					isResetAllStatePending={isResetAllStatePending}
-					onShowStartupOnboardingDialog={handleShowStartupOnboardingDialog}
 					onResetAllState={handleResetAllState}
 				/>
 				<TaskCreateDialog
@@ -1075,15 +1053,6 @@ export default function App(): ReactElement {
 					taskCount={trashTaskCount}
 					onCancel={() => setIsClearTrashDialogOpen(false)}
 					onConfirm={handleConfirmClearTrash}
-				/>
-				<StartupOnboardingDialog
-					open={isStartupOnboardingDialogOpen}
-					onClose={handleCloseStartupOnboardingDialog}
-					selectedAgentId={runtimeProjectConfig?.selectedAgentId ?? null}
-					agents={runtimeProjectConfig?.agents ?? []}
-					workspaceId={currentProjectId}
-					runtimeConfig={runtimeProjectConfig ?? null}
-					onSelectAgent={handleSelectOnboardingAgent}
 				/>
 
 				<AddProjectDialog

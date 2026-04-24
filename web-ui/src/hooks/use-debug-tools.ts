@@ -7,7 +7,6 @@ import type { RuntimeConfigResponse } from "@/runtime/types";
 interface UseDebugToolsParams {
 	runtimeProjectConfig: RuntimeConfigResponse | null;
 	settingsRuntimeProjectConfig: RuntimeConfigResponse | null;
-	onOpenStartupOnboardingDialog: () => void;
 }
 
 interface UseDebugToolsResult {
@@ -15,7 +14,6 @@ interface UseDebugToolsResult {
 	isDebugDialogOpen: boolean;
 	isResetAllStatePending: boolean;
 	handleOpenDebugDialog: () => void;
-	handleShowStartupOnboardingDialog: () => void;
 	handleDebugDialogOpenChange: (nextOpen: boolean) => void;
 	handleResetAllState: () => void;
 }
@@ -23,7 +21,6 @@ interface UseDebugToolsResult {
 export function useDebugTools({
 	runtimeProjectConfig,
 	settingsRuntimeProjectConfig,
-	onOpenStartupOnboardingDialog,
 }: UseDebugToolsParams): UseDebugToolsResult {
 	const [isDebugDialogOpen, setIsDebugDialogOpen] = useState(false);
 	const [isResetAllStatePending, setIsResetAllStatePending] = useState(false);
@@ -37,11 +34,6 @@ export function useDebugTools({
 	const handleDebugDialogOpenChange = useCallback((nextOpen: boolean) => {
 		setIsDebugDialogOpen(nextOpen);
 	}, []);
-
-	const handleShowStartupOnboardingDialog = useCallback(() => {
-		setIsDebugDialogOpen(false);
-		onOpenStartupOnboardingDialog();
-	}, [onOpenStartupOnboardingDialog]);
 
 	const handleResetAllState = useCallback(() => {
 		if (isResetAllStatePending) {
@@ -67,7 +59,6 @@ export function useDebugTools({
 		isDebugDialogOpen,
 		isResetAllStatePending,
 		handleOpenDebugDialog,
-		handleShowStartupOnboardingDialog,
 		handleDebugDialogOpenChange,
 		handleResetAllState,
 	};

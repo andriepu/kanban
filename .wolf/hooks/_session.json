@@ -1,0 +1,146 @@
+{
+  "session_id": "session-2026-04-24-1024",
+  "started": "2026-04-24T03:24:39.079Z",
+  "files_read": {
+    "/Users/andriepu/Workspace/_private/kanban/web-ui/src/runtime/onboarding.ts": {
+      "count": 1,
+      "tokens": 52,
+      "first_read": "2026-04-24T03:25:24.930Z"
+    },
+    "/Users/andriepu/Workspace/_private/kanban/web-ui/src/components/startup-onboarding-dialog.tsx": {
+      "count": 1,
+      "tokens": 1139,
+      "first_read": "2026-04-24T03:25:29.305Z"
+    },
+    "/Users/andriepu/Workspace/_private/kanban/web-ui/src/hooks/use-startup-onboarding.ts": {
+      "count": 1,
+      "tokens": 1085,
+      "first_read": "2026-04-24T03:25:29.596Z"
+    },
+    "/Users/andriepu/Workspace/_private/kanban/web-ui/src/App.tsx": {
+      "count": 10,
+      "tokens": 10881,
+      "first_read": "2026-04-24T03:25:44.747Z"
+    },
+    "/Users/andriepu/Workspace/_private/kanban/web-ui/src/hooks/use-debug-tools.ts": {
+      "count": 2,
+      "tokens": 658,
+      "first_read": "2026-04-24T03:25:55.102Z"
+    },
+    "/Users/andriepu/Workspace/_private/kanban/web-ui/src/storage/local-storage-store.ts": {
+      "count": 2,
+      "tokens": 865,
+      "first_read": "2026-04-24T03:27:31.771Z"
+    },
+    "/Users/andriepu/Workspace/_private/kanban/web-ui/src/components/debug-dialog.tsx": {
+      "count": 2,
+      "tokens": 1064,
+      "first_read": "2026-04-24T03:28:33.136Z"
+    }
+  },
+  "files_written": [
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/docs/superpowers/specs/2026-04-24-remove-onboarding-design.md",
+      "action": "create",
+      "tokens": 628,
+      "at": "2026-04-24T03:27:52.924Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/docs/superpowers/plans/2026-04-24-remove-onboarding.md",
+      "action": "create",
+      "tokens": 3303,
+      "at": "2026-04-24T03:29:36.866Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/hooks/use-debug-tools.ts",
+      "action": "create",
+      "tokens": 564,
+      "at": "2026-04-24T03:37:13.046Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/components/debug-dialog.tsx",
+      "action": "create",
+      "tokens": 890,
+      "at": "2026-04-24T03:37:21.424Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/App.tsx",
+      "action": "edit",
+      "tokens": 186,
+      "at": "2026-04-24T03:37:25.434Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/App.tsx",
+      "action": "edit",
+      "tokens": 40,
+      "at": "2026-04-24T03:37:28.239Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/App.tsx",
+      "action": "edit",
+      "tokens": 44,
+      "at": "2026-04-24T03:37:31.708Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/App.tsx",
+      "action": "edit",
+      "tokens": 68,
+      "at": "2026-04-24T03:37:34.878Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/App.tsx",
+      "action": "edit",
+      "tokens": 57,
+      "at": "2026-04-24T03:37:37.237Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/App.tsx",
+      "action": "edit",
+      "tokens": 62,
+      "at": "2026-04-24T03:37:40.459Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/storage/local-storage-store.ts",
+      "action": "edit",
+      "tokens": 60,
+      "at": "2026-04-24T03:37:43.390Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/App.tsx",
+      "action": "edit",
+      "tokens": 19,
+      "at": "2026-04-24T03:40:20.221Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/App.tsx",
+      "action": "edit",
+      "tokens": 37,
+      "at": "2026-04-24T03:40:23.603Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/App.tsx",
+      "action": "edit",
+      "tokens": 8,
+      "at": "2026-04-24T03:40:28.089Z"
+    },
+    {
+      "file": "/Users/andriepu/Workspace/_private/kanban/web-ui/src/App.tsx",
+      "action": "edit",
+      "tokens": 36,
+      "at": "2026-04-24T03:40:48.325Z"
+    }
+  ],
+  "edit_counts": {
+    "docs/superpowers/specs/2026-04-24-remove-onboarding-design.md": 1,
+    "docs/superpowers/plans/2026-04-24-remove-onboarding.md": 1,
+    "web-ui/src/hooks/use-debug-tools.ts": 1,
+    "web-ui/src/components/debug-dialog.tsx": 1,
+    "web-ui/src/App.tsx": 10,
+    "web-ui/src/storage/local-storage-store.ts": 1
+  },
+  "anatomy_hits": 7,
+  "anatomy_misses": 0,
+  "repeated_reads_warned": 12,
+  "cerebrum_warnings": 0,
+  "stop_count": 5
+}
