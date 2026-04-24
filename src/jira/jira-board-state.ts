@@ -110,6 +110,11 @@ export async function createJiraSubtask(
 		const currentSubtasks: Record<string, JiraSubtask> =
 			subtasks !== null && typeof subtasks === "object" ? subtasks : {};
 
+		const matchingCard = currentBoard.cards.find((card) => card.jiraKey === input.jiraKey);
+		if (matchingCard === undefined) {
+			throw new Error(`Cannot create subtask: Jira card "${input.jiraKey}" not found in board`);
+		}
+
 		// Add subtask to map
 		const updatedSubtasks: Record<string, JiraSubtask> = {
 			...currentSubtasks,
@@ -118,7 +123,7 @@ export async function createJiraSubtask(
 
 		// Update parent card's subtaskIds
 		const updatedCards = currentBoard.cards.map((card) => {
-			if (card.jiraKey === input.jiraKey) {
+			if (card.jiraKey === matchingCard.jiraKey) {
 				return {
 					...card,
 					subtaskIds: [...card.subtaskIds, id],

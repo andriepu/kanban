@@ -5,21 +5,33 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 // We'll override HOME so lockedFileSystem writes to a temp dir
 let tempHome: string;
-let originalHome: string;
+let originalHome: string | undefined;
+let originalUserProfile: string | undefined;
 
 beforeEach(async () => {
 	tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "kanban-jira-test-"));
-	originalHome = os.homedir();
-	// Override HOME env var so homedir() returns our temp dir
+	originalHome = process.env.HOME;
+	originalUserProfile = process.env.USERPROFILE;
 	process.env.HOME = tempHome;
+	process.env.USERPROFILE = tempHome;
 });
 
 afterEach(async () => {
-	process.env.HOME = originalHome;
+	if (originalHome === undefined) {
+		delete process.env.HOME;
+	} else {
+		process.env.HOME = originalHome;
+	}
+	if (originalUserProfile === undefined) {
+		delete process.env.USERPROFILE;
+	} else {
+		process.env.USERPROFILE = originalUserProfile;
+	}
 	await fs.rm(tempHome, { recursive: true, force: true });
 });
 
-// Import AFTER setting up env (use dynamic imports in tests or import at top and rely on HOME env)
+// Path resolution calls homedir() lazily at invocation time, so the HOME override
+// set in beforeEach is always in effect when any exported function runs.
 import {
 	createJiraSubtask,
 	deleteJiraSubtask,
@@ -137,5 +149,24 @@ describe("deleteJiraSubtask", () => {
 
 	it("does not throw when subtask does not exist", async () => {
 		await expect(deleteJiraSubtask("nonexistent-id")).resolves.not.toThrow();
+	});
+});
+
+describe("createJiraSubtask — error cases", () => {
+	it("throws when parent jiraKey is not in board", async () => {
+		// board is empty (no saveJiraBoard call)
+		await expect(
+			createJiraSubtask({
+				jiraKey: "POL-999",
+				repoId: "r",
+				repoPath: "/r",
+				prompt: "p",
+				title: "t",
+				baseRef: "main",
+				branchName: "POL-999-t",
+				worktreePath: "/w",
+				status: "backlog",
+			}),
+		).rejects.toThrow(/POL-999/);
 	});
 });
