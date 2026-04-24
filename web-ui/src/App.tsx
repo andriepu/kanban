@@ -88,6 +88,7 @@ export default function App(): ReactElement {
 	const [pendingTaskStartAfterEditId, setPendingTaskStartAfterEditId] = useState<string | null>(null);
 	const taskEditorResetRef = useRef<() => void>(() => {});
 	const lastStreamErrorRef = useRef<string | null>(null);
+	const pendingSubtaskIdRef = useRef<string | null>(null);
 	const handleProjectSwitchStart = useCallback(() => {
 		setCanPersistWorkspaceState(false);
 		setIsGitHistoryOpen(false);
@@ -217,6 +218,13 @@ export default function App(): ReactElement {
 		}
 		resetWorkspaceMetadataStore();
 	}, [isProjectSwitching]);
+
+	useEffect(() => {
+		if (!pendingSubtaskIdRef.current) return;
+		if (isProjectSwitching || isAwaitingWorkspaceSnapshot) return;
+		setSelectedTaskId(pendingSubtaskIdRef.current);
+		pendingSubtaskIdRef.current = null;
+	}, [currentProjectId, isProjectSwitching, isAwaitingWorkspaceSnapshot, setSelectedTaskId]);
 
 	const {
 		displayedProjects,
@@ -566,10 +574,14 @@ export default function App(): ReactElement {
 		(subtask: JiraSubtask) => {
 			const project = projects.find((p) => p.path === subtask.repoPath);
 			if (!project) return;
-			handleSelectProject(project.id);
-			setSelectedTaskId(subtask.id);
+			if (project.id === currentProjectId) {
+				setSelectedTaskId(subtask.id);
+			} else {
+				pendingSubtaskIdRef.current = subtask.id;
+				handleSelectProject(project.id);
+			}
 		},
-		[projects, handleSelectProject, setSelectedTaskId],
+		[projects, handleSelectProject, setSelectedTaskId, currentProjectId],
 	);
 
 	const {
