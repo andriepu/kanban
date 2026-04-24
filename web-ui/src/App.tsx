@@ -14,7 +14,7 @@ import { AgentTerminalPanel } from "@/components/detail-panels/agent-terminal-pa
 import { GitHistoryView } from "@/components/git-history-view";
 import { JiraBoardView } from "@/components/jira-board";
 import { JiraCardDetailView } from "@/components/jira-card-detail-view";
-import { KanbanBoard } from "@/components/kanban-board";
+import { JiraSubtaskBoard } from "@/components/jira-subtask-board";
 import { ProjectNavigationPanel } from "@/components/project-navigation-panel";
 import { RuntimeSettingsDialog, type RuntimeSettingsSection } from "@/components/runtime-settings-dialog";
 import { TaskCreateDialog } from "@/components/task-create-dialog";
@@ -72,6 +72,7 @@ import {
 } from "@/stores/workspace-metadata-store";
 import { useTerminalThemeColors } from "@/terminal/theme-colors";
 import type { BoardData } from "@/types";
+import type { JiraSubtask } from "@/types/jira";
 
 export default function App(): ReactElement {
 	const terminalThemeColors = useTerminalThemeColors();
@@ -116,6 +117,8 @@ export default function App(): ReactElement {
 		setIsAddProjectDialogOpen,
 		pendingNativeGitInitPath,
 		resetProjectNavigationState,
+		projectFilter,
+		setProjectFilter,
 	} = useProjectNavigation({
 		onProjectSwitchStart: handleProjectSwitchStart,
 	});
@@ -319,6 +322,10 @@ export default function App(): ReactElement {
 		}
 		resetTaskEditorState();
 	}, [isProjectSwitching, resetTaskEditorState]);
+
+	useEffect(() => {
+		if (sidebarTab === "project") setProjectFilter(null);
+	}, [sidebarTab, setProjectFilter]);
 
 	const {
 		runningGitAction,
@@ -559,6 +566,15 @@ export default function App(): ReactElement {
 		runAutoReviewGitAction,
 	});
 
+	const handleSubtaskClick = useCallback(
+		(subtask: JiraSubtask) => {
+			const project = projects.find((p) => p.path === subtask.repoPath);
+			if (project) handleSelectProject(project.id);
+			setSelectedTaskId(subtask.id);
+		},
+		[projects, handleSelectProject, setSelectedTaskId],
+	);
+
 	const {
 		handleCreateAndStartTask,
 		handleCreateAndStartTasks,
@@ -754,8 +770,8 @@ export default function App(): ReactElement {
 						sidebarTab={sidebarTab}
 						onSidebarTabChange={setSidebarTab}
 						hasJiraConfig={Boolean(runtimeProjectConfig?.worktreesRoot && runtimeProjectConfig?.reposRoot)}
-						projectFilter={null}
-						onFilterProject={() => {}}
+						projectFilter={projectFilter}
+						onFilterProject={setProjectFilter}
 					/>
 				) : null}
 				<div className="flex flex-col flex-1 min-w-0 overflow-hidden">
@@ -859,33 +875,11 @@ export default function App(): ReactElement {
 												isDiscardWorkingChangesPending={isDiscardingHomeWorkingChanges}
 											/>
 										) : sidebarTab === "project" ? (
-											<KanbanBoard
-												data={board}
-												taskSessions={sessions}
-												workspacePath={workspacePath}
-												onCardSelect={handleCardSelect}
-												onStartTask={handleStartTaskFromBoard}
-												onStartAllTasks={handleStartAllBacklogTasksFromBoard}
-												onClearTrash={handleOpenClearTrash}
-												editingTaskId={editingTaskId}
-												inlineTaskEditor={inlineTaskEditor}
-												onEditTask={handleOpenEditTask}
-												onSaveTaskTitle={handleSaveTaskTitle}
-												onCommitTask={handleCommitTask}
-												onOpenPrTask={handleOpenPrTask}
-												onCancelAutomaticTaskAction={handleCancelAutomaticTaskAction}
-												commitTaskLoadingById={commitTaskLoadingById}
-												openPrTaskLoadingById={openPrTaskLoadingById}
-												moveToTrashLoadingById={moveToTrashLoadingById}
-												onMoveToTrashTask={handleMoveReviewCardToTrash}
-												onRestoreFromTrashTask={handleRestoreTaskFromTrash}
-												dependencies={board.dependencies}
-												onCreateDependency={handleCreateDependency}
-												onDeleteDependency={handleDeleteDependency}
-												onRequestProgrammaticCardMoveReady={
-													selectedCard ? undefined : handleProgrammaticCardMoveReady
-												}
-												onDragEnd={handleDragEnd}
+											<JiraSubtaskBoard
+												subtasks={Object.values(jiraBoard.subtasks)}
+												projectFilter={projectFilter}
+												sessions={sessions}
+												onSubtaskClick={handleSubtaskClick}
 											/>
 										) : (
 											<div className="flex flex-1 min-h-0 min-w-0">
