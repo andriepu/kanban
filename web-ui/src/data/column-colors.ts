@@ -3,6 +3,8 @@ export const columnIndicatorColors: Record<string, string> = {
 	in_progress: "var(--color-accent)",
 	review: "var(--color-accent-2)",
 	trash: "var(--color-status-red)",
+	todo: "var(--color-text-primary)",
+	done: "var(--color-status-green)",
 };
 
 export const columnBackgroundColors: Record<string, string> = {
