@@ -6,11 +6,8 @@ import { ColumnIndicator } from "./column-indicator";
 describe("ColumnIndicator", () => {
 	let container: HTMLDivElement;
 	let root: Root;
-	let previousActEnvironment: boolean | undefined;
 
 	beforeEach(() => {
-		previousActEnvironment = (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
-			.IS_REACT_ACT_ENVIRONMENT;
 		(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 		container = document.createElement("div");
 		document.body.appendChild(container);
@@ -22,12 +19,7 @@ describe("ColumnIndicator", () => {
 			root.unmount();
 		});
 		container.remove();
-		if (previousActEnvironment === undefined) {
-			delete (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
-		} else {
-			(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-				previousActEnvironment;
-		}
+		delete (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
 	});
 
 	it("renders an SVG for todo", async () => {
@@ -36,7 +28,7 @@ describe("ColumnIndicator", () => {
 		});
 		const svg = container.querySelector("svg");
 		expect(svg).not.toBeNull();
-		// todo = empty circle (no filled path)
+		expect(container.querySelector("circle")).not.toBeNull();
 		expect(container.querySelector("path")).toBeNull();
 	});
 
