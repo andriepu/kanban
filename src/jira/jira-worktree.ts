@@ -10,6 +10,11 @@ export interface RepoInfo {
 	path: string; // absolute path
 }
 
+type ReaddirWithFileTypes = (
+	path: string,
+	options: { withFileTypes: true },
+) => Promise<Array<{ name: string; isDirectory(): boolean }>>;
+
 /**
  * Derive a kebab branch name: "{jiraKey}-{slug}" — max 63 chars total.
  * The slug is lowercased, non-alphanumeric chars replaced with `-`,
@@ -41,22 +46,19 @@ export function buildSubtaskWorktreePath(
  * Returns repos sorted by id ascending.
  * Returns `[]` if `reposRoot` doesn't exist rather than throwing.
  */
-export async function scanReposInRoot(
-	reposRoot: string,
-	options?: {
-		readdir?: typeof readdir;
-		access?: typeof access;
-	},
-): Promise<RepoInfo[]> {
-	const readdirFn = options?.readdir ?? readdir;
+interface ScanReposOptions {
+	readdir?: ReaddirWithFileTypes;
+	access?: typeof access;
+}
+
+export async function scanReposInRoot(reposRoot: string, options?: ScanReposOptions): Promise<RepoInfo[]> {
+	const readdirFn: ReaddirWithFileTypes =
+		options?.readdir ?? ((p, opts) => readdir(p, opts) as ReturnType<ReaddirWithFileTypes>);
 	const accessFn = options?.access ?? access;
 
 	let entries: Array<{ name: string; isDirectory: () => boolean }>;
 	try {
-		entries = (await readdirFn(reposRoot, { withFileTypes: true })) as Array<{
-			name: string;
-			isDirectory: () => boolean;
-		}>;
+		entries = await readdirFn(reposRoot, { withFileTypes: true });
 	} catch (err) {
 		const nodeErr = err as NodeJS.ErrnoException;
 		if (nodeErr.code === "ENOENT") {
@@ -111,11 +113,18 @@ export async function createSubtaskWorktree(options: {
 
 	// Symlink .env if it exists in the repo root
 	const repoEnvPath = join(repoPath, ".env");
+	let envExists = false;
 	try {
 		await access(repoEnvPath);
-		await symlink(repoEnvPath, join(worktreePath, ".env"));
+		envExists = true;
 	} catch {
-		// .env doesn't exist or symlink failed — ignore
+		// .env does not exist — skip symlink
+	}
+
+	if (envExists) {
+		await symlink(repoEnvPath, join(worktreePath, ".env"));
+		// Note: let symlink errors propagate — a failed .env symlink leaves
+		// the worktree in an inconsistent state that the caller must handle.
 	}
 }
 

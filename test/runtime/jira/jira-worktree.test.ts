@@ -1,3 +1,4 @@
+import type { readdir as ReaddirFn } from "node:fs/promises";
 import * as path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { buildSubtaskWorktreePath, deriveSubtaskBranchName, scanReposInRoot } from "../../../src/jira/jira-worktree.js";
@@ -39,7 +40,7 @@ describe("scanReposInRoot", () => {
 		});
 
 		const repos = await scanReposInRoot("/repos", {
-			readdir: mockReaddir as unknown as typeof import("node:fs/promises").readdir,
+			readdir: mockReaddir as unknown as typeof ReaddirFn,
 			access: mockAccess,
 		});
 		expect(repos).toEqual([{ id: "repo-a", path: path.join("/repos", "repo-a") }]);
@@ -48,7 +49,7 @@ describe("scanReposInRoot", () => {
 	it("returns empty array when reposRoot does not exist", async () => {
 		const mockReaddir = vi.fn().mockRejectedValue(Object.assign(new Error("ENOENT"), { code: "ENOENT" }));
 		const repos = await scanReposInRoot("/nonexistent", {
-			readdir: mockReaddir as unknown as typeof import("node:fs/promises").readdir,
+			readdir: mockReaddir as unknown as typeof ReaddirFn,
 		});
 		expect(repos).toEqual([]);
 	});
