@@ -62,6 +62,8 @@ export interface UseProjectNavigationResult {
 	handleAddProjectSuccess: (projectId: string) => void;
 	handleRemoveProject: (projectId: string) => Promise<boolean>;
 	resetProjectNavigationState: () => void;
+	projectFilter: string | null;
+	setProjectFilter: (path: string | null) => void;
 }
 
 export function useProjectNavigation({ onProjectSwitchStart }: UseProjectNavigationInput): UseProjectNavigationResult {
@@ -75,6 +77,7 @@ export function useProjectNavigation({ onProjectSwitchStart }: UseProjectNavigat
 	const [removingProjectId, setRemovingProjectId] = useState<string | null>(null);
 	const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = useState(false);
 	const [pendingGitInitPath, setPendingGitInitPath] = useState<string | null>(null);
+	const [projectFilter, setProjectFilter] = useState<string | null>(null);
 
 	const {
 		currentProjectId,
@@ -281,5 +284,7 @@ export function useProjectNavigation({ onProjectSwitchStart }: UseProjectNavigat
 		handleAddProjectSuccess,
 		handleRemoveProject,
 		resetProjectNavigationState,
+		projectFilter,
+		setProjectFilter,
 	};
 }
