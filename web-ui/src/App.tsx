@@ -702,6 +702,25 @@ export default function App(): ReactElement {
 		/>
 	) : undefined;
 
+	const jiraDetailContent =
+		sidebarTab === "task" && selectedJiraKey != null ? (
+			<JiraCardDetailView
+				jiraKey={selectedJiraKey}
+				board={jiraBoard.board}
+				subtasks={jiraBoard.subtasks}
+				onSubtaskCreated={jiraBoard.refetch}
+			/>
+		) : undefined;
+
+	useEffect(() => {
+		if (selectedJiraKey == null) return;
+		const handler = (e: KeyboardEvent) => {
+			if (e.key === "Escape") setSelectedJiraKey(null);
+		};
+		window.addEventListener("keydown", handler);
+		return () => window.removeEventListener("keydown", handler);
+	}, [selectedJiraKey]);
+
 	if (isRuntimeDisconnected) {
 		return <RuntimeDisconnectedFallback />;
 	}
@@ -719,6 +738,7 @@ export default function App(): ReactElement {
 						currentProjectId={navigationCurrentProjectId}
 						removingProjectId={removingProjectId}
 						agentSectionContent={sidebarTab === "project" ? homeSidebarAgentPanel : undefined}
+						jiraDetailContent={jiraDetailContent}
 						onSelectProject={(projectId) => {
 							void handleSelectProject(projectId);
 						}}
@@ -871,16 +891,6 @@ export default function App(): ReactElement {
 													selectedJiraKey={selectedJiraKey}
 													jiraBoard={jiraBoard}
 												/>
-												{selectedJiraKey && (
-													<div className="w-80 shrink-0 border-l border-border overflow-hidden">
-														<JiraCardDetailView
-															jiraKey={selectedJiraKey}
-															board={jiraBoard.board}
-															subtasks={jiraBoard.subtasks}
-															onSubtaskCreated={jiraBoard.refetch}
-														/>
-													</div>
-												)}
 											</div>
 										)}
 									</div>
