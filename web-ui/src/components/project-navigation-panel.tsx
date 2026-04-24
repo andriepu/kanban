@@ -243,7 +243,6 @@ export function ProjectNavigationPanel({
 	}
 
 	if (sidebarTab === "task") {
-		if (isMobile && isCollapsed && !isMobileClosing) return <></>;
 		const isRail = jiraDetailContent == null;
 		return (
 			<aside

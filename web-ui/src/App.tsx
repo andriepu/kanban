@@ -478,6 +478,7 @@ export default function App(): ReactElement {
 		resetGitActionState();
 		resetProjectNavigationState();
 		resetTerminalPanelsState();
+		setSelectedJiraKey(null);
 	}, [
 		currentProjectId,
 		resetGitActionState,
