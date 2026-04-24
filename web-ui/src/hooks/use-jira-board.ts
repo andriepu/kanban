@@ -1,19 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import type { JiraBoard, JiraCard, JiraCardStatus, JiraSubtask } from "@/types/jira";
-import { useUnmount } from "@/utils/react-use";
+import { useInterval, useUnmount } from "@/utils/react-use";
+
+export interface UseJiraBoardOptions {
+	isActive: boolean;
+	syncIntervalMs: number;
+}
 
 export interface UseJiraBoardResult {
 	board: JiraBoard;
 	subtasks: Record<string, JiraSubtask>;
 	isLoading: boolean;
-	importFromJira: () => Promise<{ imported: number; skipped: number }>;
 	isImporting: boolean;
 	moveCard: (jiraKey: string, newStatus: JiraCardStatus) => Promise<void>;
 	refetch: () => void;
 }
 
-export function useJiraBoard(currentProjectId: string | null = null): UseJiraBoardResult {
+export function useJiraBoard(
+	currentProjectId: string | null = null,
+	options: UseJiraBoardOptions = { isActive: false, syncIntervalMs: 60 * 60 * 1000 },
+): UseJiraBoardResult {
+	const { isActive, syncIntervalMs } = options;
 	const trpc = getRuntimeTrpcClient(currentProjectId);
 
 	const [board, setBoard] = useState<JiraBoard>({ cards: [] });
@@ -22,6 +30,8 @@ export function useJiraBoard(currentProjectId: string | null = null): UseJiraBoa
 	const [isImporting, setIsImporting] = useState(false);
 	const requestIdRef = useRef(0);
 	const isMountedRef = useRef(true);
+	const isImportingRef = useRef(false);
+	const prevIsActiveRef = useRef(false);
 
 	useUnmount(() => {
 		isMountedRef.current = false;
@@ -51,22 +61,38 @@ export function useJiraBoard(currentProjectId: string | null = null): UseJiraBoa
 		void fetchBoard();
 	}, [fetchBoard]);
 
-	const importFromJira = useCallback(async (): Promise<{ imported: number; skipped: number }> => {
+	const syncFromJira = useCallback(async (): Promise<void> => {
+		if (isImportingRef.current) return;
+		isImportingRef.current = true;
 		setIsImporting(true);
 		try {
 			const result = await trpc.jira.importFromJira.mutate({
-				jql: `assignee = currentUser() AND status = "To Do"`,
+				jql: `assignee = currentUser() ORDER BY updated DESC`,
 			});
 			if (isMountedRef.current) {
 				setBoard(result.board);
 			}
-			return { imported: result.imported, skipped: result.skipped };
 		} finally {
+			isImportingRef.current = false;
 			if (isMountedRef.current) {
 				setIsImporting(false);
 			}
 		}
 	}, [trpc]);
+
+	useInterval(
+		() => {
+			void syncFromJira();
+		},
+		isActive ? syncIntervalMs : null,
+	);
+
+	useEffect(() => {
+		if (!prevIsActiveRef.current && isActive) {
+			void syncFromJira();
+		}
+		prevIsActiveRef.current = isActive;
+	}, [isActive, syncFromJira]);
 
 	const moveCard = useCallback(
 		async (jiraKey: string, newStatus: JiraCardStatus): Promise<void> => {
@@ -107,7 +133,6 @@ export function useJiraBoard(currentProjectId: string | null = null): UseJiraBoa
 		board,
 		subtasks,
 		isLoading,
-		importFromJira,
 		isImporting,
 		moveCard,
 		refetch,
