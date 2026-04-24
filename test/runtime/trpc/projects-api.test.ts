@@ -1,9 +1,19 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("../../../src/state/workspace-state", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../../../src/state/workspace-state")>();
+	return {
+		...actual,
+		listWorkspaceIndexEntries: vi.fn(actual.listWorkspaceIndexEntries),
+	};
+});
+
 import type { RuntimeProjectTaskCounts } from "../../../src/core/api-contract";
+import { listWorkspaceIndexEntries } from "../../../src/state/workspace-state";
 import type { TerminalSessionManager } from "../../../src/terminal/session-manager";
 import { type CreateProjectsApiDependencies, createProjectsApi } from "../../../src/trpc/projects-api";
 
@@ -51,7 +61,6 @@ function createDefaultDeps(serverCwd: string): CreateProjectsApiDependencies {
 		// New deps for syncFromReposRoot:
 		getReposRoot: vi.fn(() => null),
 		scanReposInRoot: vi.fn(async () => []),
-		listWorkspaceIndexEntries: vi.fn(async () => []),
 	};
 }
 
@@ -347,7 +356,7 @@ describe("syncFromReposRoot", () => {
 		const deps = createDefaultDeps(testCwd);
 		(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue("/repos");
 		(deps.scanReposInRoot as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: "alpha", path: "/repos/alpha" }]);
-		(deps.listWorkspaceIndexEntries as ReturnType<typeof vi.fn>).mockResolvedValue([
+		vi.mocked(listWorkspaceIndexEntries).mockResolvedValueOnce([
 			{ workspaceId: "ws-existing", repoPath: "/repos/alpha" },
 		]);
 		const api = createProjectsApi(deps);
@@ -362,10 +371,37 @@ describe("syncFromReposRoot", () => {
 		const deps = createDefaultDeps(testCwd);
 		(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue("/repos");
 		(deps.scanReposInRoot as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-		(deps.listWorkspaceIndexEntries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+		vi.mocked(listWorkspaceIndexEntries).mockResolvedValueOnce([]);
 		const api = createProjectsApi(deps);
 		const result = await api.syncFromReposRoot();
 		expect(result).toEqual({ added: 0, skipped: 0 });
 		expect(deps.broadcastRuntimeProjectsUpdated).toHaveBeenCalledWith(null);
+	});
+
+	it("adds a new repo not already in the workspace index", async () => {
+		const tempHome = mkdtempSync(join(tmpdir(), "kanban-sync-test-"));
+		const originalHome = process.env.HOME;
+		process.env.HOME = tempHome;
+		try {
+			const repoPath = join(tempHome, "my-repo");
+			mkdirSync(repoPath, { recursive: true });
+			execSync("git init && git commit --allow-empty -m init", { cwd: repoPath, stdio: "ignore" });
+
+			const deps = createDefaultDeps(testCwd);
+			(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue(join(tempHome, "repos-root"));
+			(deps.scanReposInRoot as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: "my-repo", path: repoPath }]);
+			// listWorkspaceIndexEntries is now a module-level import, not injected.
+			// With a fresh temp HOME, the workspace index is empty — so the repo will be added.
+
+			const api = createProjectsApi(deps);
+			const result = await api.syncFromReposRoot();
+			expect(result.added).toBe(1);
+			expect(result.skipped).toBe(0);
+			expect(deps.rememberWorkspace).toHaveBeenCalledOnce();
+			expect(deps.broadcastRuntimeProjectsUpdated).toHaveBeenCalledWith(null);
+		} finally {
+			process.env.HOME = originalHome;
+			rmSync(tempHome, { recursive: true, force: true });
+		}
 	});
 });

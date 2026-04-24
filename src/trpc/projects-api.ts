@@ -59,7 +59,6 @@ export interface CreateProjectsApiDependencies {
 	serverCwd: string;
 	getReposRoot: () => string | null;
 	scanReposInRoot: (reposRoot: string) => Promise<RepoInfo[]>;
-	listWorkspaceIndexEntries: () => Promise<Array<{ workspaceId: string; repoPath: string }>>;
 }
 
 export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeTrpcContext["projectsApi"] {
@@ -373,7 +372,7 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 				return { added: 0, skipped: 0 };
 			}
 			const repos = await deps.scanReposInRoot(reposRoot);
-			const existingEntries = await deps.listWorkspaceIndexEntries();
+			const existingEntries = await listWorkspaceIndexEntries();
 			const existingRepoPaths = new Set(existingEntries.map((e) => e.repoPath));
 			let added = 0;
 			let skipped = 0;
