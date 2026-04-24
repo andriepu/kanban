@@ -50,6 +50,9 @@ function createRuntimeConfigResponse(
 		openPrPromptTemplate: "",
 		commitPromptTemplateDefault: "",
 		openPrPromptTemplateDefault: "",
+		worktreesRoot: null,
+		reposRoot: null,
+		jiraProjectKey: null,
 	};
 }
 

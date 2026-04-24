@@ -1,5 +1,4 @@
 import { Download } from "lucide-react";
-import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { useJiraBoard } from "@/hooks/use-jira-board";
@@ -19,10 +18,6 @@ interface JiraBoardViewProps {
 export function JiraBoardView({ onCardClick, selectedJiraKey }: JiraBoardViewProps): React.ReactElement {
 	const { board, isLoading, isImporting, importFromJira, moveCard } = useJiraBoard();
 
-	const handleImport = useCallback(async () => {
-		await importFromJira();
-	}, [importFromJira]);
-
 	return (
 		<div className="flex h-full flex-col">
 			{/* Top bar */}
@@ -32,7 +27,7 @@ export function JiraBoardView({ onCardClick, selectedJiraKey }: JiraBoardViewPro
 					variant="default"
 					size="sm"
 					icon={<Download size={14} />}
-					onClick={handleImport}
+					onClick={importFromJira}
 					disabled={isImporting}
 				>
 					{isImporting ? "Importing…" : "Import To-Do"}

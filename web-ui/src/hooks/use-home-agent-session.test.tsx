@@ -85,6 +85,9 @@ function createRuntimeConfig(overrides: Partial<RuntimeConfigResponse> = {}): Ru
 		openPrPromptTemplate: "pr",
 		commitPromptTemplateDefault: "commit",
 		openPrPromptTemplateDefault: "pr",
+		worktreesRoot: null,
+		reposRoot: null,
+		jiraProjectKey: null,
 		...overrides,
 	};
 }

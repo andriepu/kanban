@@ -76,8 +76,14 @@ export function useJiraBoard(currentProjectId: string | null = null): UseJiraBoa
 			);
 			const updatedBoard: JiraBoard = { cards: updatedCards };
 
-			await trpc.jira.saveBoard.mutate({ board: updatedBoard });
-
+			try {
+				await trpc.jira.saveBoard.mutate({ board: updatedBoard });
+			} catch {
+				if (isMountedRef.current) {
+					setBoard(previousBoard);
+				}
+				return;
+			}
 			if (isMountedRef.current) {
 				setBoard(updatedBoard);
 			}
