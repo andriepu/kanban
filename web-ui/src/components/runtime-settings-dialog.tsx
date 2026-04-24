@@ -14,6 +14,7 @@ import {
 	ExternalLink,
 	FolderOpen,
 	GitCommit,
+	Network,
 	Palette,
 	Plus,
 	Settings,
@@ -79,7 +80,7 @@ export type RuntimeSettingsSection = "shortcuts";
 
 const SETTINGS_AGENT_ORDER: readonly RuntimeAgentId[] = ["claude"];
 
-type SettingsNavId = "general" | "git-prompts" | "notifications" | "appearance" | "project";
+type SettingsNavId = "general" | "git-prompts" | "notifications" | "appearance" | "project" | "jira-repos";
 
 const SETTINGS_NAV_ITEMS: ReadonlyArray<{
 	id: SettingsNavId;
@@ -91,6 +92,7 @@ const SETTINGS_NAV_ITEMS: ReadonlyArray<{
 	{ id: "notifications", label: "Notifications", icon: <Bell size={16} /> },
 	{ id: "appearance", label: "Appearance", icon: <Palette size={16} /> },
 	{ id: "project", label: "Project", icon: <FolderOpen size={16} /> },
+	{ id: "jira-repos", label: "Jira & Repos", icon: <Network size={16} /> },
 ];
 
 function getShortcutIconOption(icon: string | undefined): RuntimeShortcutIconOption {
@@ -423,9 +425,9 @@ export function RuntimeSettingsDialog({
 	const initialShortcuts = config?.shortcuts ?? [];
 	const initialCommitPromptTemplate = config?.commitPromptTemplate ?? "";
 	const initialOpenPrPromptTemplate = config?.openPrPromptTemplate ?? "";
-	const initialWorktreesRoot = config?.worktreesRoot ?? "";
-	const initialReposRoot = config?.reposRoot ?? "";
-	const initialJiraProjectKey = config?.jiraProjectKey ?? "";
+	const initialWorktreesRoot = (config?.worktreesRoot ?? "").trim();
+	const initialReposRoot = (config?.reposRoot ?? "").trim();
+	const initialJiraProjectKey = (config?.jiraProjectKey ?? "").trim();
 	const hasUnsavedChanges = useMemo(() => {
 		if (!config) {
 			return false;
@@ -1096,6 +1098,13 @@ export function RuntimeSettingsDialog({
 					</div>
 
 					{/* ---- Jira & Repos ---- */}
+					<div data-settings-section="jira-repos" />
+					<div className="sticky top-0 -mx-5 px-5 pt-4 pb-2 bg-surface-1 z-10">
+						<h2 className="flex items-center gap-2 text-base font-semibold text-text-primary m-0">
+							<Network size={16} className="text-text-secondary" />
+							Jira &amp; Repos
+						</h2>
+					</div>
 					<div className="rounded-lg border border-border bg-surface-0 px-4 py-3 mb-4">
 						<h6 className="text-[12px] font-semibold uppercase tracking-wider text-text-secondary m-0 mb-4">
 							Jira &amp; Repos
