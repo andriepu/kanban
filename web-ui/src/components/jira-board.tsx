@@ -1,6 +1,7 @@
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
+import { ColumnIndicator } from "@/components/ui/column-indicator";
 import type { UseJiraBoardResult } from "@/hooks/use-jira-board";
 import type { JiraCard, JiraCardStatus } from "@/types/jira";
 
@@ -19,61 +20,53 @@ interface JiraBoardViewProps {
 export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraBoardViewProps): React.ReactElement {
 	const { board, isLoading, isImporting, importFromJira, moveCard } = jiraBoard;
 
-	return (
-		<div className="flex h-full flex-col">
-			{/* Top bar */}
-			<div className="flex items-center justify-between border-b border-border px-4 py-2">
-				<span className="text-sm font-medium text-text-primary">Jira Board</span>
-				<Button
-					variant="default"
-					size="sm"
-					icon={<Download size={14} />}
-					onClick={importFromJira}
-					disabled={isImporting}
-				>
-					{isImporting ? "Importing…" : "Import To-Do"}
-				</Button>
-			</div>
+	if (isLoading) {
+		return <div className="flex h-full flex-1 items-center justify-center text-text-secondary text-sm">Loading…</div>;
+	}
 
-			{/* Columns */}
-			{isLoading ? (
-				<div className="flex flex-1 items-center justify-center text-text-secondary text-sm">Loading…</div>
-			) : (
-				<div className="flex flex-1 gap-3 overflow-x-auto p-4">
-					{COLUMNS.map((col) => {
-						const cards = board.cards.filter((c) => c.status === col.id);
-						return (
-							<JiraBoardColumn
-								key={col.id}
-								label={col.label}
-								cards={cards}
-								subtaskCounts={Object.fromEntries(cards.map((c) => [c.jiraKey, c.subtaskIds.length]))}
-								selectedJiraKey={selectedJiraKey}
-								onCardClick={onCardClick}
-								onDrop={(jiraKey) => moveCard(jiraKey, col.id)}
-							/>
-						);
-					})}
-				</div>
-			)}
+	return (
+		<div className="flex h-full flex-1 gap-3 overflow-x-auto p-4">
+			{COLUMNS.map((col) => {
+				const cards = board.cards.filter((c) => c.status === col.id);
+				return (
+					<JiraBoardColumn
+						key={col.id}
+						columnId={col.id}
+						label={col.label}
+						cards={cards}
+						subtaskCounts={Object.fromEntries(cards.map((c) => [c.jiraKey, c.subtaskIds.length]))}
+						selectedJiraKey={selectedJiraKey}
+						onCardClick={onCardClick}
+						onDrop={(jiraKey) => moveCard(jiraKey, col.id)}
+						onImportFromJira={col.id === "todo" ? importFromJira : undefined}
+						isImporting={col.id === "todo" ? isImporting : false}
+					/>
+				);
+			})}
 		</div>
 	);
 }
 
 function JiraBoardColumn({
+	columnId,
 	label,
 	cards,
 	subtaskCounts,
 	selectedJiraKey,
 	onCardClick,
 	onDrop,
+	onImportFromJira,
+	isImporting,
 }: {
+	columnId: string;
 	label: string;
 	cards: JiraCard[];
 	subtaskCounts: Record<string, number>;
 	selectedJiraKey: string | null;
 	onCardClick: (jiraKey: string) => void;
 	onDrop: (jiraKey: string) => void;
+	onImportFromJira?: () => void;
+	isImporting: boolean;
 }): React.ReactElement {
 	const handleDragOver = (e: React.DragEvent) => {
 		e.preventDefault();
@@ -87,15 +80,30 @@ function JiraBoardColumn({
 
 	return (
 		<div
-			className="flex w-72 shrink-0 flex-col gap-2 rounded-lg bg-surface-1 p-3"
+			className="flex flex-1 min-w-56 shrink-0 flex-col gap-2 rounded-lg bg-surface-1 p-3"
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
 			<div className="flex items-center justify-between">
-				<span className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{label}</span>
+				<div className="flex items-center gap-1.5">
+					<ColumnIndicator columnId={columnId} />
+					<span className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{label}</span>
+				</div>
 				<span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-text-tertiary">{cards.length}</span>
 			</div>
 			<div className="flex flex-col gap-2">
+				{onImportFromJira ? (
+					<Button
+						variant="default"
+						size="sm"
+						icon={<Download size={14} />}
+						onClick={onImportFromJira}
+						disabled={isImporting}
+						fill
+					>
+						{isImporting ? "Importing…" : "Import To-Do"}
+					</Button>
+				) : null}
 				{cards.map((card) => (
 					<JiraBoardCard
 						key={card.jiraKey}

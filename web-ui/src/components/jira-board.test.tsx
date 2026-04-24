@@ -127,4 +127,13 @@ describe("JiraBoardView", () => {
 		});
 		expect(container.textContent).toContain("1 subtask");
 	});
+
+	it("renders a column indicator SVG for each column header", async () => {
+		await act(async () => {
+			root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={mockJiraBoard} />);
+		});
+		// Three columns → three SVG indicators in headers
+		const svgs = container.querySelectorAll("svg");
+		expect(svgs.length).toBeGreaterThanOrEqual(3);
+	});
 });
