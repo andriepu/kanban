@@ -501,6 +501,8 @@
 - `use-home-sidebar-agent-panel.test.tsx` — createSummary (~498 tok)
 - `use-home-sidebar-agent-panel.tsx` — Composes the sidebar agent surface for the current workspace. (~1124 tok)
 - `use-is-mobile.ts` — Exports useIsMobile (~53 tok)
+- `use-jira-board.test.tsx` — 5 tests: empty board, importFromJira/moveCard exposed, board populates on resolve, saveBoard called with correct payload. Uses stable mock client (avoids ref churn), flushPromises pattern inside async act. (~350 tok)
+- `use-jira-board.ts` — Exports UseJiraBoardResult, useJiraBoard. Uses useUnmount for cleanup, fetchBoard via useEffect+useCallback. moveCard has rollback on transitionIssue failure. No type casts (TRPC inferred). (~280 tok)
 - `use-kanban-access-gate.ts` — Exports useKanbanAccessGate (~57 tok)
 - `use-linked-backlog-task-actions.test.tsx` — trackTaskDependencyCreatedMock — uses useEffect (~3805 tok)
 - `use-linked-backlog-task-actions.ts` — Exports useLinkedBacklogTaskActions (~2072 tok)
@@ -608,6 +610,7 @@
 - `board.test.ts` (~268 tok)
 - `board.ts` — Exports BoardColumnId, TaskAutoReviewMode, TaskImage, DEFAULT_TASK_AUTO_REVIEW_MODE + 9 more (~605 tok)
 - `index.ts` (~8 tok)
+- `jira.ts` — Exports JiraCardStatus, JiraSubtaskStatus, JiraCard, JiraBoard, JiraSubtask, RepoOption. Pure type definitions for frontend Jira board feature. (~120 tok)
 
 ## web-ui/src/utils/
 
