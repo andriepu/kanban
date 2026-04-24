@@ -40,7 +40,7 @@ import {
 	loadJiraBoard,
 	loadJiraSubtasks,
 	saveJiraBoard,
-} from "../../../src/jira/jira-board-state.js";
+} from "../../../src/jira/jira-board-state";
 
 describe("loadJiraBoard", () => {
 	it("returns empty board when file does not exist", async () => {

@@ -178,6 +178,12 @@
 - `task-title.ts` — Exports DEFAULT_TASK_TITLE_MAX_CHARS, deriveTaskTitleFromPrompt, resolveTaskTitle (~496 tok)
 - `windows-cmd-launch.ts` — Exports resolveWindowsComSpec, buildWindowsCmdArgsCommandLine, buildWindowsCmdArgsArray, shouldUseWindowsCmdLaunch (~1444 tok)
 
+## src/jira/
+
+- `jira-board-state.ts` — Exports JiraCard, JiraBoard, JiraSubtask, loadJiraBoard, saveJiraBoard, loadJiraSubtasks, createJiraSubtask, deleteJiraSubtask. Atomic JSON persistence to ~/.kanban/kanban/jira-board.json and jira-subtasks.json via lockedFileSystem. Multi-file locking for create/delete subtask operations. (~500 tok)
+- `jira-mcp.ts` — Exports SpawnClaudeResult, SpawnClaudeFn, callJiraMcp. Spawns `claude -p <prompt> --output-format json --max-turns 1` and parses JSON result. Dependency-injected spawn for testability. (~200 tok)
+- `jira-worktree.ts` — Exports RepoInfo, deriveSubtaskBranchName, buildSubtaskWorktreePath, scanReposInRoot, createSubtaskWorktree, removeSubtaskWorktree. Git worktree operations and repo scanning for Jira subtasks. (~350 tok)
+
 ## src/fs/
 
 - `locked-file-system.ts` — Exports FileLockRequest, DirectoryLockRequest, LockRequest, AtomicTextWriteOptions + 2 more (~1339 tok)
@@ -235,10 +241,11 @@
 
 ## src/trpc/
 
-- `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. (~5687 tok)
+- `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. Includes jira router. (~6500 tok)
 - `hooks-api.ts` — Exports CreateHooksApiDependencies, createHooksApi (~1298 tok)
+- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi — Jira board/subtask/session/MCP operations (~1800 tok)
 - `projects-api.ts` — Exports CreateProjectsApiDependencies, createProjectsApi (~3672 tok)
-- `runtime-api.ts` — Coordinates the runtime-side TRPC handlers used by the browser. (~3740 tok)
+- `runtime-api.ts` — Coordinates the runtime-side TRPC handlers used by the browser. Supports customCwd. (~3800 tok)
 - `workspace-api.ts` — Exports CreateWorkspaceApiDependencies, createWorkspaceApi (~3436 tok)
 
 ## src/update/
@@ -294,6 +301,12 @@
 - `task-worktree-turbopack.test.ts` — Declares repoPath (~1806 tok)
 - `task-worktree.test.ts` — childProcessMocks: createGitError, stripConfigFlags, getCommandArgs (~2456 tok)
 
+## test/runtime/jira/
+
+- `jira-board-state.test.ts` — Tests for loadJiraBoard, saveJiraBoard, loadJiraSubtasks, createJiraSubtask, deleteJiraSubtask. Uses temp HOME override for isolation. (~350 tok)
+- `jira-mcp.test.ts` — Tests for callJiraMcp: JSON parsing, non-zero exit error, invalid JSON error. Uses vi.fn() mock spawn. (~120 tok)
+- `jira-worktree.test.ts` — Tests for deriveSubtaskBranchName, buildSubtaskWorktreePath, scanReposInRoot. Uses injected readdir/access mocks. (~200 tok)
+
 ## test/runtime/config/
 
 - `runtime-config.test.ts` — withTemporaryEnv: writeFakeCommand (~4727 tok)
@@ -326,6 +339,7 @@
 ## test/runtime/trpc/
 
 - `hooks-api.test.ts` — Declares createSummary (~1268 tok)
+- `jira-api.test.ts` — Tests createJiraApi: loadBoard, scanRepos, createSubtask (~450 tok)
 - `projects-api.test.ts` — CreateProjectsApiDependencies: createTestCwd, createDefaultDeps (~3713 tok)
 - `runtime-api.test.ts` — agentRegistryMocks: createSummary, createRuntimeConfigState (~2668 tok)
 - `workspace-api.test.ts` — workspaceTaskWorktreeMocks: createSummary, createChangesResponse (~1748 tok)

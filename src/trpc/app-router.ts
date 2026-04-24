@@ -67,6 +67,15 @@ import type {
 	RuntimeWorktreeEnsureResponse,
 } from "../core/api-contract";
 import {
+	jiraBoardSaveRequestSchema,
+	jiraFetchIssueRequestSchema,
+	jiraImportRequestSchema,
+	jiraSubtaskCreateRequestSchema,
+	jiraSubtaskDeleteRequestSchema,
+	jiraSubtaskSessionStartRequestSchema,
+	jiraSubtaskSessionStopRequestSchema,
+	jiraSubtaskUpdateStatusRequestSchema,
+	jiraTransitionRequestSchema,
 	runtimeCommandRunRequestSchema,
 	runtimeCommandRunResponseSchema,
 	runtimeConfigResponseSchema,
@@ -127,6 +136,7 @@ import {
 	runtimeWorktreeEnsureRequestSchema,
 	runtimeWorktreeEnsureResponseSchema,
 } from "../core/api-contract";
+import type { createJiraApi } from "./jira-api";
 
 export interface RuntimeTrpcWorkspaceScope {
 	workspaceId: string;
@@ -258,6 +268,7 @@ export interface RuntimeTrpcContext {
 	hooksApi: {
 		ingest: (input: RuntimeHookIngestRequest) => Promise<RuntimeHookIngestResponse>;
 	};
+	jiraApi: ReturnType<typeof createJiraApi>;
 }
 
 interface RuntimeTrpcContextWithWorkspaceScope extends RuntimeTrpcContext {
@@ -519,6 +530,37 @@ export const runtimeAppRouter = t.router({
 			.mutation(async ({ ctx, input }) => {
 				return await ctx.hooksApi.ingest(input);
 			}),
+	}),
+	jira: t.router({
+		loadBoard: t.procedure.query(({ ctx }) => ctx.jiraApi.loadBoard()),
+		saveBoard: t.procedure
+			.input(jiraBoardSaveRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.saveBoard(input.board)),
+		scanRepos: t.procedure.query(({ ctx }) => ctx.jiraApi.scanRepos()),
+		createSubtask: t.procedure
+			.input(jiraSubtaskCreateRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.createSubtask(input)),
+		deleteSubtask: t.procedure
+			.input(jiraSubtaskDeleteRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.deleteSubtask(input.subtaskId)),
+		importFromJira: t.procedure
+			.input(jiraImportRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.importFromJira(input.jql)),
+		transitionIssue: t.procedure
+			.input(jiraTransitionRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.transitionIssue(input.jiraKey, input.targetStatus)),
+		fetchIssue: t.procedure
+			.input(jiraFetchIssueRequestSchema)
+			.query(({ ctx, input }) => ctx.jiraApi.fetchIssue(input.jiraKey)),
+		startSubtaskSession: t.procedure
+			.input(jiraSubtaskSessionStartRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.startSubtaskSession(input.subtaskId)),
+		stopSubtaskSession: t.procedure
+			.input(jiraSubtaskSessionStopRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.stopSubtaskSession(input.subtaskId, input.workspacePath)),
+		updateSubtaskStatus: t.procedure
+			.input(jiraSubtaskUpdateStatusRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.updateSubtaskStatus(input.subtaskId, input.status)),
 	}),
 });
 

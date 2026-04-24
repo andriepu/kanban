@@ -1,4 +1,113 @@
 {
   "version": 1,
-  "bugs": []
+  "bugs": [
+    {
+      "id": "bug-001",
+      "timestamp": "2026-04-24T00:58:00Z",
+      "error_message": "AGENTS.md violation: inline type import `typeof import('node:fs/promises').readdir` used in test mock cast",
+      "file": "test/runtime/jira/jira-worktree.test.ts",
+      "root_cause": "Inline dynamic imports used in type positions are explicitly forbidden by AGENTS.md. The mock was cast using `as unknown as typeof import('node:fs/promises').readdir` instead of a named type import.",
+      "fix": "Added `import type { readdir as ReaddirFn } from 'node:fs/promises'` at top of test file; replaced all inline type casts with `as unknown as typeof ReaddirFn`.",
+      "tags": ["type-import", "agents-md-violation", "test", "readdir"],
+      "related_bugs": ["bug-002"],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T00:58:00Z"
+    },
+    {
+      "id": "bug-002",
+      "timestamp": "2026-04-24T00:58:00Z",
+      "error_message": "scanReposInRoot options used `typeof readdir` (broad overloaded type) requiring forced casts in tests",
+      "file": "src/jira/jira-worktree.ts",
+      "root_cause": "node:fs/promises `readdir` has many overloads making the type impractical to mock without ugly casts. The options interface used the full overloaded type.",
+      "fix": "Introduced purpose-built `ReaddirWithFileTypes` type alias and `ScanReposOptions` interface. The real `readdir` is wrapped in a small lambda that narrows the return type. Tests now use `as unknown as typeof ReaddirFn` (named import) instead of `as unknown as typeof import(...).readdir`.",
+      "tags": ["type-narrowing", "readdir", "dependency-injection", "scanReposInRoot"],
+      "related_bugs": ["bug-001"],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T00:58:00Z"
+    },
+    {
+      "id": "bug-003",
+      "timestamp": "2026-04-24T00:58:00Z",
+      "error_message": "createSubtaskWorktree silently swallowed symlink errors along with missing .env — incorrect error handling",
+      "file": "src/jira/jira-worktree.ts",
+      "root_cause": "Single try/catch around both `access()` and `symlink()` swallowed symlink failures, leaving the worktree in an inconsistent state without any signal to the caller.",
+      "fix": "Split into two blocks: access() failure sets envExists=false (silent skip); symlink() runs outside the catch and propagates errors to the caller.",
+      "tags": ["error-handling", "symlink", "createSubtaskWorktree", "env"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T00:58:00Z"
+    },
+    {
+      "id": "bug-004",
+      "timestamp": "2026-04-24T01:30:00Z",
+      "error_message": "Cannot find module '../../../src/jira/jira-board-state.js' (TS diagnostic in jira-board-state.test.ts line 43)",
+      "file": "test/runtime/jira/jira-board-state.test.ts",
+      "root_cause": "Import used .js extension which is wrong for this project's moduleResolution=Bundler tsconfig. Bundler resolution does not allow .js suffix on TypeScript source imports.",
+      "fix": "Removed .js extension from import path: '../../../src/jira/jira-board-state.js' → '../../../src/jira/jira-board-state'",
+      "tags": ["import", "module-resolution", "js-extension", "tsconfig-bundler"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T01:30:00Z"
+    },
+    {
+      "id": "bug-005",
+      "timestamp": "2026-04-24T01:30:00Z",
+      "error_message": "'beforeEach' is declared but its value is never read (jira-api.test.ts line 1)",
+      "file": "test/runtime/trpc/jira-api.test.ts",
+      "root_cause": "beforeEach was imported from vitest but not used in any test suite in jira-api.test.ts.",
+      "fix": "Removed beforeEach from the vitest import statement.",
+      "tags": ["unused-import", "vitest", "typescript-diagnostic"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T01:30:00Z"
+    },
+    {
+      "id": "bug-006",
+      "timestamp": "2026-04-24T01:30:00Z",
+      "error_message": "'await' has no effect on the type of this expression (runtime-server.ts line 249)",
+      "file": "src/server/runtime-server.ts",
+      "root_cause": "trpcHttpHandler is http.RequestListener (returns void), not a Promise. createHTTPHandler from @trpc/server/adapters/standalone returns a synchronous request listener.",
+      "fix": "Removed unnecessary await before trpcHttpHandler(req, res) call.",
+      "tags": ["await", "typescript-diagnostic", "trpc", "http-handler"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T01:30:00Z"
+    },
+    {
+      "id": "bug-007",
+      "timestamp": "2026-04-24T08:22:00Z",
+      "error_message": "fetchIssue unsafe cast: `raw as { key?: ... }` does not guard against non-object values",
+      "file": "src/trpc/jira-api.ts",
+      "root_cause": "callJiraMcp returns `unknown`; direct `as` cast without runtime type check is unsafe when raw is null, string, or number.",
+      "fix": "Added runtime guard: `raw !== null && typeof raw === 'object' ? (raw as ...) : {}`",
+      "tags": ["unsafe-cast", "runtime-guard", "fetchIssue", "type-safety"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T08:22:00Z"
+    },
+    {
+      "id": "bug-008",
+      "timestamp": "2026-04-24T08:22:00Z",
+      "error_message": "getJiraProjectKey in CreateJiraApiDependencies was unused — never called inside createJiraApi",
+      "file": "src/trpc/jira-api.ts",
+      "root_cause": "Dependency was added to the interface but never consumed; test mock also referenced it.",
+      "fix": "Removed getJiraProjectKey from CreateJiraApiDependencies interface, from createJiraApi call in runtime-server.ts, and from jira-api.test.ts mock.",
+      "tags": ["dead-code", "unused-dep", "interface-cleanup"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T08:22:00Z"
+    },
+    {
+      "id": "bug-009",
+      "timestamp": "2026-04-24T08:22:00Z",
+      "error_message": "startSubtaskSession called loadJiraSubtasks twice — once at start and again after startTaskSession",
+      "file": "src/trpc/jira-api.ts",
+      "root_cause": "Second call was a defensive re-fetch before writing status, but unnecessary because lockedFileSystem.writeJsonFileAtomic handles atomic writes; the first call's result is still valid.",
+      "fix": "Removed second loadJiraSubtasks call; reuse first call's `subtasks` map, mutate subtasks[subtaskId] directly, then write atomically.",
+      "tags": ["double-fetch", "redundant-io", "startSubtaskSession"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T08:22:00Z"
+    }
+  ]
 }

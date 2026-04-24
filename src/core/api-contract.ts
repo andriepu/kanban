@@ -601,6 +601,7 @@ export const runtimeTaskSessionStartRequestSchema = z.object({
 	cols: z.number().int().positive().optional(),
 	rows: z.number().int().positive().optional(),
 	agentId: runtimeAgentIdSchema.optional(),
+	customCwd: z.string().optional(),
 });
 export type RuntimeTaskSessionStartRequest = z.infer<typeof runtimeTaskSessionStartRequestSchema>;
 
@@ -893,3 +894,98 @@ export const runtimeHookIngestResponseSchema = z.object({
 	error: z.string().optional(),
 });
 export type RuntimeHookIngestResponse = z.infer<typeof runtimeHookIngestResponseSchema>;
+
+// ── Jira board schemas ─────────────────────────────────────────────────────
+
+export const jiraCardStatusSchema = z.enum(["todo", "in_progress", "done"]);
+export type JiraCardStatus = z.infer<typeof jiraCardStatusSchema>;
+
+export const jiraCardSchema = z.object({
+	jiraKey: z.string(),
+	summary: z.string(),
+	status: jiraCardStatusSchema,
+	subtaskIds: z.array(z.string()),
+	createdAt: z.number(),
+	updatedAt: z.number(),
+});
+export type RuntimeJiraCard = z.infer<typeof jiraCardSchema>;
+
+export const jiraBoardSchema = z.object({ cards: z.array(jiraCardSchema) });
+export type RuntimeJiraBoard = z.infer<typeof jiraBoardSchema>;
+
+export const jiraSubtaskStatusSchema = z.enum(["backlog", "in_progress", "review", "done"]);
+export type JiraSubtaskStatus = z.infer<typeof jiraSubtaskStatusSchema>;
+
+export const jiraSubtaskSchema = z.object({
+	id: z.string(),
+	jiraKey: z.string(),
+	repoId: z.string(),
+	repoPath: z.string(),
+	prompt: z.string(),
+	title: z.string(),
+	baseRef: z.string(),
+	branchName: z.string(),
+	worktreePath: z.string(),
+	status: jiraSubtaskStatusSchema,
+	createdAt: z.number(),
+	updatedAt: z.number(),
+});
+export type RuntimeJiraSubtask = z.infer<typeof jiraSubtaskSchema>;
+
+// ── Jira API request/response schemas ──────────────────────────────────────
+
+export const jiraBoardLoadResponseSchema = z.object({
+	board: jiraBoardSchema,
+	subtasks: z.record(z.string(), jiraSubtaskSchema),
+});
+export type JiraBoardLoadResponse = z.infer<typeof jiraBoardLoadResponseSchema>;
+
+export const jiraBoardSaveRequestSchema = z.object({ board: jiraBoardSchema });
+export const jiraBoardSaveResponseSchema = z.object({ board: jiraBoardSchema });
+
+export const jiraSubtaskCreateRequestSchema = z.object({
+	jiraKey: z.string(),
+	repoId: z.string(),
+	repoPath: z.string(),
+	prompt: z.string(),
+	title: z.string(),
+	baseRef: z.string(),
+	branchName: z.string(),
+});
+export const jiraSubtaskCreateResponseSchema = z.object({ subtask: jiraSubtaskSchema });
+
+export const jiraSubtaskDeleteRequestSchema = z.object({ subtaskId: z.string() });
+export const jiraSubtaskDeleteResponseSchema = z.object({ deleted: z.boolean() });
+
+export const jiraImportRequestSchema = z.object({ jql: z.string() });
+export const jiraImportResponseSchema = z.object({
+	imported: z.number(),
+	skipped: z.number(),
+	board: jiraBoardSchema,
+});
+
+export const jiraTransitionRequestSchema = z.object({ jiraKey: z.string(), targetStatus: jiraCardStatusSchema });
+export const jiraTransitionResponseSchema = z.object({ ok: z.boolean() });
+
+export const jiraFetchIssueRequestSchema = z.object({ jiraKey: z.string() });
+export const jiraFetchIssueResponseSchema = z.object({
+	jiraKey: z.string(),
+	summary: z.string(),
+	description: z.string().nullable(),
+});
+
+export const jiraScanReposResponseSchema = z.object({
+	repos: z.array(z.object({ id: z.string(), path: z.string() })),
+});
+
+export const jiraSubtaskSessionStartRequestSchema = z.object({ subtaskId: z.string() });
+export const jiraSubtaskSessionStartResponseSchema = z.object({ started: z.boolean(), workspacePath: z.string() });
+
+export const jiraSubtaskSessionStopRequestSchema = z.object({ subtaskId: z.string(), workspacePath: z.string() });
+export const jiraSubtaskSessionStopResponseSchema = z.object({ stopped: z.boolean() });
+
+export const jiraSubtaskUpdateStatusRequestSchema = z.object({
+	subtaskId: z.string(),
+	status: jiraSubtaskStatusSchema,
+});
+export const jiraSubtaskUpdateStatusResponseSchema = z.object({ subtask: jiraSubtaskSchema });

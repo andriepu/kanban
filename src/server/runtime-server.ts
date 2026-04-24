@@ -10,11 +10,21 @@ import {
 	getKanbanRuntimeOrigin,
 	getKanbanRuntimePort,
 } from "../core/runtime-endpoint";
-import { loadWorkspaceContextById } from "../state/workspace-state";
+import {
+	createJiraSubtask,
+	deleteJiraSubtask,
+	loadJiraBoard,
+	loadJiraSubtasks,
+	saveJiraBoard,
+} from "../jira/jira-board-state";
+import { callJiraMcp } from "../jira/jira-mcp";
+import { createSubtaskWorktree, removeSubtaskWorktree, scanReposInRoot } from "../jira/jira-worktree";
+import { loadWorkspaceContext, loadWorkspaceContextById } from "../state/workspace-state";
 import type { TerminalSessionManager } from "../terminal/session-manager";
 import { createTerminalWebSocketBridge } from "../terminal/ws-server";
 import { type RuntimeTrpcContext, type RuntimeTrpcWorkspaceScope, runtimeAppRouter } from "../trpc/app-router";
 import { createHooksApi } from "../trpc/hooks-api";
+import { createJiraApi } from "../trpc/jira-api";
 import { createProjectsApi } from "../trpc/projects-api";
 import { createRuntimeApi } from "../trpc/runtime-api";
 import { createWorkspaceApi } from "../trpc/workspace-api";
@@ -129,23 +139,68 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 		deps.workspaceRegistry.clearActiveWorkspace();
 	};
 
+	const runtimeApiInstance = createRuntimeApi({
+		getActiveWorkspaceId: deps.workspaceRegistry.getActiveWorkspaceId,
+		getActiveRuntimeConfig: deps.workspaceRegistry.getActiveRuntimeConfig,
+		loadScopedRuntimeConfig: deps.workspaceRegistry.loadScopedRuntimeConfig,
+		setActiveRuntimeConfig: deps.workspaceRegistry.setActiveRuntimeConfig,
+		getScopedTerminalManager,
+		resolveInteractiveShellCommand: deps.resolveInteractiveShellCommand,
+		runCommand: deps.runCommand,
+		broadcastTaskChatCleared: deps.runtimeStateHub.broadcastTaskChatCleared,
+		prepareForStateReset,
+	});
+
+	const jiraApiInstance = createJiraApi({
+		loadJiraBoard,
+		saveJiraBoard,
+		loadJiraSubtasks,
+		createJiraSubtask,
+		deleteJiraSubtask,
+		callJiraMcp,
+		scanRepos: scanReposInRoot,
+		createSubtaskWorktree,
+		removeSubtaskWorktree,
+		startTaskSession: async (workspacePath, taskId, prompt, customCwd) => {
+			const ctx = await loadWorkspaceContext(workspacePath);
+			const workspaceScope: RuntimeTrpcWorkspaceScope = {
+				workspaceId: ctx.workspaceId,
+				workspacePath: ctx.repoPath,
+			};
+			const result = await runtimeApiInstance.startTaskSession(workspaceScope, {
+				taskId,
+				prompt,
+				baseRef: "main",
+				customCwd,
+			});
+			return { started: result.ok };
+		},
+		stopTaskSession: async (workspacePath, taskId) => {
+			const ctx = await loadWorkspaceContext(workspacePath);
+			const workspaceScope: RuntimeTrpcWorkspaceScope = {
+				workspaceId: ctx.workspaceId,
+				workspacePath: ctx.repoPath,
+			};
+			const result = await runtimeApiInstance.stopTaskSession(workspaceScope, { taskId });
+			return { stopped: result.ok };
+		},
+		addWorkspace: async (workspacePath) => {
+			await deps.ensureTerminalManagerForWorkspace(
+				(await loadWorkspaceContext(workspacePath)).workspaceId,
+				workspacePath,
+			);
+		},
+		getWorktreesRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.worktreesRoot ?? null,
+		getReposRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.reposRoot ?? null,
+	});
+
 	const createTrpcContext = async (req: IncomingMessage): Promise<RuntimeTrpcContext> => {
 		const requestUrl = new URL(req.url ?? "/", "http://localhost");
 		const scope = await resolveWorkspaceScopeFromRequest(req, requestUrl);
 		return {
 			requestedWorkspaceId: scope.requestedWorkspaceId,
 			workspaceScope: scope.workspaceScope,
-			runtimeApi: createRuntimeApi({
-				getActiveWorkspaceId: deps.workspaceRegistry.getActiveWorkspaceId,
-				getActiveRuntimeConfig: deps.workspaceRegistry.getActiveRuntimeConfig,
-				loadScopedRuntimeConfig: deps.workspaceRegistry.loadScopedRuntimeConfig,
-				setActiveRuntimeConfig: deps.workspaceRegistry.setActiveRuntimeConfig,
-				getScopedTerminalManager,
-				resolveInteractiveShellCommand: deps.resolveInteractiveShellCommand,
-				runCommand: deps.runCommand,
-				broadcastTaskChatCleared: deps.runtimeStateHub.broadcastTaskChatCleared,
-				prepareForStateReset,
-			}),
+			runtimeApi: runtimeApiInstance,
 			workspaceApi: createWorkspaceApi({
 				ensureTerminalManagerForWorkspace: deps.ensureTerminalManagerForWorkspace,
 				broadcastRuntimeWorkspaceStateUpdated: deps.runtimeStateHub.broadcastRuntimeWorkspaceStateUpdated,
@@ -180,6 +235,7 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 				broadcastRuntimeWorkspaceStateUpdated: deps.runtimeStateHub.broadcastRuntimeWorkspaceStateUpdated,
 				broadcastTaskReadyForReview: deps.runtimeStateHub.broadcastTaskReadyForReview,
 			}),
+			jiraApi: jiraApiInstance,
 		};
 	};
 
@@ -195,7 +251,7 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 			const pathname = normalizeRequestPath(requestUrl.pathname);
 
 			if (pathname.startsWith("/api/trpc")) {
-				await trpcHttpHandler(req, res);
+				trpcHttpHandler(req, res);
 				return;
 			}
 			if (pathname.startsWith("/api/")) {

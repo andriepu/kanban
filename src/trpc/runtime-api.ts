@@ -118,13 +118,15 @@ export function createRuntimeApi(deps: CreateRuntimeApiDependencies): RuntimeTrp
 					deps.broadcastTaskChatCleared?.(workspaceScope.workspaceId, body.taskId);
 				}
 				const scopedRuntimeConfig = await deps.loadScopedRuntimeConfig(workspaceScope);
-				const taskCwd = isHomeAgentSessionId(body.taskId)
-					? workspaceScope.workspacePath
-					: await resolveExistingTaskCwdOrEnsure({
-							cwd: workspaceScope.workspacePath,
-							taskId: body.taskId,
-							baseRef: body.baseRef,
-						});
+				const taskCwd = body.customCwd
+					? body.customCwd
+					: isHomeAgentSessionId(body.taskId)
+						? workspaceScope.workspacePath
+						: await resolveExistingTaskCwdOrEnsure({
+								cwd: workspaceScope.workspacePath,
+								taskId: body.taskId,
+								baseRef: body.baseRef,
+							});
 				const shouldCaptureTurnCheckpoint = !body.resumeFromTrash && !isHomeAgentSessionId(body.taskId);
 
 				// Per-task config source-of-truth precedence:
