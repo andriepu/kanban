@@ -19,7 +19,7 @@ import {
 } from "../jira/jira-board-state";
 import { callJiraMcp } from "../jira/jira-mcp";
 import { createSubtaskWorktree, removeSubtaskWorktree, scanReposInRoot } from "../jira/jira-worktree";
-import { loadWorkspaceContext, loadWorkspaceContextById } from "../state/workspace-state";
+import { listWorkspaceIndexEntries, loadWorkspaceContext, loadWorkspaceContextById } from "../state/workspace-state";
 import type { TerminalSessionManager } from "../terminal/session-manager";
 import { createTerminalWebSocketBridge } from "../terminal/ws-server";
 import { type RuntimeTrpcContext, type RuntimeTrpcWorkspaceScope, runtimeAppRouter } from "../trpc/app-router";
@@ -227,6 +227,9 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 				buildProjectsPayload: deps.workspaceRegistry.buildProjectsPayload,
 				pickDirectoryPathFromSystemDialog: deps.pickDirectoryPathFromSystemDialog,
 				serverCwd: process.cwd(),
+				getReposRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.reposRoot ?? null,
+				scanReposInRoot,
+				listWorkspaceIndexEntries,
 			}),
 			hooksApi: createHooksApi({
 				getWorkspacePathById: deps.workspaceRegistry.getWorkspacePathById,

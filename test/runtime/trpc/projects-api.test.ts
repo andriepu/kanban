@@ -48,6 +48,10 @@ function createDefaultDeps(serverCwd: string): CreateProjectsApiDependencies {
 		buildProjectsPayload: vi.fn(async () => ({ currentProjectId: null, projects: [] })),
 		pickDirectoryPathFromSystemDialog: vi.fn(() => null),
 		serverCwd,
+		// New deps for syncFromReposRoot:
+		getReposRoot: vi.fn(() => null),
+		scanReposInRoot: vi.fn(async () => []),
+		listWorkspaceIndexEntries: vi.fn(async () => []),
 	};
 }
 
@@ -306,5 +310,62 @@ describe("addProject", () => {
 		expect(resolveSpy).toHaveBeenCalledWith("my-new-proj", testCwd);
 		// Crucially, it must NOT have been called with the active project path:
 		expect(resolveSpy).not.toHaveBeenCalledWith("my-new-proj", activeProjectPath);
+	});
+});
+
+describe("syncFromReposRoot", () => {
+	let testCwd: string;
+
+	beforeEach(() => {
+		testCwd = createTestCwd();
+	});
+
+	afterEach(() => {
+		rmSync(testCwd, { recursive: true, force: true });
+	});
+
+	it("returns { added: 0, skipped: 0 } when getReposRoot returns null", async () => {
+		const deps = createDefaultDeps(testCwd);
+		(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue(null);
+		const api = createProjectsApi(deps);
+		const result = await api.syncFromReposRoot();
+		expect(result).toEqual({ added: 0, skipped: 0 });
+		expect(deps.scanReposInRoot).not.toHaveBeenCalled();
+		expect(deps.broadcastRuntimeProjectsUpdated).not.toHaveBeenCalled();
+	});
+
+	it("returns { added: 0, skipped: 0 } when getReposRoot returns whitespace", async () => {
+		const deps = createDefaultDeps(testCwd);
+		(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue("   ");
+		const api = createProjectsApi(deps);
+		const result = await api.syncFromReposRoot();
+		expect(result).toEqual({ added: 0, skipped: 0 });
+		expect(deps.scanReposInRoot).not.toHaveBeenCalled();
+	});
+
+	it("skips repos already present in workspace index by repoPath", async () => {
+		const deps = createDefaultDeps(testCwd);
+		(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue("/repos");
+		(deps.scanReposInRoot as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: "alpha", path: "/repos/alpha" }]);
+		(deps.listWorkspaceIndexEntries as ReturnType<typeof vi.fn>).mockResolvedValue([
+			{ workspaceId: "ws-existing", repoPath: "/repos/alpha" },
+		]);
+		const api = createProjectsApi(deps);
+		const result = await api.syncFromReposRoot();
+		expect(result.skipped).toBe(1);
+		expect(result.added).toBe(0);
+		expect(deps.rememberWorkspace).not.toHaveBeenCalled();
+		expect(deps.broadcastRuntimeProjectsUpdated).toHaveBeenCalledWith(null);
+	});
+
+	it("calls broadcastRuntimeProjectsUpdated even when all repos skipped", async () => {
+		const deps = createDefaultDeps(testCwd);
+		(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue("/repos");
+		(deps.scanReposInRoot as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+		(deps.listWorkspaceIndexEntries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+		const api = createProjectsApi(deps);
+		const result = await api.syncFromReposRoot();
+		expect(result).toEqual({ added: 0, skipped: 0 });
+		expect(deps.broadcastRuntimeProjectsUpdated).toHaveBeenCalledWith(null);
 	});
 });

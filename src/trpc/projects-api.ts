@@ -8,6 +8,7 @@ import type {
 	RuntimeProjectTaskCounts,
 } from "../core/api-contract";
 import { parseDirectoryListRequest, parseProjectAddRequest, parseProjectRemoveRequest } from "../core/api-validation";
+import type { RepoInfo } from "../jira/jira-worktree";
 import {
 	listWorkspaceIndexEntries,
 	loadWorkspaceContext,
@@ -56,6 +57,9 @@ export interface CreateProjectsApiDependencies {
 	}>;
 	pickDirectoryPathFromSystemDialog: () => string | null;
 	serverCwd: string;
+	getReposRoot: () => string | null;
+	scanReposInRoot: (reposRoot: string) => Promise<RepoInfo[]>;
+	listWorkspaceIndexEntries: () => Promise<Array<{ workspaceId: string; repoPath: string }>>;
 }
 
 export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeTrpcContext["projectsApi"] {
@@ -362,6 +366,30 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 							: message,
 				} satisfies RuntimeDirectoryListResponse;
 			}
+		},
+		syncFromReposRoot: async () => {
+			const reposRoot = deps.getReposRoot();
+			if (!reposRoot?.trim()) {
+				return { added: 0, skipped: 0 };
+			}
+			const repos = await deps.scanReposInRoot(reposRoot);
+			const existingEntries = await deps.listWorkspaceIndexEntries();
+			const existingRepoPaths = new Set(existingEntries.map((e) => e.repoPath));
+			let added = 0;
+			let skipped = 0;
+			await Promise.all(
+				repos.map(async (repo) => {
+					if (existingRepoPaths.has(repo.path)) {
+						skipped += 1;
+						return;
+					}
+					const context = await loadWorkspaceContext(repo.path);
+					deps.rememberWorkspace(context.workspaceId, context.repoPath);
+					added += 1;
+				}),
+			);
+			await deps.broadcastRuntimeProjectsUpdated(null);
+			return { added, skipped };
 		},
 	};
 }

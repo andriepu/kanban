@@ -264,6 +264,7 @@ export interface RuntimeTrpcContext {
 			preferredWorkspaceId: string | null,
 			input: RuntimeDirectoryListRequest,
 		) => Promise<RuntimeDirectoryListResponse>;
+		syncFromReposRoot: () => Promise<{ added: number; skipped: number }>;
 	};
 	hooksApi: {
 		ingest: (input: RuntimeHookIngestRequest) => Promise<RuntimeHookIngestResponse>;
@@ -521,6 +522,11 @@ export const runtimeAppRouter = t.router({
 			.output(runtimeDirectoryListResponseSchema)
 			.query(async ({ ctx, input }) => {
 				return await ctx.projectsApi.listDirectoryContents(ctx.requestedWorkspaceId, input);
+			}),
+		syncFromReposRoot: t.procedure
+			.output(z.object({ added: z.number(), skipped: z.number() }))
+			.mutation(async ({ ctx }) => {
+				return await ctx.projectsApi.syncFromReposRoot();
 			}),
 	}),
 	hooks: t.router({
