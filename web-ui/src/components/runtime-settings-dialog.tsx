@@ -35,7 +35,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { TASK_GIT_BASE_REF_PROMPT_VARIABLE, type TaskGitAction } from "@/git-actions/build-task-git-action-prompt";
 import { previewThemeId, readStoredThemeId, saveThemeId, THEME_GROUPS, THEMES, type ThemeId } from "@/hooks/use-theme";
 import { useLayoutCustomizations } from "@/resize/layout-customizations";
-import { openFileOnHost } from "@/runtime/runtime-config-query";
+import { openFileOnHost, pickDirectoryOnHost } from "@/runtime/runtime-config-query";
 import type { RuntimeAgentId, RuntimeConfigResponse, RuntimeProjectShortcut } from "@/runtime/types";
 import { useRuntimeConfig } from "@/runtime/use-runtime-config";
 import {
@@ -357,6 +357,9 @@ export function RuntimeSettingsDialog({
 	const [copiedVariableToken, setCopiedVariableToken] = useState<string | null>(null);
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const [pendingShortcutScrollIndex, setPendingShortcutScrollIndex] = useState<number | null>(null);
+	const [worktreesRoot, setWorktreesRoot] = useState(config?.worktreesRoot ?? "");
+	const [reposRoot, setReposRoot] = useState(config?.reposRoot ?? "");
+	const [jiraProjectKey, setJiraProjectKey] = useState(config?.jiraProjectKey ?? "");
 	const copiedVariableResetTimerRef = useRef<number | null>(null);
 	const shortcutsSectionRef = useRef<HTMLHeadingElement | null>(null);
 	const shortcutRowRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -420,6 +423,9 @@ export function RuntimeSettingsDialog({
 	const initialShortcuts = config?.shortcuts ?? [];
 	const initialCommitPromptTemplate = config?.commitPromptTemplate ?? "";
 	const initialOpenPrPromptTemplate = config?.openPrPromptTemplate ?? "";
+	const initialWorktreesRoot = config?.worktreesRoot ?? "";
+	const initialReposRoot = config?.reposRoot ?? "";
+	const initialJiraProjectKey = config?.jiraProjectKey ?? "";
 	const hasUnsavedChanges = useMemo(() => {
 		if (!config) {
 			return false;
@@ -445,10 +451,19 @@ export function RuntimeSettingsDialog({
 		) {
 			return true;
 		}
-		return (
+		if (
 			normalizeTemplateForComparison(openPrPromptTemplate) !==
 			normalizeTemplateForComparison(initialOpenPrPromptTemplate)
-		);
+		) {
+			return true;
+		}
+		if (worktreesRoot.trim() !== initialWorktreesRoot) {
+			return true;
+		}
+		if (reposRoot.trim() !== initialReposRoot) {
+			return true;
+		}
+		return jiraProjectKey.trim() !== initialJiraProjectKey;
 	}, [
 		agentAutonomousModeEnabled,
 		commitPromptTemplate,
@@ -456,15 +471,21 @@ export function RuntimeSettingsDialog({
 		draftThemeId,
 		initialAgentAutonomousModeEnabled,
 		initialCommitPromptTemplate,
+		initialJiraProjectKey,
 		initialOpenPrPromptTemplate,
 		initialReadyForReviewNotificationsEnabled,
+		initialReposRoot,
 		initialSelectedAgentId,
 		initialShortcuts,
 		initialThemeId,
+		initialWorktreesRoot,
+		jiraProjectKey,
 		openPrPromptTemplate,
 		readyForReviewNotificationsEnabled,
+		reposRoot,
 		selectedAgentId,
 		shortcuts,
+		worktreesRoot,
 	]);
 
 	useEffect(() => {
@@ -477,14 +498,20 @@ export function RuntimeSettingsDialog({
 		setShortcuts(config?.shortcuts ?? []);
 		setCommitPromptTemplate(config?.commitPromptTemplate ?? "");
 		setOpenPrPromptTemplate(config?.openPrPromptTemplate ?? "");
+		setWorktreesRoot(config?.worktreesRoot ?? "");
+		setReposRoot(config?.reposRoot ?? "");
+		setJiraProjectKey(config?.jiraProjectKey ?? "");
 		setSaveError(null);
 	}, [
 		config?.agentAutonomousModeEnabled,
 		config?.commitPromptTemplate,
+		config?.jiraProjectKey,
 		config?.openPrPromptTemplate,
 		config?.readyForReviewNotificationsEnabled,
+		config?.reposRoot,
 		config?.selectedAgentId,
 		config?.shortcuts,
+		config?.worktreesRoot,
 		fallbackAgentId,
 		open,
 	]);
@@ -637,6 +664,9 @@ export function RuntimeSettingsDialog({
 			shortcuts,
 			commitPromptTemplate,
 			openPrPromptTemplate,
+			worktreesRoot: worktreesRoot.trim() || null,
+			reposRoot: reposRoot.trim() || null,
+			jiraProjectKey: jiraProjectKey.trim() || null,
 		});
 		if (!saved) {
 			setSaveError("Could not save runtime settings. Check runtime logs and try again.");
@@ -667,6 +697,16 @@ export function RuntimeSettingsDialog({
 		},
 		[workspaceId],
 	);
+
+	const pickDirectory = useCallback(async (): Promise<string | null> => {
+		try {
+			return await pickDirectoryOnHost(workspaceId);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			setSaveError(`Could not open directory picker: ${message}`);
+			return null;
+		}
+	}, [workspaceId]);
 
 	const handleDialogOpenChange = useCallback(
 		(nextOpen: boolean) => {
@@ -1053,6 +1093,94 @@ export function RuntimeSettingsDialog({
 						{shortcuts.length === 0 ? (
 							<p className="text-text-secondary text-[13px]">No shortcuts configured.</p>
 						) : null}
+					</div>
+
+					{/* ---- Jira & Repos ---- */}
+					<div className="rounded-lg border border-border bg-surface-0 px-4 py-3 mb-4">
+						<h6 className="text-[12px] font-semibold uppercase tracking-wider text-text-secondary m-0 mb-4">
+							Jira &amp; Repos
+						</h6>
+
+						{/* Worktrees Root */}
+						<div className="flex flex-col gap-1.5 mb-4">
+							<label htmlFor="settings-worktrees-root" className="text-xs font-medium text-text-secondary">
+								Worktrees Root
+							</label>
+							<p className="text-xs text-text-tertiary m-0">
+								Directory where git worktrees are created for subtasks.
+							</p>
+							<div className="flex gap-2">
+								<input
+									id="settings-worktrees-root"
+									type="text"
+									value={worktreesRoot}
+									onChange={(e) => setWorktreesRoot(e.target.value)}
+									placeholder="e.g. ~/Workspace/poliigon/work"
+									disabled={controlsDisabled}
+									className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none disabled:opacity-40"
+								/>
+								<Button
+									variant="ghost"
+									size="sm"
+									icon={<FolderOpen size={14} />}
+									disabled={controlsDisabled}
+									onClick={() => {
+										void pickDirectory().then((result) => {
+											if (result) setWorktreesRoot(result);
+										});
+									}}
+								/>
+							</div>
+						</div>
+
+						{/* Repos Root */}
+						<div className="flex flex-col gap-1.5 mb-4">
+							<label htmlFor="settings-repos-root" className="text-xs font-medium text-text-secondary">
+								Repos Root
+							</label>
+							<p className="text-xs text-text-tertiary m-0">
+								Parent directory scanned 1 level deep for git repos.
+							</p>
+							<div className="flex gap-2">
+								<input
+									id="settings-repos-root"
+									type="text"
+									value={reposRoot}
+									onChange={(e) => setReposRoot(e.target.value)}
+									placeholder="e.g. ~/Workspace/poliigon"
+									disabled={controlsDisabled}
+									className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none disabled:opacity-40"
+								/>
+								<Button
+									variant="ghost"
+									size="sm"
+									icon={<FolderOpen size={14} />}
+									disabled={controlsDisabled}
+									onClick={() => {
+										void pickDirectory().then((result) => {
+											if (result) setReposRoot(result);
+										});
+									}}
+								/>
+							</div>
+						</div>
+
+						{/* Jira Project Key */}
+						<div className="flex flex-col gap-1.5">
+							<label htmlFor="settings-jira-project-key" className="text-xs font-medium text-text-secondary">
+								Jira Project Key
+							</label>
+							<p className="text-xs text-text-tertiary m-0">Default project key for Jira queries (e.g. POL).</p>
+							<input
+								id="settings-jira-project-key"
+								type="text"
+								value={jiraProjectKey}
+								onChange={(e) => setJiraProjectKey(e.target.value.toUpperCase())}
+								placeholder="e.g. POL"
+								disabled={controlsDisabled}
+								className="w-32 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none disabled:opacity-40"
+							/>
+						</div>
 					</div>
 
 					{saveError ? (

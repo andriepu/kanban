@@ -17,6 +17,9 @@ export interface UseRuntimeConfigResult {
 		readyForReviewNotificationsEnabled?: boolean;
 		commitPromptTemplate?: string;
 		openPrPromptTemplate?: string;
+		worktreesRoot?: string | null;
+		reposRoot?: string | null;
+		jiraProjectKey?: string | null;
 	}) => Promise<RuntimeConfigResponse | null>;
 }
 
@@ -84,6 +87,9 @@ export function useRuntimeConfig(
 			readyForReviewNotificationsEnabled?: boolean;
 			commitPromptTemplate?: string;
 			openPrPromptTemplate?: string;
+			worktreesRoot?: string | null;
+			reposRoot?: string | null;
+			jiraProjectKey?: string | null;
 		}): Promise<RuntimeConfigResponse | null> => {
 			setIsSaving(true);
 			try {

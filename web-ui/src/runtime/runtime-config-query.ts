@@ -24,6 +24,9 @@ export async function saveRuntimeConfig(
 		readyForReviewNotificationsEnabled?: boolean;
 		commitPromptTemplate?: string;
 		openPrPromptTemplate?: string;
+		worktreesRoot?: string | null;
+		reposRoot?: string | null;
+		jiraProjectKey?: string | null;
 	},
 ): Promise<RuntimeConfigResponse> {
 	const trpcClient = getRuntimeTrpcClient(workspaceId);
@@ -38,4 +41,17 @@ export async function resetRuntimeDebugState(workspaceId: string | null): Promis
 export async function openFileOnHost(workspaceId: string | null, filePath: string): Promise<void> {
 	const trpcClient = getRuntimeTrpcClient(workspaceId);
 	await trpcClient.runtime.openFile.mutate({ filePath });
+}
+
+/**
+ * Opens the OS native directory picker and returns the selected path,
+ * or null if the user cancelled or the picker is unavailable.
+ */
+export async function pickDirectoryOnHost(workspaceId: string | null): Promise<string | null> {
+	const trpcClient = getRuntimeTrpcClient(workspaceId);
+	const result = await trpcClient.projects.pickDirectory.mutate();
+	if (result.ok && result.path) {
+		return result.path;
+	}
+	return null;
 }
