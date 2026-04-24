@@ -55,6 +55,8 @@ export function ProjectNavigationPanel({
 	sidebarTab,
 	onSidebarTabChange,
 	hasJiraConfig,
+	projectFilter,
+	onFilterProject,
 }: {
 	projects: RuntimeProjectSummary[];
 	isLoadingProjects?: boolean;
@@ -72,6 +74,8 @@ export function ProjectNavigationPanel({
 	sidebarTab: "task" | "project";
 	onSidebarTabChange: (tab: "task" | "project") => void;
 	hasJiraConfig: boolean;
+	projectFilter: string | null;
+	onFilterProject: (projectPath: string) => void;
 }): React.ReactElement {
 	const sortedProjects = [...projects].sort((a, b) => a.path.localeCompare(b.path));
 
@@ -310,69 +314,6 @@ export function ProjectNavigationPanel({
 		);
 	}
 
-	const collapsedWidth = COLLAPSED_WIDTH;
-
-	if (isCollapsed) {
-		return (
-			<aside
-				className="flex flex-col items-center min-h-0 overflow-hidden bg-surface-1 relative shrink-0 py-2 gap-1.5"
-				style={{
-					width: collapsedWidth,
-					minWidth: collapsedWidth,
-					borderRight: "1px solid var(--color-divider)",
-				}}
-			>
-				{!isMobile && (
-					<div
-						role="separator"
-						aria-orientation="vertical"
-						aria-label="Resize sidebar"
-						onMouseDown={startDrag}
-						className="absolute top-0 right-0 bottom-0 w-1.5 cursor-ew-resize z-10"
-					/>
-				)}
-				{sortedProjects.map((project) => {
-					const isCurrent = currentProjectId === project.id;
-					const letter = project.name.charAt(0).toUpperCase();
-					return (
-						<button
-							key={project.id}
-							type="button"
-							title={project.name}
-							onClick={() => {
-								if (isMobile) {
-									setCollapsed(false);
-								}
-								onSelectProject(project.id);
-							}}
-							className={cn(
-								"rounded-md text-xs font-semibold shrink-0 border-0 cursor-pointer flex items-center justify-center",
-								isMobile ? "w-11 h-11" : "w-8 h-8",
-								isCurrent
-									? "bg-accent text-accent-fg"
-									: "bg-surface-3 text-text-secondary hover:text-text-primary hover:bg-surface-4",
-							)}
-						>
-							{letter}
-						</button>
-					);
-				})}
-				<button
-					type="button"
-					title="Add project"
-					onClick={onAddProject}
-					disabled={removingProjectId !== null}
-					className={cn(
-						"rounded-md text-xs shrink-0 border-0 cursor-pointer flex items-center justify-center bg-transparent text-text-tertiary hover:text-text-secondary hover:bg-surface-2 mt-auto",
-						isMobile ? "w-11 h-11" : "w-8 h-8",
-					)}
-				>
-					<Plus size={16} />
-				</button>
-			</aside>
-		);
-	}
-
 	return (
 		<aside
 			className={cn(
@@ -389,10 +330,11 @@ export function ProjectNavigationPanel({
 								: "kb-sidebar-slide-in 200ms ease",
 						}
 					: {
-							width: sidebarWidth,
-							minWidth: SIDEBAR_MIN_EXPANDED_WIDTH,
-							maxWidth: SIDEBAR_MAX_EXPANDED_WIDTH,
+							width: isCollapsed ? COLLAPSED_WIDTH : sidebarWidth,
+							minWidth: isCollapsed ? COLLAPSED_WIDTH : SIDEBAR_MIN_EXPANDED_WIDTH,
+							maxWidth: isCollapsed ? COLLAPSED_WIDTH : SIDEBAR_MAX_EXPANDED_WIDTH,
 							borderRight: "1px solid var(--color-divider)",
+							transition: "width 250ms ease, min-width 250ms ease, max-width 250ms ease",
 						}
 			}
 		>
@@ -405,110 +347,178 @@ export function ProjectNavigationPanel({
 					className="absolute top-0 right-0 bottom-0 w-1.5 cursor-ew-resize z-10"
 				/>
 			)}
-			<div style={{ padding: "12px 12px 8px" }}>
-				<div className="flex items-center justify-between">
-					<div className="font-semibold text-base flex items-baseline gap-1.5">
-						Kanban <span className="text-text-secondary font-normal text-xs">v{__APP_VERSION__}</span>
-					</div>
-					{isMobile ? (
-						<Button
-							variant="ghost"
-							size="sm"
-							icon={<Plus size={16} className="rotate-45" />}
-							onClick={() => setCollapsed(true)}
-							aria-label="Close sidebar"
-							className="min-w-[44px] min-h-[44px] -mr-2"
-						/>
-					) : null}
-				</div>
-				<div className="mt-2 rounded-md bg-surface-2 border border-border p-1">
-					<div className="grid grid-cols-2 gap-1">
-						<button
-							type="button"
-							onClick={() => onSidebarTabChange("task")}
-							className="relative cursor-pointer rounded-sm px-2 py-1 text-xs font-medium text-text-secondary hover:text-text-primary border border-transparent"
-						>
-							Tasks
-							{!hasJiraConfig && (
-								<span
-									className="ml-1 inline-flex size-2 rounded-full bg-status-orange"
-									title="Jira & Repos not configured"
-								/>
-							)}
-						</button>
-						<button
-							type="button"
-							onClick={() => onSidebarTabChange("project")}
-							className={cn(
-								"cursor-pointer rounded-sm px-2 py-1 text-xs font-medium",
-								sidebarTab === "project"
-									? "bg-surface-4 text-text-primary border border-border"
-									: "text-text-secondary hover:text-text-primary border border-transparent",
-							)}
-						>
-							Projects
-						</button>
-					</div>
-				</div>
-			</div>
 
+			{/* Collapsed content layer */}
 			<div
-				className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1"
-				style={{ padding: "4px 12px" }}
+				style={{
+					opacity: !isMobile && isCollapsed ? 1 : 0,
+					transition: "opacity 150ms ease",
+					pointerEvents: !isMobile && isCollapsed ? "auto" : "none",
+					position: "absolute",
+					inset: 0,
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "center",
+					paddingTop: 8,
+					paddingBottom: 8,
+					gap: 6,
+				}}
 			>
-				{sortedProjects.length === 0 && isLoadingProjects ? (
-					<div style={{ padding: "4px 0" }}>
-						{Array.from({ length: 3 }).map((_, index) => (
-							<ProjectRowSkeleton key={`project-skeleton-${index}`} />
-						))}
-					</div>
-				) : null}
-
-				{sortedProjects.map((project) => (
-					<ProjectRow
-						key={project.id}
-						project={project}
-						isCurrent={currentProjectId === project.id}
-						removingProjectId={removingProjectId}
-						onSelect={(projectId) => {
-							onSelectProject(projectId);
-							if (isMobile) {
-								setCollapsed(true);
-							}
-						}}
-						onRemove={(projectId) => {
-							const found = sortedProjects.find((item) => item.id === projectId);
-							if (!found) {
-								return;
-							}
-							setPendingProjectRemoval(found);
-						}}
-					/>
-				))}
-
-				{!isLoadingProjects ? (
-					<button
-						type="button"
-						className="kb-project-row flex cursor-pointer items-center gap-1.5 rounded-md text-text-secondary hover:text-text-primary"
-						style={{ padding: "6px 8px" }}
-						onClick={onAddProject}
-						disabled={removingProjectId !== null}
-					>
-						<Plus size={14} className="shrink-0" />
-						<span className="text-sm">Add Project</span>
-					</button>
-				) : null}
+				{sortedProjects.map((project) => {
+					const letter = project.name.charAt(0).toUpperCase();
+					return (
+						<button
+							key={project.id}
+							type="button"
+							title={project.name}
+							onClick={() => {
+								if (isMobile) {
+									setCollapsed(false);
+								}
+								onSelectProject(project.id);
+							}}
+							className={cn(
+								"rounded-md text-xs font-semibold shrink-0 border-0 cursor-pointer flex items-center justify-center py-3 px-1.5",
+								currentProjectId === project.id
+									? "bg-accent text-accent-fg"
+									: "bg-surface-3 text-text-secondary hover:text-text-primary hover:bg-surface-4",
+							)}
+						>
+							{letter}
+						</button>
+					);
+				})}
+				<button
+					type="button"
+					title="Add project"
+					onClick={onAddProject}
+					disabled={removingProjectId !== null}
+					className="rounded-md text-xs shrink-0 border-0 cursor-pointer flex items-center justify-center bg-transparent text-text-tertiary hover:text-text-secondary hover:bg-surface-2 mt-auto py-3 px-1.5"
+				>
+					<Plus size={16} />
+				</button>
 			</div>
-			{agentSectionContent != null && sidebarTab === "project" && (
-				<>
-					<ResizeHandle orientation="horizontal" ariaLabel="Resize agent panel" onMouseDown={startAgentDrag} />
-					<div className="flex flex-col shrink-0 overflow-hidden" style={{ height: agentPaneHeight }}>
-						<div className="flex flex-1 min-h-0 overflow-hidden bg-surface-1 px-2 pb-2 pt-1">
-							{agentSectionContent}
+
+			{/* Expanded content layer */}
+			<div
+				style={{
+					opacity: isMobile || !isCollapsed ? 1 : 0,
+					transition: isMobile ? undefined : "opacity 150ms ease 100ms",
+					pointerEvents: isMobile || !isCollapsed ? "auto" : "none",
+					display: "flex",
+					flexDirection: "column",
+					flex: 1,
+					minHeight: 0,
+					overflow: "hidden",
+				}}
+			>
+				<div style={{ padding: "12px 12px 8px" }}>
+					<div className="flex items-center justify-between">
+						<div className="font-semibold text-base flex items-baseline gap-1.5">
+							Kanban <span className="text-text-secondary font-normal text-xs">v{__APP_VERSION__}</span>
+						</div>
+						{isMobile ? (
+							<Button
+								variant="ghost"
+								size="sm"
+								icon={<Plus size={16} className="rotate-45" />}
+								onClick={() => setCollapsed(true)}
+								aria-label="Close sidebar"
+								className="min-w-[44px] min-h-[44px] -mr-2"
+							/>
+						) : null}
+					</div>
+					<div className="mt-2 rounded-md bg-surface-2 border border-border p-1">
+						<div className="grid grid-cols-2 gap-1">
+							<button
+								type="button"
+								onClick={() => onSidebarTabChange("task")}
+								className="relative cursor-pointer rounded-sm px-2 py-1 text-xs font-medium text-text-secondary hover:text-text-primary border border-transparent"
+							>
+								Tasks
+								{!hasJiraConfig && (
+									<span
+										className="ml-1 inline-flex size-2 rounded-full bg-status-orange"
+										title="Jira & Repos not configured"
+									/>
+								)}
+							</button>
+							<button
+								type="button"
+								onClick={() => onSidebarTabChange("project")}
+								className={cn(
+									"cursor-pointer rounded-sm px-2 py-1 text-xs font-medium",
+									sidebarTab === "project"
+										? "bg-surface-4 text-text-primary border border-border"
+										: "text-text-secondary hover:text-text-primary border border-transparent",
+								)}
+							>
+								Projects
+							</button>
 						</div>
 					</div>
-				</>
-			)}
+				</div>
+
+				<div
+					className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1"
+					style={{ padding: "4px 12px" }}
+				>
+					{sortedProjects.length === 0 && isLoadingProjects ? (
+						<div style={{ padding: "4px 0" }}>
+							{Array.from({ length: 3 }).map((_, index) => (
+								<ProjectRowSkeleton key={`project-skeleton-${index}`} />
+							))}
+						</div>
+					) : null}
+
+					{sortedProjects.map((project) => (
+						<ProjectRow
+							key={project.id}
+							project={project}
+							isCurrent={projectFilter === project.path}
+							removingProjectId={removingProjectId}
+							onSelect={() => {
+								onFilterProject(project.path);
+								if (isMobile) {
+									setCollapsed(true);
+								}
+							}}
+							onRemove={(projectId) => {
+								const found = sortedProjects.find((item) => item.id === projectId);
+								if (!found) {
+									return;
+								}
+								setPendingProjectRemoval(found);
+							}}
+						/>
+					))}
+
+					{!isLoadingProjects ? (
+						<button
+							type="button"
+							className="kb-project-row flex cursor-pointer items-center gap-1.5 rounded-md text-text-secondary hover:text-text-primary"
+							style={{ padding: "6px 8px" }}
+							onClick={onAddProject}
+							disabled={removingProjectId !== null}
+						>
+							<Plus size={14} className="shrink-0" />
+							<span className="text-sm">Add Project</span>
+						</button>
+					) : null}
+				</div>
+
+				{agentSectionContent != null && sidebarTab === "project" && (
+					<>
+						<ResizeHandle orientation="horizontal" ariaLabel="Resize agent panel" onMouseDown={startAgentDrag} />
+						<div className="flex flex-col shrink-0 overflow-hidden" style={{ height: agentPaneHeight }}>
+							<div className="flex flex-1 min-h-0 overflow-hidden bg-surface-1 px-2 pb-2 pt-1">
+								{agentSectionContent}
+							</div>
+						</div>
+					</>
+				)}
+			</div>
+
 			<AlertDialog
 				open={pendingProjectRemoval !== null}
 				onOpenChange={(open) => {
@@ -623,7 +633,7 @@ function ProjectRow({
 	project: RuntimeProjectSummary;
 	isCurrent: boolean;
 	removingProjectId: string | null;
-	onSelect: (id: string) => void;
+	onSelect: () => void;
 	onRemove: (id: string) => void;
 }): React.ReactElement {
 	const displayPath = formatPathForDisplay(project.path);
@@ -665,11 +675,11 @@ function ProjectRow({
 		<div
 			role="button"
 			tabIndex={0}
-			onClick={() => onSelect(project.id)}
+			onClick={() => onSelect()}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();
-					onSelect(project.id);
+					onSelect();
 				}
 			}}
 			className={cn("kb-project-row cursor-pointer rounded-md", isCurrent && "kb-project-row-selected")}

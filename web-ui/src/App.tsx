@@ -754,6 +754,8 @@ export default function App(): ReactElement {
 						sidebarTab={sidebarTab}
 						onSidebarTabChange={setSidebarTab}
 						hasJiraConfig={Boolean(runtimeProjectConfig?.worktreesRoot && runtimeProjectConfig?.reposRoot)}
+						projectFilter={null}
+						onFilterProject={() => {}}
 					/>
 				) : null}
 				<div className="flex flex-col flex-1 min-w-0 overflow-hidden">

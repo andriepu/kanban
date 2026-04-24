@@ -118,6 +118,8 @@ describe("ProjectNavigationPanel width persistence", () => {
 					sidebarTab="project"
 					onSidebarTabChange={() => {}}
 					hasJiraConfig={false}
+					projectFilter={null}
+					onFilterProject={() => {}}
 					{...overrides}
 				/>,
 			);
@@ -205,5 +207,23 @@ describe("ProjectNavigationPanel width persistence", () => {
 		expect(container.querySelector('[data-testid="jira-detail"]')).not.toBeNull();
 		// project list NOT rendered
 		expect(container.querySelector(".kb-project-row")).toBeNull();
+	});
+
+	it("highlights project matching projectFilter path", () => {
+		renderPanel({
+			sidebarTab: "project",
+			projectFilter: "/tmp/kanban", // matches PROJECTS[0].path
+		});
+		const selected = container.querySelector(".kb-project-row-selected");
+		expect(selected).not.toBeNull();
+	});
+
+	it("highlights no project when projectFilter is null", () => {
+		renderPanel({
+			sidebarTab: "project",
+			projectFilter: null,
+		});
+		const selected = container.querySelector(".kb-project-row-selected");
+		expect(selected).toBeNull();
 	});
 });
