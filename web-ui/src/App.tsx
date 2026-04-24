@@ -867,7 +867,6 @@ export default function App(): ReactElement {
 												taskSessions={sessions}
 												workspacePath={workspacePath}
 												onCardSelect={handleCardSelect}
-												onCreateTask={handleOpenCreateTask}
 												onStartTask={handleStartTaskFromBoard}
 												onStartAllTasks={handleStartAllBacklogTasksFromBoard}
 												onClearTrash={handleOpenClearTrash}
@@ -967,7 +966,6 @@ export default function App(): ReactElement {
 									onSessionSummary={upsertSession}
 									onCardSelect={handleCardSelect}
 									onTaskDragEnd={handleDetailTaskDragEnd}
-									onCreateTask={handleOpenCreateTask}
 									onStartTask={handleStartTaskFromBoard}
 									onStartAllTasks={handleStartAllBacklogTasksFromBoard}
 									onClearTrash={handleOpenClearTrash}

@@ -31,7 +31,6 @@ export function KanbanBoard({
 	data,
 	taskSessions,
 	onCardSelect,
-	onCreateTask,
 	onStartTask,
 	onStartAllTasks,
 	onClearTrash,
@@ -57,7 +56,6 @@ export function KanbanBoard({
 	data: BoardData;
 	taskSessions: Record<string, RuntimeTaskSessionSummary>;
 	onCardSelect: (taskId: string) => void;
-	onCreateTask: () => void;
 	onStartTask?: (taskId: string) => void;
 	onStartAllTasks?: () => void;
 	onClearTrash?: () => void;

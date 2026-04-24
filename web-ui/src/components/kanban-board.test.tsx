@@ -201,7 +201,6 @@ describe("KanbanBoard", () => {
 					data={board}
 					taskSessions={{}}
 					onCardSelect={() => {}}
-					onCreateTask={() => {}}
 					dependencies={[]}
 					onDragEnd={() => {}}
 					onRequestProgrammaticCardMoveReady={(nextRequestMove) => {
