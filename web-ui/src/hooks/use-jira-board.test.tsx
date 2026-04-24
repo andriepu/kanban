@@ -216,10 +216,11 @@ describe("useJiraBoard", () => {
 			await result.moveCard("POL-1", "done");
 		});
 
-		// Card still in state (timer pending) — use snapshot (live) for post-mutation board checks
+		// Card still in state (timer pending)
 		if (snapshot === null) throw new Error("Expected snapshot after moveCard");
-		expect(snapshot!.board.cards).toHaveLength(1);
-		expect(snapshot!.board.cards[0]?.status).toBe("done");
+		const snapAfterMove: UseJiraBoardResult = snapshot;
+		expect(snapAfterMove.board.cards).toHaveLength(1);
+		expect(snapAfterMove.board.cards[0]?.status).toBe("done");
 		expect(mockSaveBoard).not.toHaveBeenCalledWith(
 			expect.objectContaining({ board: expect.objectContaining({ cards: [] }) }),
 		);
@@ -230,7 +231,8 @@ describe("useJiraBoard", () => {
 		});
 
 		if (snapshot === null) throw new Error("Expected snapshot after timer");
-		expect(snapshot!.board.cards).toHaveLength(0);
+		const snapAfterTimer: UseJiraBoardResult = snapshot;
+		expect(snapAfterTimer.board.cards).toHaveLength(0);
 		expect(mockSaveBoard).toHaveBeenCalledWith(
 			expect.objectContaining({ board: expect.objectContaining({ cards: [] }) }),
 		);
@@ -278,7 +280,8 @@ describe("useJiraBoard", () => {
 		});
 
 		if (snapshot === null) throw new Error("Expected snapshot after deleteCard");
-		expect(snapshot!.board.cards).toHaveLength(0);
+		const snapAfterDelete: UseJiraBoardResult = snapshot;
+		expect(snapAfterDelete.board.cards).toHaveLength(0);
 		expect(mockSaveBoard).toHaveBeenCalled();
 		mockSaveBoard.mockClear();
 
