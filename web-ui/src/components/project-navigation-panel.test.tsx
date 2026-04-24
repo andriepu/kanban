@@ -173,4 +173,12 @@ describe("ProjectNavigationPanel width persistence", () => {
 		});
 		expect(container.querySelector('[data-testid="agent-panel"]')).toBeNull();
 	});
+
+	it("renders agentSectionContent when sidebarTab is 'project'", () => {
+		renderPanel({
+			sidebarTab: "project",
+			agentSectionContent: <div data-testid="agent-panel">agent</div>,
+		});
+		expect(container.querySelector('[data-testid="agent-panel"]')).not.toBeNull();
+	});
 });
