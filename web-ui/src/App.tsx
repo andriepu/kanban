@@ -80,7 +80,6 @@ export default function App(): ReactElement {
 	const [canPersistWorkspaceState, setCanPersistWorkspaceState] = useState(false);
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [settingsInitialSection, setSettingsInitialSection] = useState<RuntimeSettingsSection | null>(null);
-	const [homeSidebarSection, setHomeSidebarSection] = useState<"projects" | "agent">("projects");
 	const [sidebarTab, setSidebarTab] = useState<"task" | "project">("project");
 	const [selectedJiraKey, setSelectedJiraKey] = useState<string | null>(null);
 	const [isClearTrashDialogOpen, setIsClearTrashDialogOpen] = useState(false);
@@ -719,11 +718,7 @@ export default function App(): ReactElement {
 						isLoadingProjects={isProjectListLoading}
 						currentProjectId={navigationCurrentProjectId}
 						removingProjectId={removingProjectId}
-						activeSection={homeSidebarSection}
-						onActiveSectionChange={setHomeSidebarSection}
-						canShowAgentSection={!hasNoProjects && Boolean(currentProjectId)}
-						agentSectionContent={homeSidebarAgentPanel}
-						selectedAgentId={settingsRuntimeProjectConfig?.selectedAgentId ?? null}
+						agentSectionContent={sidebarTab === "project" ? homeSidebarAgentPanel : undefined}
 						onSelectProject={(projectId) => {
 							void handleSelectProject(projectId);
 						}}

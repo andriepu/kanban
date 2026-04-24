@@ -1,5 +1,5 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Ellipsis, ExternalLink, Info, Lightbulb, Plus, X } from "lucide-react";
+import { Ellipsis, Plus } from "lucide-react";
 import { type MouseEvent as ReactMouseEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
@@ -15,13 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import type { RuntimeAgentId, RuntimeProjectSummary } from "@/runtime/types";
-import {
-	LocalStorageKey,
-	readLocalStorageItem,
-	removeLocalStorageItem,
-	writeLocalStorageItem,
-} from "@/storage/local-storage-store";
+import { ResizeHandle } from "@/resize/resize-handle";
+import type { RuntimeProjectSummary } from "@/runtime/types";
+import { LocalStorageKey, readLocalStorageItem, writeLocalStorageItem } from "@/storage/local-storage-store";
 import { formatPathForDisplay } from "@/utils/path-display";
 import { useUnmount, useWindowEvent } from "@/utils/react-use";
 
@@ -29,7 +25,9 @@ const COLLAPSED_WIDTH = 48;
 const SIDEBAR_COLLAPSE_THRESHOLD = 120;
 const SIDEBAR_MIN_EXPANDED_WIDTH = 200;
 const SIDEBAR_MAX_EXPANDED_WIDTH = 600;
-const GITHUB_ISSUES_URL = "https://github.com/cline/kanban/issues";
+const AGENT_PANEL_MIN_HEIGHT = 120;
+const AGENT_PANEL_DEFAULT_HEIGHT = 240;
+const AGENT_PANEL_MAX_HEIGHT = 500;
 
 interface TaskCountBadge {
 	id: string;
@@ -44,11 +42,7 @@ export function ProjectNavigationPanel({
 	isLoadingProjects = false,
 	currentProjectId,
 	removingProjectId,
-	activeSection,
-	onActiveSectionChange,
-	canShowAgentSection,
 	agentSectionContent,
-	selectedAgentId,
 	onSelectProject,
 	onRemoveProject,
 	onAddProject,
@@ -64,11 +58,7 @@ export function ProjectNavigationPanel({
 	isLoadingProjects?: boolean;
 	currentProjectId: string | null;
 	removingProjectId: string | null;
-	activeSection: "projects" | "agent";
-	onActiveSectionChange: (section: "projects" | "agent") => void;
-	canShowAgentSection: boolean;
 	agentSectionContent?: ReactNode;
-	selectedAgentId?: RuntimeAgentId | null;
 	onSelectProject: (projectId: string) => void;
 	onRemoveProject: (projectId: string) => Promise<boolean>;
 	onAddProject: () => void;
@@ -134,6 +124,63 @@ export function ProjectNavigationPanel({
 	}, []);
 
 	useUnmount(stopDrag);
+
+	const [agentPaneHeight, setAgentPaneHeightState] = useState(() => {
+		const stored = readLocalStorageItem(LocalStorageKey.ProjectNavigationAgentPanelHeight);
+		if (stored !== null) {
+			const parsed = Number(stored);
+			if (Number.isFinite(parsed)) {
+				return Math.min(Math.max(parsed, AGENT_PANEL_MIN_HEIGHT), AGENT_PANEL_MAX_HEIGHT);
+			}
+		}
+		return AGENT_PANEL_DEFAULT_HEIGHT;
+	});
+	const agentPaneHeightRef = useRef(agentPaneHeight);
+	agentPaneHeightRef.current = agentPaneHeight;
+
+	const [isAgentDragging, setIsAgentDragging] = useState(false);
+	const agentDragRef = useRef<{ startY: number; startHeight: number } | null>(null);
+
+	const stopAgentDrag = useCallback(() => {
+		setIsAgentDragging(false);
+		document.body.style.cursor = "";
+		document.body.style.userSelect = "";
+		writeLocalStorageItem(LocalStorageKey.ProjectNavigationAgentPanelHeight, String(agentPaneHeightRef.current));
+		agentDragRef.current = null;
+	}, []);
+
+	useUnmount(stopAgentDrag);
+
+	const handleAgentMouseMove = useCallback(
+		(event: MouseEvent) => {
+			if (!isAgentDragging) return;
+			const drag = agentDragRef.current;
+			if (!drag) return;
+			const delta = drag.startY - event.clientY;
+			const newHeight = Math.min(Math.max(drag.startHeight + delta, AGENT_PANEL_MIN_HEIGHT), AGENT_PANEL_MAX_HEIGHT);
+			setAgentPaneHeightState(newHeight);
+		},
+		[isAgentDragging],
+	);
+
+	const handleAgentMouseUp = useCallback(() => {
+		if (!isAgentDragging) return;
+		stopAgentDrag();
+	}, [isAgentDragging, stopAgentDrag]);
+
+	useWindowEvent("mousemove", isAgentDragging ? handleAgentMouseMove : null);
+	useWindowEvent("mouseup", isAgentDragging ? handleAgentMouseUp : null);
+
+	const startAgentDrag = useCallback(
+		(e: ReactMouseEvent) => {
+			e.preventDefault();
+			agentDragRef.current = { startY: e.clientY, startHeight: agentPaneHeight };
+			setIsAgentDragging(true);
+			document.body.style.userSelect = "none";
+			document.body.style.cursor = "ns-resize";
+		},
+		[agentPaneHeight],
+	);
 
 	const handleMouseMove = useCallback(
 		(event: MouseEvent) => {
@@ -307,124 +354,94 @@ export function ProjectNavigationPanel({
 					<div className="grid grid-cols-2 gap-1">
 						<button
 							type="button"
-							onClick={() => onActiveSectionChange("projects")}
+							onClick={() => onSidebarTabChange("task")}
 							className={cn(
-								"cursor-pointer rounded-sm px-2 py-1 text-xs font-medium",
-								activeSection === "projects"
+								"relative cursor-pointer rounded-sm px-2 py-1 text-xs font-medium",
+								sidebarTab === "task"
 									? "bg-surface-4 text-text-primary border border-border"
 									: "text-text-secondary hover:text-text-primary border border-transparent",
 							)}
 						>
-							Projects
-						</button>
-						<button
-							type="button"
-							onClick={() => onActiveSectionChange("agent")}
-							disabled={!canShowAgentSection}
-							className={cn(
-								"cursor-pointer rounded-sm px-2 py-1 text-xs font-medium",
-								activeSection === "agent"
-									? "bg-surface-4 text-text-primary border border-border"
-									: "text-text-secondary hover:text-text-primary border border-transparent",
-								!canShowAgentSection ? "cursor-not-allowed opacity-50" : null,
-							)}
-						>
-							Kanban Agent
-						</button>
-					</div>
-				</div>
-			</div>
-
-			{!isCollapsed && (
-				<div className="flex border-b border-border px-2 pt-2">
-					{(["task", "project"] as const).map((tab) => (
-						<button
-							key={tab}
-							type="button"
-							onClick={() => onSidebarTabChange(tab)}
-							className={cn(
-								"flex-1 py-1.5 text-sm font-medium capitalize rounded-t-sm transition-colors relative",
-								sidebarTab === tab
-									? "text-text-primary border-b-2 border-accent -mb-px"
-									: "text-text-secondary hover:text-text-primary",
-							)}
-						>
-							{tab === "task" ? "Task" : "Project"}
-							{tab === "task" && !hasJiraConfig && (
+							Tasks
+							{!hasJiraConfig && (
 								<span
 									className="ml-1 inline-flex size-2 rounded-full bg-status-orange"
 									title="Jira & Repos not configured"
 								/>
 							)}
 						</button>
-					))}
-				</div>
-			)}
-
-			{activeSection === "projects" ? (
-				<>
-					{sidebarTab === "project" && (
-						<div
-							className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1"
-							style={{ padding: "4px 12px" }}
+						<button
+							type="button"
+							onClick={() => onSidebarTabChange("project")}
+							className={cn(
+								"cursor-pointer rounded-sm px-2 py-1 text-xs font-medium",
+								sidebarTab === "project"
+									? "bg-surface-4 text-text-primary border border-border"
+									: "text-text-secondary hover:text-text-primary border border-transparent",
+							)}
 						>
-							{sortedProjects.length === 0 && isLoadingProjects ? (
-								<div style={{ padding: "4px 0" }}>
-									{Array.from({ length: 3 }).map((_, index) => (
-										<ProjectRowSkeleton key={`project-skeleton-${index}`} />
-									))}
-								</div>
-							) : null}
-
-							{sortedProjects.map((project) => (
-								<ProjectRow
-									key={project.id}
-									project={project}
-									isCurrent={currentProjectId === project.id}
-									removingProjectId={removingProjectId}
-									onSelect={(projectId) => {
-										onSelectProject(projectId);
-										if (isMobile) {
-											setCollapsed(true);
-										}
-									}}
-									onRemove={(projectId) => {
-										const found = sortedProjects.find((item) => item.id === projectId);
-										if (!found) {
-											return;
-										}
-										setPendingProjectRemoval(found);
-									}}
-								/>
-							))}
-
-							{!isLoadingProjects ? (
-								<button
-									type="button"
-									className="kb-project-row flex cursor-pointer items-center gap-1.5 rounded-md text-text-secondary hover:text-text-primary"
-									style={{ padding: "6px 8px" }}
-									onClick={onAddProject}
-									disabled={removingProjectId !== null}
-								>
-									<Plus size={14} className="shrink-0" />
-									<span className="text-sm">Add Project</span>
-								</button>
-							) : null}
-						</div>
-					)}
-					{sidebarTab === "project" && <ProjectSupportFooter />}
-				</>
-			) : (
-				<div className="flex flex-1 min-h-0 flex-col">
-					{selectedAgentId ? <TerminalAgentHints /> : null}
-					<div className="flex flex-1 min-h-0 overflow-hidden bg-surface-1 px-2 pb-2 pt-1">
-						{agentSectionContent ?? (
-							<div className="flex w-full items-center justify-center rounded-md border border-border bg-surface-2 px-3 text-center text-sm text-text-secondary">
-								Select a project to use the agent.
-							</div>
-						)}
+							Projects
+						</button>
 					</div>
 				</div>
+			</div>
+
+			<div
+				className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1"
+				style={{ padding: "4px 12px" }}
+			>
+				{sortedProjects.length === 0 && isLoadingProjects ? (
+					<div style={{ padding: "4px 0" }}>
+						{Array.from({ length: 3 }).map((_, index) => (
+							<ProjectRowSkeleton key={`project-skeleton-${index}`} />
+						))}
+					</div>
+				) : null}
+
+				{sortedProjects.map((project) => (
+					<ProjectRow
+						key={project.id}
+						project={project}
+						isCurrent={currentProjectId === project.id}
+						removingProjectId={removingProjectId}
+						onSelect={(projectId) => {
+							onSelectProject(projectId);
+							if (isMobile) {
+								setCollapsed(true);
+							}
+						}}
+						onRemove={(projectId) => {
+							const found = sortedProjects.find((item) => item.id === projectId);
+							if (!found) {
+								return;
+							}
+							setPendingProjectRemoval(found);
+						}}
+					/>
+				))}
+
+				{!isLoadingProjects ? (
+					<button
+						type="button"
+						className="kb-project-row flex cursor-pointer items-center gap-1.5 rounded-md text-text-secondary hover:text-text-primary"
+						style={{ padding: "6px 8px" }}
+						onClick={onAddProject}
+						disabled={removingProjectId !== null}
+					>
+						<Plus size={14} className="shrink-0" />
+						<span className="text-sm">Add Project</span>
+					</button>
+				) : null}
+			</div>
+			{agentSectionContent != null && sidebarTab === "project" && (
+				<>
+					<ResizeHandle orientation="horizontal" ariaLabel="Resize agent panel" onMouseDown={startAgentDrag} />
+					<div className="flex flex-col shrink-0 overflow-hidden" style={{ height: agentPaneHeight }}>
+						<div className="flex flex-1 min-h-0 overflow-hidden bg-surface-1 px-2 pb-2 pt-1">
+							{agentSectionContent}
+						</div>
+					</div>
+				</>
 			)}
 			<AlertDialog
 				open={pendingProjectRemoval !== null}
@@ -490,93 +507,6 @@ export function ProjectNavigationPanel({
 				</AlertDialogFooter>
 			</AlertDialog>
 		</aside>
-	);
-}
-
-const TERMINAL_AGENT_HINTS: readonly { label: string; hint: string }[] = [
-	{ label: "Create tasks", hint: "Ask your agent to add tasks, link them, and start working" },
-	{ label: "Break down work", hint: "Ask to decompose a complex feature into linked subtasks" },
-	{ label: "Import issues", hint: "Pull issues into task cards via GitHub CLI or Linear MCP" },
-];
-
-function TerminalAgentHints(): React.ReactElement {
-	const [isDismissed, setIsDismissed] = useState(
-		() => readLocalStorageItem(LocalStorageKey.AgentTipsDismissed) === "true",
-	);
-
-	const dismiss = useCallback(() => {
-		setIsDismissed(true);
-		writeLocalStorageItem(LocalStorageKey.AgentTipsDismissed, "true");
-	}, []);
-
-	const restore = useCallback(() => {
-		setIsDismissed(false);
-		removeLocalStorageItem(LocalStorageKey.AgentTipsDismissed);
-	}, []);
-
-	if (isDismissed) {
-		return (
-			<div className="shrink-0 px-3 pt-1">
-				<button
-					type="button"
-					onClick={restore}
-					className="flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-[11px] text-text-tertiary hover:text-text-secondary"
-				>
-					<Lightbulb size={11} />
-					Show tips
-				</button>
-			</div>
-		);
-	}
-	return (
-		<div className="shrink-0 mx-2 mt-1 mb-1 rounded-md border border-border bg-surface-2/60 px-3 py-2">
-			<div className="flex items-center justify-between mb-1.5">
-				<span className="text-[11px] font-medium text-status-gold flex items-center gap-1">
-					<Lightbulb size={11} />
-					Tips
-				</span>
-				<button
-					type="button"
-					onClick={dismiss}
-					aria-label="Dismiss tips"
-					className="cursor-pointer border-none bg-transparent p-0 text-text-tertiary hover:text-text-secondary"
-				>
-					<X size={12} />
-				</button>
-			</div>
-			<ul className="m-0 list-none space-y-1 pl-0">
-				{TERMINAL_AGENT_HINTS.map((item) => (
-					<li key={item.label} className="flex items-start gap-1.5 text-[11px] text-text-primary">
-						<span className="mt-[5px] block h-1 w-1 shrink-0 rounded-full bg-text-tertiary" />
-						<span>
-							<span className="font-medium">{item.label}.</span> {item.hint}
-						</span>
-					</li>
-				))}
-			</ul>
-		</div>
-	);
-}
-
-function ProjectSupportFooter(): React.ReactElement {
-	return (
-		<div style={{ padding: "4px 12px 12px" }}>
-			<div className="flex items-start gap-2 rounded-md border border-border bg-surface-2 px-3 py-2.5">
-				<Info size={14} className="mt-px shrink-0 text-text-tertiary" />
-				<div className="flex flex-col gap-1.5">
-					<p className="m-0 text-xs text-text-secondary">
-						Kanban is in beta. Help us improve by sharing your experience.
-					</p>
-					<button
-						type="button"
-						className="m-0 flex cursor-pointer items-center gap-1 self-start border-none bg-transparent p-0 text-xs font-semibold text-text-secondary hover:text-text-primary active:text-text-tertiary"
-						onClick={() => window.open(GITHUB_ISSUES_URL, "_blank")}
-					>
-						Report issue <ExternalLink size={11} />
-					</button>
-				</div>
-			</div>
-		</div>
 	);
 }
 
