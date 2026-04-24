@@ -14,6 +14,7 @@ export interface UseJiraBoardResult {
 	isLoading: boolean;
 	isImporting: boolean;
 	moveCard: (jiraKey: string, newStatus: JiraCardStatus) => Promise<void>;
+	deleteCard: (jiraKey: string) => void;
 	refetch: () => void;
 }
 
@@ -33,6 +34,7 @@ export function useJiraBoard(
 	const isImportingRef = useRef(false);
 	const prevIsActiveRef = useRef(false);
 	const boardRef = useRef<JiraBoard>({ cards: [] });
+	const deleteTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
 	function applyBoard(b: JiraBoard): void {
 		boardRef.current = b;
@@ -41,6 +43,9 @@ export function useJiraBoard(
 
 	useUnmount(() => {
 		isMountedRef.current = false;
+		for (const id of deleteTimersRef.current.values()) {
+			clearTimeout(id);
+		}
 	});
 
 	const fetchBoard = useCallback(async (): Promise<void> => {
@@ -68,6 +73,36 @@ export function useJiraBoard(
 	useEffect(() => {
 		void fetchBoard();
 	}, [fetchBoard]);
+
+	const scheduleDelete = useCallback(
+		(jiraKey: string): void => {
+			const existing = deleteTimersRef.current.get(jiraKey);
+			if (existing !== undefined) clearTimeout(existing);
+			const id = setTimeout(() => {
+				deleteTimersRef.current.delete(jiraKey);
+				if (!isMountedRef.current) return;
+				const cleaned = { cards: boardRef.current.cards.filter((c) => c.jiraKey !== jiraKey) };
+				applyBoard(cleaned);
+				void trpc.jira.saveBoard.mutate({ board: cleaned });
+			}, 60_000);
+			deleteTimersRef.current.set(jiraKey, id);
+		},
+		[trpc],
+	);
+
+	const deleteCard = useCallback(
+		(jiraKey: string): void => {
+			const timer = deleteTimersRef.current.get(jiraKey);
+			if (timer !== undefined) {
+				clearTimeout(timer);
+				deleteTimersRef.current.delete(jiraKey);
+			}
+			const cleaned = { cards: boardRef.current.cards.filter((c) => c.jiraKey !== jiraKey) };
+			applyBoard(cleaned);
+			void trpc.jira.saveBoard.mutate({ board: cleaned });
+		},
+		[trpc],
+	);
 
 	const refetch = useCallback((): void => {
 		void fetchBoard();
@@ -114,6 +149,12 @@ export function useJiraBoard(
 
 	const moveCard = useCallback(
 		async (jiraKey: string, newStatus: JiraCardStatus): Promise<void> => {
+			const existingTimer = deleteTimersRef.current.get(jiraKey);
+			if (existingTimer !== undefined) {
+				clearTimeout(existingTimer);
+				deleteTimersRef.current.delete(jiraKey);
+			}
+
 			const previousBoard = board;
 			const updatedCards: JiraCard[] = board.cards.map((c) =>
 				c.jiraKey === jiraKey ? { ...c, status: newStatus, updatedAt: Date.now() } : c,
@@ -132,6 +173,10 @@ export function useJiraBoard(
 				applyBoard(updatedBoard);
 			}
 
+			if (newStatus === "done") {
+				scheduleDelete(jiraKey);
+			}
+
 			if (newStatus === "in_progress") {
 				try {
 					await trpc.jira.transitionIssue.mutate({ jiraKey, targetStatus: "in_progress" });
@@ -144,7 +189,7 @@ export function useJiraBoard(
 				}
 			}
 		},
-		[board, trpc, fetchBoard],
+		[board, trpc, fetchBoard, scheduleDelete],
 	);
 
 	return {
@@ -153,6 +198,7 @@ export function useJiraBoard(
 		isLoading,
 		isImporting,
 		moveCard,
+		deleteCard,
 		refetch,
 	};
 }

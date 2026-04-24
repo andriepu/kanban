@@ -181,6 +181,117 @@ describe("useJiraBoard", () => {
 		);
 	});
 
+	it("schedules 60 s delete timer when card moved to Done", async () => {
+		vi.useFakeTimers();
+		const testCard = {
+			jiraKey: "POL-1",
+			summary: "Test issue",
+			status: "todo" as const,
+			subtaskIds: [],
+			createdAt: 1000,
+			updatedAt: 1000,
+		};
+		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {} });
+		mockSaveBoard.mockResolvedValue({ board: { cards: [] } });
+
+		let snapshot: UseJiraBoardResult | null = null;
+
+		await act(async () => {
+			root.render(
+				<HookHarness
+					onSnapshot={(s) => {
+						snapshot = s;
+					}}
+				/>,
+			);
+			await flushPromises();
+		});
+
+		if (snapshot === null) throw new Error("Expected a hook snapshot");
+		const result: UseJiraBoardResult = snapshot;
+		mockSaveBoard.mockClear();
+
+		// Move to done
+		await act(async () => {
+			await result.moveCard("POL-1", "done");
+		});
+
+		// Card still in state (timer pending) — use snapshot (live) for post-mutation board checks
+		if (snapshot === null) throw new Error("Expected snapshot after moveCard");
+		expect(snapshot.board.cards).toHaveLength(1);
+		expect(snapshot.board.cards[0]?.status).toBe("done");
+		expect(mockSaveBoard).not.toHaveBeenCalledWith(
+			expect.objectContaining({ board: expect.objectContaining({ cards: [] }) }),
+		);
+
+		// Advance 60 s
+		await act(async () => {
+			vi.advanceTimersByTime(60_000);
+		});
+
+		if (snapshot === null) throw new Error("Expected snapshot after timer");
+		expect(snapshot.board.cards).toHaveLength(0);
+		expect(mockSaveBoard).toHaveBeenCalledWith(
+			expect.objectContaining({ board: expect.objectContaining({ cards: [] }) }),
+		);
+
+		vi.useRealTimers();
+	});
+
+	it("deleteCard removes card immediately and cancels pending timer", async () => {
+		vi.useFakeTimers();
+		const testCard = {
+			jiraKey: "POL-2",
+			summary: "Another issue",
+			status: "todo" as const,
+			subtaskIds: [],
+			createdAt: 1000,
+			updatedAt: 1000,
+		};
+		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {} });
+		mockSaveBoard.mockResolvedValue({ board: { cards: [] } });
+
+		let snapshot: UseJiraBoardResult | null = null;
+
+		await act(async () => {
+			root.render(
+				<HookHarness
+					onSnapshot={(s) => {
+						snapshot = s;
+					}}
+				/>,
+			);
+			await flushPromises();
+		});
+
+		if (snapshot === null) throw new Error("Expected a hook snapshot");
+		const result: UseJiraBoardResult = snapshot;
+		mockSaveBoard.mockClear();
+
+		await act(async () => {
+			await result.moveCard("POL-2", "done");
+		});
+
+		// Manually delete before timer fires
+		await act(async () => {
+			result.deleteCard("POL-2");
+		});
+
+		if (snapshot === null) throw new Error("Expected snapshot after deleteCard");
+		expect(snapshot.board.cards).toHaveLength(0);
+		expect(mockSaveBoard).toHaveBeenCalled();
+		mockSaveBoard.mockClear();
+
+		// Timer should have been cancelled — advancing shouldn't call saveBoard again
+		await act(async () => {
+			vi.advanceTimersByTime(60_000);
+		});
+
+		expect(mockSaveBoard).not.toHaveBeenCalled();
+
+		vi.useRealTimers();
+	});
+
 	it("calls saveBoard with correct payload when moveCard is invoked", async () => {
 		const testCard = {
 			jiraKey: "POL-1",
