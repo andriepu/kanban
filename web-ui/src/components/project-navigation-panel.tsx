@@ -243,6 +243,7 @@ export function ProjectNavigationPanel({
 	}
 
 	if (sidebarTab === "task") {
+		if (isMobile && isCollapsed && !isMobileClosing) return <></>;
 		const isRail = jiraDetailContent == null;
 		return (
 			<aside
@@ -256,17 +257,10 @@ export function ProjectNavigationPanel({
 				}}
 			>
 				{isRail ? (
-					<div
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							alignItems: "center",
-							padding: "12px 0",
-							gap: "8px",
-						}}
-					>
+					<div className="flex flex-col items-center py-3 gap-2">
 						<button
 							type="button"
+							aria-current="true"
 							onClick={() => onSidebarTabChange("task")}
 							style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
 							className="cursor-pointer rounded-sm px-1.5 py-2 text-xs font-semibold text-accent bg-surface-3 border border-border"
@@ -433,12 +427,7 @@ export function ProjectNavigationPanel({
 						<button
 							type="button"
 							onClick={() => onSidebarTabChange("task")}
-							className={cn(
-								"relative cursor-pointer rounded-sm px-2 py-1 text-xs font-medium",
-								sidebarTab === "task"
-									? "bg-surface-4 text-text-primary border border-border"
-									: "text-text-secondary hover:text-text-primary border border-transparent",
-							)}
+							className="relative cursor-pointer rounded-sm px-2 py-1 text-xs font-medium text-text-secondary hover:text-text-primary border border-transparent"
 						>
 							Tasks
 							{!hasJiraConfig && (
