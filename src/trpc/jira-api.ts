@@ -2,6 +2,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { lockedFileSystem } from "../fs/locked-file-system.js";
 import type { JiraBoard, JiraCard, JiraSubtask } from "../jira/jira-board-state.js";
+import type { JiraIssueRaw } from "../jira/jira-rest.js";
 import type { RepoInfo } from "../jira/jira-worktree.js";
 import { buildSubtaskWorktreePath } from "../jira/jira-worktree.js";
 
@@ -11,7 +12,10 @@ export interface CreateJiraApiDependencies {
 	loadJiraSubtasks: () => Promise<Record<string, JiraSubtask>>;
 	createJiraSubtask: (input: Omit<JiraSubtask, "id" | "createdAt" | "updatedAt">) => Promise<JiraSubtask>;
 	deleteJiraSubtask: (subtaskId: string) => Promise<void>;
-	callJiraMcp: (prompt: string) => Promise<unknown>;
+	searchJiraIssues: (jql: string) => Promise<JiraIssueRaw[]>;
+	fetchIssue: (issueKey: string) => Promise<{ key: string; summary: string; description: string | null }>;
+	transitionIssue: (issueKey: string, targetName: string) => Promise<void>;
+	setApiToken: (token: string | null) => Promise<void>;
 	scanRepos: (reposRoot: string) => Promise<RepoInfo[]>;
 	createSubtaskWorktree: (options: {
 		repoPath: string;
@@ -37,12 +41,16 @@ function getSubtasksFilePath(): string {
 }
 
 const JIRA_STATUS_MAP: Record<string, "todo" | "in_progress" | "done"> = {
+	"to do": "todo",
+	"to-do": "todo",
 	todo: "todo",
 	blocked: "todo",
+	"in progress": "in_progress",
 	"in-progress": "in_progress",
 	qa: "in_progress",
 	"code review": "in_progress",
 	"ready to deploy": "done",
+	done: "done",
 };
 
 export function createJiraApi(deps: CreateJiraApiDependencies) {
@@ -105,36 +113,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 		},
 
 		async importFromJira(jql: string): Promise<{ imported: number; skipped: number; board: JiraBoard }> {
-			const prompt = `Use the Atlassian MCP searchJiraIssuesUsingJql tool with this exact JQL: ${jql}\nFor each issue returned, extract the issue key, summary field, and status name.\nRespond with ONLY a valid JSON array — no markdown, no backticks, no explanation:\n[{"key":"PROJ-1","summary":"Issue title","status":"In-Progress"}]\nIf no issues are found, respond with only: []`;
-			const raw = await deps.callJiraMcp(prompt);
-
-			interface JiraIssueRaw {
-				key: string;
-				summary: string;
-				status: string;
-			}
-			let issues: JiraIssueRaw[] = [];
-			if (Array.isArray(raw)) {
-				issues = raw as JiraIssueRaw[];
-			} else if (raw && typeof raw === "object") {
-				const rawObj = raw as Record<string, unknown>;
-				if (Array.isArray(rawObj.result)) {
-					issues = rawObj.result as JiraIssueRaw[];
-				} else if (typeof rawObj.result === "string") {
-					const stripped = rawObj.result
-						.replace(/^```(?:json)?\s*\n?/, "")
-						.replace(/\n?```\s*$/, "")
-						.trim();
-					try {
-						const parsed: unknown = JSON.parse(stripped);
-						if (Array.isArray(parsed)) {
-							issues = parsed as JiraIssueRaw[];
-						}
-					} catch {
-						// Not parseable JSON — no issues extracted
-					}
-				}
-			}
+			const issues = await deps.searchJiraIssues(jql);
 
 			const board = await deps.loadJiraBoard();
 			const existingCardMap = new Map(board.cards.map((c) => [c.jiraKey, c]));
@@ -151,18 +130,18 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 				const existing = existingCardMap.get(issue.key);
 				if (existing) {
 					skipped++;
-					if (mappedStatus) {
+					if (mappedStatus && mappedStatus !== "done") {
 						const idx = updatedCards.findIndex((c) => c.jiraKey === issue.key);
 						if (idx !== -1) {
 							const card = updatedCards[idx] as JiraCard;
 							updatedCards[idx] = { ...card, status: mappedStatus, updatedAt: now };
 						}
 					} else {
-						// Returned by Jira with unmapped status → remove from board
+						// Unmapped status OR done → remove from board
 						const idx = updatedCards.findIndex((c) => c.jiraKey === issue.key);
 						if (idx !== -1) updatedCards.splice(idx, 1);
 					}
-				} else if (mappedStatus) {
+				} else if (mappedStatus && mappedStatus !== "done") {
 					updatedCards.push({
 						jiraKey: issue.key,
 						summary: issue.summary,
@@ -173,7 +152,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 					});
 					imported++;
 				}
-				// else: new issue with unmapped status → skip
+				// else: new issue with unmapped status or done → skip
 			}
 
 			const updatedBoard: JiraBoard = { cards: updatedCards };
@@ -183,24 +162,23 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 
 		async transitionIssue(jiraKey: string, targetStatus: "todo" | "in_progress" | "done"): Promise<{ ok: boolean }> {
 			if (targetStatus === "in_progress") {
-				const prompt = `Use the Atlassian MCP tool to transition Jira issue ${jiraKey} to status "IN-PROGRESS". Return JSON: { "ok": true }`;
-				await deps.callJiraMcp(prompt).catch(() => null);
+				await deps.transitionIssue(jiraKey, "In Progress").catch(() => null);
 			}
 			return { ok: true };
 		},
 
 		async fetchIssue(jiraKey: string): Promise<{ jiraKey: string; summary: string; description: string | null }> {
-			const prompt = `Use the Atlassian MCP tool to fetch Jira issue ${jiraKey}. Return JSON with fields: key, summary, description (string or null).`;
-			const raw = await deps.callJiraMcp(prompt);
-			const data: { key?: string; summary?: string; description?: string | null } =
-				raw !== null && typeof raw === "object"
-					? (raw as { key?: string; summary?: string; description?: string | null })
-					: {};
+			const result = await deps.fetchIssue(jiraKey);
 			return {
-				jiraKey: data.key ?? jiraKey,
-				summary: data.summary ?? "",
-				description: data.description ?? null,
+				jiraKey: result.key,
+				summary: result.summary,
+				description: result.description,
 			};
+		},
+
+		async setApiToken(token: string | null): Promise<{ configured: boolean }> {
+			await deps.setApiToken(token);
+			return { configured: token !== null };
 		},
 
 		async startSubtaskSession(
