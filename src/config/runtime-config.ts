@@ -387,6 +387,7 @@ async function writeRuntimeGlobalConfigFile(
 		payload.openPrPromptTemplate = openPrPromptTemplate;
 	}
 
+	// null = clear the field; intentionally omit from payload so the key is removed from disk.
 	const worktreesRoot = config.worktreesRoot === undefined ? undefined : normalizeOptionalString(config.worktreesRoot);
 	const existingWorktreesRoot = hasOwnKey(existing, "worktreesRoot")
 		? normalizeOptionalString(existing?.worktreesRoot)
@@ -395,10 +396,12 @@ async function writeRuntimeGlobalConfigFile(
 		if (worktreesRoot) {
 			payload.worktreesRoot = worktreesRoot;
 		}
+		// else: null passed → field cleared from disk (key omitted from payload)
 	} else if (existingWorktreesRoot) {
 		payload.worktreesRoot = existingWorktreesRoot;
 	}
 
+	// null = clear the field; intentionally omit from payload so the key is removed from disk.
 	const reposRoot = config.reposRoot === undefined ? undefined : normalizeOptionalString(config.reposRoot);
 	const existingReposRoot = hasOwnKey(existing, "reposRoot")
 		? normalizeOptionalString(existing?.reposRoot)
@@ -407,10 +410,12 @@ async function writeRuntimeGlobalConfigFile(
 		if (reposRoot) {
 			payload.reposRoot = reposRoot;
 		}
+		// else: null passed → field cleared from disk (key omitted from payload)
 	} else if (existingReposRoot) {
 		payload.reposRoot = existingReposRoot;
 	}
 
+	// null = clear the field; intentionally omit from payload so the key is removed from disk.
 	const jiraProjectKey =
 		config.jiraProjectKey === undefined ? undefined : normalizeOptionalString(config.jiraProjectKey);
 	const existingJiraProjectKey = hasOwnKey(existing, "jiraProjectKey")
@@ -420,6 +425,7 @@ async function writeRuntimeGlobalConfigFile(
 		if (jiraProjectKey) {
 			payload.jiraProjectKey = jiraProjectKey;
 		}
+		// else: null passed → field cleared from disk (key omitted from payload)
 	} else if (existingJiraProjectKey) {
 		payload.jiraProjectKey = existingJiraProjectKey;
 	}
@@ -505,9 +511,9 @@ function createRuntimeConfigStateFromValues(input: {
 	shortcuts: RuntimeProjectShortcut[];
 	commitPromptTemplate: string;
 	openPrPromptTemplate: string;
-	worktreesRoot?: string | null;
-	reposRoot?: string | null;
-	jiraProjectKey?: string | null;
+	worktreesRoot: string | null;
+	reposRoot: string | null;
+	jiraProjectKey: string | null;
 }): RuntimeConfigState {
 	return {
 		globalConfigPath: input.globalConfigPath,
@@ -586,6 +592,12 @@ export async function saveRuntimeConfig(
 ): Promise<RuntimeConfigState> {
 	const { globalConfigPath, projectConfigPath } = resolveRuntimeConfigPaths(cwd);
 	return await lockedFileSystem.withLocks(getRuntimeConfigLockRequests(cwd), async () => {
+		// Read existing global config to preserve fields not managed by this call.
+		const existingGlobal = await readRuntimeConfigFile<RuntimeGlobalConfigFileShape>(globalConfigPath);
+		const worktreesRoot = normalizeOptionalString(existingGlobal?.worktreesRoot);
+		const reposRoot = normalizeOptionalString(existingGlobal?.reposRoot);
+		const jiraProjectKey = normalizeOptionalString(existingGlobal?.jiraProjectKey);
+
 		await writeRuntimeGlobalConfigFile(globalConfigPath, {
 			selectedAgentId: config.selectedAgentId,
 			selectedShortcutLabel: config.selectedShortcutLabel,
@@ -593,6 +605,9 @@ export async function saveRuntimeConfig(
 			readyForReviewNotificationsEnabled: config.readyForReviewNotificationsEnabled,
 			commitPromptTemplate: config.commitPromptTemplate,
 			openPrPromptTemplate: config.openPrPromptTemplate,
+			worktreesRoot,
+			reposRoot,
+			jiraProjectKey,
 		});
 		await writeRuntimeProjectConfigFile(projectConfigPath, { shortcuts: config.shortcuts });
 		return createRuntimeConfigStateFromValues({
@@ -605,6 +620,9 @@ export async function saveRuntimeConfig(
 			shortcuts: config.shortcuts,
 			commitPromptTemplate: config.commitPromptTemplate,
 			openPrPromptTemplate: config.openPrPromptTemplate,
+			worktreesRoot,
+			reposRoot,
+			jiraProjectKey,
 		});
 	});
 }
