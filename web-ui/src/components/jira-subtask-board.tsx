@@ -104,7 +104,7 @@ function SubtaskCard({
       type="button"
       data-subtask-id={subtask.id}
       onClick={() => onClick(subtask)}
-      className="w-full cursor-pointer rounded-md bg-surface-2 p-3 text-left transition-colors hover:bg-surface-3"
+      className="w-full rounded-md bg-surface-2 p-3 text-left transition-colors hover:bg-surface-3"
     >
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <span className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-xs text-text-secondary shrink-0">
