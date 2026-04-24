@@ -1,9 +1,6 @@
-import { execFile as execFileCb } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
 
-const execFile = promisify(execFileCb);
-
-const MAX_BUFFER = 10 * 1024 * 1024; // 10 MB
+const MAX_STDOUT = 10 * 1024 * 1024; // 10 MB
 
 export type SpawnClaudeResult = {
 	stdout: string;
@@ -13,19 +10,28 @@ export type SpawnClaudeResult = {
 
 export type SpawnClaudeFn = (args: string[]) => Promise<SpawnClaudeResult>;
 
-async function defaultSpawnClaude(args: string[]): Promise<SpawnClaudeResult> {
-	try {
-		const { stdout, stderr } = await execFile("claude", args, { maxBuffer: MAX_BUFFER });
-		return { stdout, exitCode: 0, stderr };
-	} catch (err) {
-		// execFile rejects on non-zero exit; the error carries stdout/stderr/code
-		const execErr = err as NodeJS.ErrnoException & { stdout?: string; stderr?: string; code?: number };
-		return {
-			stdout: execErr.stdout ?? "",
-			exitCode: typeof execErr.code === "number" ? execErr.code : 1,
-			stderr: execErr.stderr ?? String(err),
-		};
-	}
+function defaultSpawnClaude(args: string[]): Promise<SpawnClaudeResult> {
+	return new Promise((resolve) => {
+		const child = spawn("claude", args, { stdio: ["ignore", "pipe", "pipe"] });
+
+		let stdout = "";
+		let stderr = "";
+
+		child.stdout.on("data", (chunk: Buffer) => {
+			if (stdout.length < MAX_STDOUT) stdout += chunk.toString();
+		});
+		child.stderr.on("data", (chunk: Buffer) => {
+			stderr += chunk.toString();
+		});
+
+		child.on("close", (code) => {
+			resolve({ stdout, exitCode: code ?? 1, stderr });
+		});
+
+		child.on("error", (err) => {
+			resolve({ stdout: "", exitCode: 1, stderr: String(err) });
+		});
+	});
 }
 
 /**
@@ -35,16 +41,30 @@ async function defaultSpawnClaude(args: string[]): Promise<SpawnClaudeResult> {
 export async function callJiraMcp(prompt: string, options?: { spawnClaude?: SpawnClaudeFn }): Promise<unknown> {
 	const spawnClaude = options?.spawnClaude ?? defaultSpawnClaude;
 
-	const args = ["-p", prompt, "--output-format", "json", "--max-turns", "1"];
+	const args = ["-p", prompt, "--output-format", "json", "--max-turns", "5"];
 	const result = await spawnClaude(args);
 
-	if (result.exitCode !== 0) {
-		throw new Error(`claude -p exited with code ${result.exitCode}: ${result.stderr ?? ""}`);
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(result.stdout) as unknown;
+	} catch {
+		// parsed stays undefined
 	}
 
-	try {
-		return JSON.parse(result.stdout) as unknown;
-	} catch {
+	if (result.exitCode !== 0) {
+		if (parsed && typeof parsed === "object") {
+			const p = parsed as Record<string, unknown>;
+			if (p.is_error && Array.isArray(p.errors)) {
+				throw new Error(`claude -p failed: ${(p.errors as string[]).join(", ")}`);
+			}
+		}
+		const detail = result.stderr || result.stdout.slice(0, 200);
+		throw new Error(`claude -p exited with code ${result.exitCode}: ${detail}`);
+	}
+
+	if (parsed === undefined) {
 		throw new Error(`Failed to parse claude -p output as JSON: ${result.stdout.slice(0, 200)}`);
 	}
+
+	return parsed;
 }

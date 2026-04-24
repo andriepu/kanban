@@ -10,7 +10,7 @@ describe("callJiraMcp", () => {
 		const result = await callJiraMcp("list issues", { spawnClaude: mockSpawn });
 		expect(result).toEqual({ issues: [] });
 		expect(mockSpawn).toHaveBeenCalledWith(
-			expect.arrayContaining(["-p", "list issues", "--output-format", "json", "--max-turns", "1"]),
+			expect.arrayContaining(["-p", "list issues", "--output-format", "json", "--max-turns", "5"]),
 		);
 	});
 
