@@ -377,6 +377,7 @@ export function ProjectNavigationPanel({
 								}
 								onSelectProject(project.id);
 							}}
+							// Collapsed icons switch workspace; highlight tracks currentProjectId, not projectFilter.
 							className={cn(
 								"rounded-md text-xs font-semibold shrink-0 border-0 cursor-pointer flex items-center justify-center py-3 px-1.5",
 								currentProjectId === project.id
