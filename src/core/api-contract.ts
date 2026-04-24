@@ -571,6 +571,7 @@ export const runtimeConfigResponseSchema = z.object({
 	worktreesRoot: z.string().nullable(),
 	reposRoot: z.string().nullable(),
 	jiraProjectKey: z.string().nullable(),
+	jiraSyncIntervalMs: z.number(),
 });
 export type RuntimeConfigResponse = z.infer<typeof runtimeConfigResponseSchema>;
 
@@ -585,6 +586,7 @@ export const runtimeConfigSaveRequestSchema = z.object({
 	worktreesRoot: z.string().nullable().optional(),
 	reposRoot: z.string().nullable().optional(),
 	jiraProjectKey: z.string().nullable().optional(),
+	jiraSyncIntervalMs: z.number().nullable().optional(),
 });
 export type RuntimeConfigSaveRequest = z.infer<typeof runtimeConfigSaveRequestSchema>;
 

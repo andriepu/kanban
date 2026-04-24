@@ -10,6 +10,8 @@ import { type LockRequest, lockedFileSystem } from "../fs/locked-file-system";
 import { detectInstalledCommands } from "../terminal/agent-registry";
 import { areRuntimeProjectShortcutsEqual } from "./shortcut-utils";
 
+export const DEFAULT_JIRA_SYNC_INTERVAL_MS = 60 * 60 * 1000;
+
 interface RuntimeGlobalConfigFileShape {
 	selectedAgentId?: RuntimeAgentId;
 	selectedShortcutLabel?: string;
@@ -20,6 +22,7 @@ interface RuntimeGlobalConfigFileShape {
 	worktreesRoot?: string;
 	reposRoot?: string;
 	jiraProjectKey?: string;
+	jiraSyncIntervalMs?: number;
 }
 
 interface RuntimeProjectConfigFileShape {
@@ -41,6 +44,7 @@ export interface RuntimeConfigState {
 	worktreesRoot: string | null;
 	reposRoot: string | null;
 	jiraProjectKey: string | null;
+	jiraSyncIntervalMs: number;
 }
 
 export interface RuntimeConfigUpdateInput {
@@ -54,6 +58,7 @@ export interface RuntimeConfigUpdateInput {
 	worktreesRoot?: string | null;
 	reposRoot?: string | null;
 	jiraProjectKey?: string | null;
+	jiraSyncIntervalMs?: number | null;
 }
 
 const RUNTIME_HOME_PARENT_DIR = ".kanban";
@@ -199,6 +204,13 @@ function normalizeOptionalString(value: unknown): string | null {
 	return trimmed.length > 0 ? trimmed : null;
 }
 
+function normalizePositiveInteger(value: unknown, fallback: number): number {
+	if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+		return Math.round(value);
+	}
+	return fallback;
+}
+
 function hasOwnKey<T extends object>(value: T | null, key: keyof T): boolean {
 	if (!value) {
 		return false;
@@ -300,6 +312,7 @@ function toRuntimeConfigState({
 		worktreesRoot: normalizeOptionalString(globalConfig?.worktreesRoot),
 		reposRoot: normalizeOptionalString(globalConfig?.reposRoot),
 		jiraProjectKey: normalizeOptionalString(globalConfig?.jiraProjectKey),
+		jiraSyncIntervalMs: normalizePositiveInteger(globalConfig?.jiraSyncIntervalMs, DEFAULT_JIRA_SYNC_INTERVAL_MS),
 	};
 }
 
@@ -324,6 +337,7 @@ async function writeRuntimeGlobalConfigFile(
 		worktreesRoot?: string | null;
 		reposRoot?: string | null;
 		jiraProjectKey?: string | null;
+		jiraSyncIntervalMs?: number | null;
 	},
 ): Promise<void> {
 	const existing = await readRuntimeConfigFile<RuntimeGlobalConfigFileShape>(configPath);
@@ -430,6 +444,27 @@ async function writeRuntimeGlobalConfigFile(
 		payload.jiraProjectKey = existingJiraProjectKey;
 	}
 
+	const jiraSyncIntervalMs =
+		config.jiraSyncIntervalMs === undefined
+			? undefined
+			: config.jiraSyncIntervalMs === null
+				? null
+				: normalizePositiveInteger(config.jiraSyncIntervalMs, DEFAULT_JIRA_SYNC_INTERVAL_MS);
+	const existingJiraSyncIntervalMs = hasOwnKey(existing, "jiraSyncIntervalMs")
+		? normalizePositiveInteger(existing?.jiraSyncIntervalMs, DEFAULT_JIRA_SYNC_INTERVAL_MS)
+		: undefined;
+	if (jiraSyncIntervalMs !== undefined) {
+		if (jiraSyncIntervalMs !== null && jiraSyncIntervalMs !== DEFAULT_JIRA_SYNC_INTERVAL_MS) {
+			payload.jiraSyncIntervalMs = jiraSyncIntervalMs;
+		}
+		// else: null or default → omit from payload (cleared / no-op)
+	} else if (
+		existingJiraSyncIntervalMs !== undefined &&
+		existingJiraSyncIntervalMs !== DEFAULT_JIRA_SYNC_INTERVAL_MS
+	) {
+		payload.jiraSyncIntervalMs = existingJiraSyncIntervalMs;
+	}
+
 	await lockedFileSystem.writeJsonFileAtomic(configPath, payload, {
 		lock: null,
 	});
@@ -514,6 +549,7 @@ function createRuntimeConfigStateFromValues(input: {
 	worktreesRoot: string | null;
 	reposRoot: string | null;
 	jiraProjectKey: string | null;
+	jiraSyncIntervalMs: number;
 }): RuntimeConfigState {
 	return {
 		globalConfigPath: input.globalConfigPath,
@@ -536,6 +572,7 @@ function createRuntimeConfigStateFromValues(input: {
 		worktreesRoot: normalizeOptionalString(input.worktreesRoot),
 		reposRoot: normalizeOptionalString(input.reposRoot),
 		jiraProjectKey: normalizeOptionalString(input.jiraProjectKey),
+		jiraSyncIntervalMs: normalizePositiveInteger(input.jiraSyncIntervalMs, DEFAULT_JIRA_SYNC_INTERVAL_MS),
 	};
 }
 
@@ -553,6 +590,7 @@ export function toGlobalRuntimeConfigState(current: RuntimeConfigState): Runtime
 		worktreesRoot: current.worktreesRoot,
 		reposRoot: current.reposRoot,
 		jiraProjectKey: current.jiraProjectKey,
+		jiraSyncIntervalMs: current.jiraSyncIntervalMs,
 	});
 }
 
@@ -597,6 +635,10 @@ export async function saveRuntimeConfig(
 		const worktreesRoot = normalizeOptionalString(existingGlobal?.worktreesRoot);
 		const reposRoot = normalizeOptionalString(existingGlobal?.reposRoot);
 		const jiraProjectKey = normalizeOptionalString(existingGlobal?.jiraProjectKey);
+		const jiraSyncIntervalMs = normalizePositiveInteger(
+			existingGlobal?.jiraSyncIntervalMs,
+			DEFAULT_JIRA_SYNC_INTERVAL_MS,
+		);
 
 		await writeRuntimeGlobalConfigFile(globalConfigPath, {
 			selectedAgentId: config.selectedAgentId,
@@ -608,6 +650,7 @@ export async function saveRuntimeConfig(
 			worktreesRoot,
 			reposRoot,
 			jiraProjectKey,
+			jiraSyncIntervalMs,
 		});
 		await writeRuntimeProjectConfigFile(projectConfigPath, { shortcuts: config.shortcuts });
 		return createRuntimeConfigStateFromValues({
@@ -623,6 +666,7 @@ export async function saveRuntimeConfig(
 			worktreesRoot,
 			reposRoot,
 			jiraProjectKey,
+			jiraSyncIntervalMs,
 		});
 	});
 }
@@ -647,6 +691,10 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			worktreesRoot: updates.worktreesRoot === undefined ? current.worktreesRoot : updates.worktreesRoot,
 			reposRoot: updates.reposRoot === undefined ? current.reposRoot : updates.reposRoot,
 			jiraProjectKey: updates.jiraProjectKey === undefined ? current.jiraProjectKey : updates.jiraProjectKey,
+			jiraSyncIntervalMs:
+				updates.jiraSyncIntervalMs == null
+					? current.jiraSyncIntervalMs
+					: normalizePositiveInteger(updates.jiraSyncIntervalMs, current.jiraSyncIntervalMs),
 		};
 
 		const hasChanges =
@@ -659,6 +707,7 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			nextConfig.worktreesRoot !== current.worktreesRoot ||
 			nextConfig.reposRoot !== current.reposRoot ||
 			nextConfig.jiraProjectKey !== current.jiraProjectKey ||
+			nextConfig.jiraSyncIntervalMs !== current.jiraSyncIntervalMs ||
 			!areRuntimeProjectShortcutsEqual(nextConfig.shortcuts, current.shortcuts);
 
 		if (!hasChanges) {
@@ -675,6 +724,7 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			worktreesRoot: nextConfig.worktreesRoot,
 			reposRoot: nextConfig.reposRoot,
 			jiraProjectKey: nextConfig.jiraProjectKey,
+			jiraSyncIntervalMs: nextConfig.jiraSyncIntervalMs,
 		});
 		await writeRuntimeProjectConfigFile(projectConfigPath, {
 			shortcuts: nextConfig.shortcuts,
@@ -692,6 +742,7 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			worktreesRoot: nextConfig.worktreesRoot,
 			reposRoot: nextConfig.reposRoot,
 			jiraProjectKey: nextConfig.jiraProjectKey,
+			jiraSyncIntervalMs: nextConfig.jiraSyncIntervalMs,
 		});
 	});
 }
@@ -724,6 +775,10 @@ export async function updateGlobalRuntimeConfig(
 				worktreesRoot: updates.worktreesRoot === undefined ? current.worktreesRoot : updates.worktreesRoot,
 				reposRoot: updates.reposRoot === undefined ? current.reposRoot : updates.reposRoot,
 				jiraProjectKey: updates.jiraProjectKey === undefined ? current.jiraProjectKey : updates.jiraProjectKey,
+				jiraSyncIntervalMs:
+					updates.jiraSyncIntervalMs == null
+						? current.jiraSyncIntervalMs
+						: normalizePositiveInteger(updates.jiraSyncIntervalMs, current.jiraSyncIntervalMs),
 			};
 
 			const hasChanges =
@@ -735,7 +790,8 @@ export async function updateGlobalRuntimeConfig(
 				nextConfig.openPrPromptTemplate !== current.openPrPromptTemplate ||
 				nextConfig.worktreesRoot !== current.worktreesRoot ||
 				nextConfig.reposRoot !== current.reposRoot ||
-				nextConfig.jiraProjectKey !== current.jiraProjectKey;
+				nextConfig.jiraProjectKey !== current.jiraProjectKey ||
+				nextConfig.jiraSyncIntervalMs !== current.jiraSyncIntervalMs;
 
 			if (!hasChanges) {
 				return current;
@@ -751,6 +807,7 @@ export async function updateGlobalRuntimeConfig(
 				worktreesRoot: nextConfig.worktreesRoot,
 				reposRoot: nextConfig.reposRoot,
 				jiraProjectKey: nextConfig.jiraProjectKey,
+				jiraSyncIntervalMs: nextConfig.jiraSyncIntervalMs,
 			});
 
 			return createRuntimeConfigStateFromValues({
@@ -766,6 +823,7 @@ export async function updateGlobalRuntimeConfig(
 				worktreesRoot: nextConfig.worktreesRoot,
 				reposRoot: nextConfig.reposRoot,
 				jiraProjectKey: nextConfig.jiraProjectKey,
+				jiraSyncIntervalMs: nextConfig.jiraSyncIntervalMs,
 			});
 		},
 	);

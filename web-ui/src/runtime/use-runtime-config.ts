@@ -20,6 +20,7 @@ export interface UseRuntimeConfigResult {
 		worktreesRoot?: string | null;
 		reposRoot?: string | null;
 		jiraProjectKey?: string | null;
+		jiraSyncIntervalMs?: number | null;
 	}) => Promise<RuntimeConfigResponse | null>;
 }
 

@@ -105,6 +105,7 @@ function createRuntimeConfig(selectedAgentId: RuntimeConfigResponse["selectedAge
 		worktreesRoot: null,
 		reposRoot: null,
 		jiraProjectKey: null,
+		jiraSyncIntervalMs: 60 * 60 * 1000,
 	};
 }
 

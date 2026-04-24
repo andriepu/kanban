@@ -422,7 +422,12 @@ export default function App(): ReactElement {
 			sendTaskSessionInput,
 		});
 
-	const jiraBoard = useJiraBoard(currentProjectId);
+	const jiraSyncIntervalMs = runtimeProjectConfig?.jiraSyncIntervalMs ?? 60 * 60 * 1000;
+	const isJiraBoardActive = !isGitHistoryOpen && sidebarTab !== "project";
+	const jiraBoard = useJiraBoard(currentProjectId, {
+		isActive: isJiraBoardActive,
+		syncIntervalMs: jiraSyncIntervalMs,
+	});
 
 	const persistWorkspaceStateAsync = useCallback(
 		async (input: { workspaceId: string; payload: Parameters<typeof saveWorkspaceState>[1] }) =>

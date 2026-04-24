@@ -98,25 +98,6 @@ describe("useJiraBoard", () => {
 		expect(result.board.cards).toEqual([]);
 	});
 
-	it("exposes importFromJira function", async () => {
-		let snapshot: UseJiraBoardResult | null = null;
-
-		await act(async () => {
-			root.render(
-				<HookHarness
-					onSnapshot={(s) => {
-						snapshot = s;
-					}}
-				/>,
-			);
-			await flushPromises();
-		});
-
-		if (snapshot === null) throw new Error("Expected a hook snapshot");
-		const result: UseJiraBoardResult = snapshot;
-		expect(typeof result.importFromJira).toBe("function");
-	});
-
 	it("exposes moveCard function", async () => {
 		let snapshot: UseJiraBoardResult | null = null;
 

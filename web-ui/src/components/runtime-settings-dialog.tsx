@@ -365,6 +365,9 @@ export function RuntimeSettingsDialog({
 	const [reposRoot, setReposRoot] = useState(config?.reposRoot ?? "");
 	const [isSyncingRepos, setIsSyncingRepos] = useState(false);
 	const [jiraProjectKey, setJiraProjectKey] = useState(config?.jiraProjectKey ?? "");
+	const [jiraSyncIntervalMinutes, setJiraSyncIntervalMinutes] = useState(
+		Math.round((config?.jiraSyncIntervalMs ?? 60 * 60 * 1000) / 60000),
+	);
 	const copiedVariableResetTimerRef = useRef<number | null>(null);
 	const shortcutsSectionRef = useRef<HTMLHeadingElement | null>(null);
 	const shortcutRowRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -431,6 +434,7 @@ export function RuntimeSettingsDialog({
 	const initialWorktreesRoot = (config?.worktreesRoot ?? "").trim();
 	const initialReposRoot = (config?.reposRoot ?? "").trim();
 	const initialJiraProjectKey = (config?.jiraProjectKey ?? "").trim();
+	const initialJiraSyncIntervalMinutes = Math.round((config?.jiraSyncIntervalMs ?? 60 * 60 * 1000) / 60000);
 	const hasUnsavedChanges = useMemo(() => {
 		if (!config) {
 			return false;
@@ -468,7 +472,8 @@ export function RuntimeSettingsDialog({
 		if (reposRoot.trim() !== initialReposRoot) {
 			return true;
 		}
-		return jiraProjectKey.trim() !== initialJiraProjectKey;
+		if (jiraProjectKey.trim() !== initialJiraProjectKey) return true;
+		return jiraSyncIntervalMinutes !== initialJiraSyncIntervalMinutes;
 	}, [
 		agentAutonomousModeEnabled,
 		commitPromptTemplate,
@@ -477,6 +482,7 @@ export function RuntimeSettingsDialog({
 		initialAgentAutonomousModeEnabled,
 		initialCommitPromptTemplate,
 		initialJiraProjectKey,
+		initialJiraSyncIntervalMinutes,
 		initialOpenPrPromptTemplate,
 		initialReadyForReviewNotificationsEnabled,
 		initialReposRoot,
@@ -485,6 +491,7 @@ export function RuntimeSettingsDialog({
 		initialThemeId,
 		initialWorktreesRoot,
 		jiraProjectKey,
+		jiraSyncIntervalMinutes,
 		openPrPromptTemplate,
 		readyForReviewNotificationsEnabled,
 		reposRoot,
@@ -506,11 +513,13 @@ export function RuntimeSettingsDialog({
 		setWorktreesRoot(config?.worktreesRoot ?? "");
 		setReposRoot(config?.reposRoot ?? "");
 		setJiraProjectKey(config?.jiraProjectKey ?? "");
+		setJiraSyncIntervalMinutes(Math.round((config?.jiraSyncIntervalMs ?? 60 * 60 * 1000) / 60000));
 		setSaveError(null);
 	}, [
 		config?.agentAutonomousModeEnabled,
 		config?.commitPromptTemplate,
 		config?.jiraProjectKey,
+		config?.jiraSyncIntervalMs,
 		config?.openPrPromptTemplate,
 		config?.readyForReviewNotificationsEnabled,
 		config?.reposRoot,
@@ -672,6 +681,7 @@ export function RuntimeSettingsDialog({
 			worktreesRoot: worktreesRoot.trim() || null,
 			reposRoot: reposRoot.trim() || null,
 			jiraProjectKey: jiraProjectKey.trim() || null,
+			jiraSyncIntervalMs: Math.max(1, jiraSyncIntervalMinutes) * 60000,
 		});
 		if (!saved) {
 			setSaveError("Could not save runtime settings. Check runtime logs and try again.");
@@ -1218,6 +1228,31 @@ export function RuntimeSettingsDialog({
 								disabled={controlsDisabled}
 								className="w-32 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none disabled:opacity-40"
 							/>
+						</div>
+
+						{/* Jira Sync Interval */}
+						<div className="flex flex-col gap-1.5">
+							<label htmlFor="settings-jira-sync-interval" className="text-xs font-medium text-text-secondary">
+								Jira Sync Interval
+							</label>
+							<p className="text-xs text-text-tertiary m-0">
+								How often to auto-sync Jira issues (minutes). Sync only runs when the Tasks tab is active.
+							</p>
+							<div className="flex items-center gap-2">
+								<input
+									id="settings-jira-sync-interval"
+									type="number"
+									min={1}
+									value={jiraSyncIntervalMinutes}
+									onChange={(e) => {
+										const val = parseInt(e.target.value, 10);
+										if (!Number.isNaN(val) && val > 0) setJiraSyncIntervalMinutes(val);
+									}}
+									disabled={controlsDisabled}
+									className="w-24 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none disabled:opacity-40"
+								/>
+								<span className="text-xs text-text-tertiary">minutes</span>
+							</div>
 						</div>
 					</div>
 

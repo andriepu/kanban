@@ -44,7 +44,6 @@ const mockJiraBoard: UseJiraBoardResult = {
 	},
 	isLoading: false,
 	isImporting: false,
-	importFromJira: vi.fn().mockResolvedValue({ imported: 0, skipped: 0 }),
 	moveCard: vi.fn(),
 	refetch: vi.fn(),
 };

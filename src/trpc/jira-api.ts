@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { lockedFileSystem } from "../fs/locked-file-system.js";
-import type { JiraBoard, JiraSubtask } from "../jira/jira-board-state.js";
+import type { JiraBoard, JiraCard, JiraSubtask } from "../jira/jira-board-state.js";
 import type { RepoInfo } from "../jira/jira-worktree.js";
 import { buildSubtaskWorktreePath } from "../jira/jira-worktree.js";
 
@@ -35,6 +35,15 @@ export interface CreateJiraApiDependencies {
 function getSubtasksFilePath(): string {
 	return join(homedir(), ".kanban", "kanban", "jira-subtasks.json");
 }
+
+const JIRA_STATUS_MAP: Record<string, "todo" | "in_progress" | "done"> = {
+	todo: "todo",
+	blocked: "todo",
+	"in-progress": "in_progress",
+	qa: "in_progress",
+	"code review": "in_progress",
+	"ready to deploy": "done",
+};
 
 export function createJiraApi(deps: CreateJiraApiDependencies) {
 	return {
@@ -96,47 +105,80 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 		},
 
 		async importFromJira(jql: string): Promise<{ imported: number; skipped: number; board: JiraBoard }> {
-			const prompt = `Use the Atlassian MCP tool to search for Jira issues with this JQL: ${jql}. Return a JSON array of objects with fields: key (string), summary (string). Return ONLY the JSON array.`;
+			const prompt = `Use the Atlassian MCP searchJiraIssuesUsingJql tool with this exact JQL: ${jql}\nFor each issue returned, extract the issue key, summary field, and status name.\nRespond with ONLY a valid JSON array — no markdown, no backticks, no explanation:\n[{"key":"PROJ-1","summary":"Issue title","status":"In-Progress"}]\nIf no issues are found, respond with only: []`;
 			const raw = await deps.callJiraMcp(prompt);
 
 			interface JiraIssueRaw {
 				key: string;
 				summary: string;
+				status: string;
 			}
 			let issues: JiraIssueRaw[] = [];
 			if (Array.isArray(raw)) {
 				issues = raw as JiraIssueRaw[];
-			} else if (raw && typeof raw === "object" && Array.isArray((raw as Record<string, unknown>).result)) {
-				issues = (raw as { result: JiraIssueRaw[] }).result;
+			} else if (raw && typeof raw === "object") {
+				const rawObj = raw as Record<string, unknown>;
+				if (Array.isArray(rawObj.result)) {
+					issues = rawObj.result as JiraIssueRaw[];
+				} else if (typeof rawObj.result === "string") {
+					const stripped = rawObj.result
+						.replace(/^```(?:json)?\s*\n?/, "")
+						.replace(/\n?```\s*$/, "")
+						.trim();
+					try {
+						const parsed: unknown = JSON.parse(stripped);
+						if (Array.isArray(parsed)) {
+							issues = parsed as JiraIssueRaw[];
+						}
+					} catch {
+						// Not parseable JSON — no issues extracted
+					}
+				}
 			}
 
 			const board = await deps.loadJiraBoard();
-			const existingKeys = new Set(board.cards.map((c) => c.jiraKey));
+			const existingCardMap = new Map(board.cards.map((c) => [c.jiraKey, c]));
 
+			const updatedCards: JiraCard[] = [...board.cards];
 			let imported = 0;
 			let skipped = 0;
 			const now = Date.now();
 
 			for (const issue of issues) {
 				if (!issue.key || !issue.summary) continue;
-				if (existingKeys.has(issue.key)) {
+				const mappedStatus = JIRA_STATUS_MAP[issue.status?.toLowerCase().trim() ?? ""];
+
+				const existing = existingCardMap.get(issue.key);
+				if (existing) {
 					skipped++;
-					continue;
+					if (mappedStatus) {
+						const idx = updatedCards.findIndex((c) => c.jiraKey === issue.key);
+						if (idx !== -1) {
+							const card = updatedCards[idx] as JiraCard;
+							updatedCards[idx] = { ...card, status: mappedStatus, updatedAt: now };
+						}
+					} else {
+						// Returned by Jira with unmapped status → remove from board
+						const idx = updatedCards.findIndex((c) => c.jiraKey === issue.key);
+						if (idx !== -1) updatedCards.splice(idx, 1);
+					}
+				} else if (mappedStatus) {
+					updatedCards.push({
+						jiraKey: issue.key,
+						summary: issue.summary,
+						status: mappedStatus,
+						subtaskIds: [],
+						createdAt: now,
+						updatedAt: now,
+					});
+					imported++;
 				}
-				board.cards.push({
-					jiraKey: issue.key,
-					summary: issue.summary,
-					status: "todo",
-					subtaskIds: [],
-					createdAt: now,
-					updatedAt: now,
-				});
-				existingKeys.add(issue.key);
-				imported++;
+				// else: new issue with unmapped status → skip
 			}
 
-			await deps.saveJiraBoard(board);
-			return { imported, skipped, board };
+			const updatedBoard: JiraBoard = { cards: updatedCards };
+			await deps.saveJiraBoard(updatedBoard);
+			return { imported, skipped, board: updatedBoard };
 		},
 
 		async transitionIssue(jiraKey: string, targetStatus: "todo" | "in_progress" | "done"): Promise<{ ok: boolean }> {

@@ -1,5 +1,3 @@
-import { Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { ColumnIndicator } from "@/components/ui/column-indicator";
 import type { UseJiraBoardResult } from "@/hooks/use-jira-board";
@@ -18,31 +16,36 @@ interface JiraBoardViewProps {
 }
 
 export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraBoardViewProps): React.ReactElement {
-	const { board, isLoading, isImporting, importFromJira, moveCard } = jiraBoard;
+	const { board, isLoading, isImporting, moveCard } = jiraBoard;
 
 	if (isLoading) {
 		return <div className="flex h-full flex-1 items-center justify-center text-text-secondary text-sm">Loading…</div>;
 	}
 
 	return (
-		<div className="flex h-full flex-1 gap-2 overflow-x-auto p-2">
-			{COLUMNS.map((col) => {
-				const cards = board.cards.filter((c) => c.status === col.id);
-				return (
-					<JiraBoardColumn
-						key={col.id}
-						columnId={col.id}
-						label={col.label}
-						cards={cards}
-						subtaskCounts={Object.fromEntries(cards.map((c) => [c.jiraKey, c.subtaskIds.length]))}
-						selectedJiraKey={selectedJiraKey}
-						onCardClick={onCardClick}
-						onDrop={(jiraKey) => moveCard(jiraKey, col.id)}
-						onImportFromJira={col.id === "todo" ? importFromJira : undefined}
-						isImporting={col.id === "todo" ? isImporting : false}
-					/>
-				);
-			})}
+		<div className="flex h-full flex-1 flex-col overflow-hidden">
+			<div className="flex flex-1 gap-2 overflow-x-auto p-2 min-h-0">
+				{COLUMNS.map((col) => {
+					const cards = board.cards.filter((c) => c.status === col.id);
+					return (
+						<JiraBoardColumn
+							key={col.id}
+							columnId={col.id}
+							label={col.label}
+							cards={cards}
+							subtaskCounts={Object.fromEntries(cards.map((c) => [c.jiraKey, c.subtaskIds.length]))}
+							selectedJiraKey={selectedJiraKey}
+							onCardClick={onCardClick}
+							onDrop={(jiraKey) => moveCard(jiraKey, col.id)}
+						/>
+					);
+				})}
+			</div>
+			{isImporting && (
+				<div className="h-7 flex items-center px-4 border-t border-border bg-surface-1 text-xs text-text-secondary shrink-0">
+					Syncing JIRA issues…
+				</div>
+			)}
 		</div>
 	);
 }
@@ -55,8 +58,6 @@ function JiraBoardColumn({
 	selectedJiraKey,
 	onCardClick,
 	onDrop,
-	onImportFromJira,
-	isImporting,
 }: {
 	columnId: string;
 	label: string;
@@ -65,8 +66,6 @@ function JiraBoardColumn({
 	selectedJiraKey: string | null;
 	onCardClick: (jiraKey: string) => void;
 	onDrop: (jiraKey: string) => void;
-	onImportFromJira?: () => void;
-	isImporting: boolean;
 }): React.ReactElement {
 	const handleDragOver = (e: React.DragEvent) => {
 		e.preventDefault();
@@ -92,18 +91,6 @@ function JiraBoardColumn({
 				<span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-text-tertiary">{cards.length}</span>
 			</div>
 			<div className="flex flex-col gap-2 p-1.5 overflow-y-auto min-h-0">
-				{onImportFromJira ? (
-					<Button
-						variant="default"
-						size="sm"
-						icon={<Download size={14} />}
-						onClick={onImportFromJira}
-						disabled={isImporting}
-						fill
-					>
-						{isImporting ? "Importing…" : "Import To-Do"}
-					</Button>
-				) : null}
 				{cards.map((card) => (
 					<JiraBoardCard
 						key={card.jiraKey}
