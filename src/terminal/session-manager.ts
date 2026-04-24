@@ -1,6 +1,8 @@
 // PTY-backed runtime for non-Cline task sessions and the workspace shell terminal.
 // It owns process lifecycle, terminal protocol filtering, and summary updates
 // for command-driven agents such as Claude Code, Codex, Gemini, and shell sessions.
+import { basename } from "node:path";
+
 import type {
 	RuntimeTaskHookActivity,
 	RuntimeTaskImage,
@@ -9,6 +11,8 @@ import type {
 	RuntimeTaskSessionSummary,
 	RuntimeTaskTurnCheckpoint,
 } from "../core/api-contract";
+import { isHomeAgentSessionId } from "../core/home-agent-session";
+import { listWorkspaceIndexEntries } from "../state/workspace-state";
 import {
 	type AgentAdapterLaunchInput,
 	type AgentOutputTransitionDetector,
@@ -288,6 +292,15 @@ export class TerminalSessionManager implements TerminalSessionService {
 			},
 		});
 
+		let registeredProjects: Array<{ name: string; path: string }> | undefined;
+		if (isHomeAgentSessionId(request.taskId)) {
+			const entries = await listWorkspaceIndexEntries();
+			registeredProjects = entries.map((e) => ({
+				name: basename(e.repoPath),
+				path: e.repoPath,
+			}));
+		}
+
 		const launch = await prepareAgentLaunch({
 			taskId: request.taskId,
 			agentId: request.agentId,
@@ -301,6 +314,7 @@ export class TerminalSessionManager implements TerminalSessionService {
 			resumeFromTrash: request.resumeFromTrash,
 			env: request.env,
 			workspaceId: request.workspaceId,
+			registeredProjects,
 		});
 
 		const env = buildTerminalEnvironment(request.env, launch.env);

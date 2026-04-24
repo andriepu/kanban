@@ -162,4 +162,40 @@ describe("prepareAgentLaunch hook strategies", () => {
 		});
 		expect(claudeLaunch.args).toContain("--dangerously-skip-permissions");
 	});
+
+	it("threads registeredProjects into the --append-system-prompt arg for home sessions", async () => {
+		setupTempHome();
+		setKanbanProcessContext();
+		const launch = await prepareAgentLaunch({
+			taskId: "__home_agent__:workspace-1:claude",
+			agentId: "claude",
+			binary: "claude",
+			args: [],
+			cwd: "/tmp",
+			prompt: "",
+			registeredProjects: [{ name: "my-api", path: "/Users/me/repos/my-api" }],
+		});
+		const promptIdx = launch.args.indexOf("--append-system-prompt");
+		expect(promptIdx).toBeGreaterThanOrEqual(0);
+		const promptArg = launch.args[promptIdx + 1];
+		expect(promptArg).toContain("# Available Projects");
+		expect(promptArg).toContain("- my-api: /Users/me/repos/my-api");
+	});
+
+	it("omits Available Projects section when registeredProjects is undefined", async () => {
+		setupTempHome();
+		setKanbanProcessContext();
+		const launch = await prepareAgentLaunch({
+			taskId: "__home_agent__:workspace-1:claude",
+			agentId: "claude",
+			binary: "claude",
+			args: [],
+			cwd: "/tmp",
+			prompt: "",
+		});
+		const promptIdx = launch.args.indexOf("--append-system-prompt");
+		expect(promptIdx).toBeGreaterThanOrEqual(0);
+		const promptArg = launch.args[promptIdx + 1];
+		expect(promptArg).not.toContain("# Available Projects");
+	});
 });

@@ -28,6 +28,7 @@ export interface AgentAdapterLaunchInput {
 	resumeFromTrash?: boolean;
 	env?: Record<string, string | undefined>;
 	workspaceId?: string;
+	registeredProjects?: Array<{ name: string; path: string }>;
 }
 
 export type AgentOutputTransitionDetector = (
@@ -140,7 +141,9 @@ const claudeAdapter: AgentSessionAdapter = {
 		const env: Record<string, string | undefined> = {
 			FORCE_HYPERLINK: "1",
 		};
-		const appendedSystemPrompt = resolveHomeAgentAppendSystemPrompt(input.taskId);
+		const appendedSystemPrompt = resolveHomeAgentAppendSystemPrompt(input.taskId, {
+			registeredProjects: input.registeredProjects,
+		});
 		if (
 			input.autonomousModeEnabled &&
 			!input.startInPlanMode &&

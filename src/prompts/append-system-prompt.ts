@@ -18,10 +18,12 @@ export interface ResolveAppendSystemPromptCommandPrefixOptions {
 	execPath?: string;
 	cwd?: string;
 	resolveRealPath?: (path: string) => string;
+	registeredProjects?: Array<{ name: string; path: string }>;
 }
 
 export interface RenderAppendSystemPromptOptions {
 	agentId?: RuntimeAgentId | null;
+	availableProjects?: Array<{ name: string; path: string }>;
 }
 
 const APPEND_PROMPT_AGENT_IDS: readonly RuntimeAgentId[] = ["claude"];
@@ -107,7 +109,7 @@ export function resolveAppendSystemPromptCommandPrefix(
 export function renderAppendSystemPrompt(commandPrefix: string, options: RenderAppendSystemPromptOptions = {}): string {
 	const kanbanCommand = commandPrefix.trim() || DEFAULT_COMMAND_PREFIX;
 	const selectedAgentId = options.agentId ?? null;
-	return `# Kanban Sidebar
+	const prompt = `# Kanban Sidebar
 
 You are the Kanban sidebar agent for this workspace. Help the user interact with their Kanban board directly from this side panel. When the user asks to add tasks, create tasks, break work down, link tasks, or start tasks, prefer using the Kanban CLI yourself instead of describing manual steps.
 
@@ -281,6 +283,18 @@ Parameters:
 - Prefer \`task list\` first when task IDs or dependency IDs are needed.
 - To create multiple linked tasks, create tasks first, then call \`task link\` for each dependency edge.
 `;
+	const projects = options.availableProjects;
+	if (!projects || projects.length === 0) {
+		return prompt;
+	}
+	const projectLines = projects.map((p) => `- ${p.name}: ${p.path}`).join("\n");
+	return `${prompt}
+# Available Projects
+
+The following projects are registered in Kanban. Use \`--project-path <path>\` to target a specific project:
+
+${projectLines}
+`;
 }
 
 export function resolveHomeAgentAppendSystemPrompt(
@@ -292,5 +306,6 @@ export function resolveHomeAgentAppendSystemPrompt(
 	}
 	return renderAppendSystemPrompt(resolveAppendSystemPromptCommandPrefix(options), {
 		agentId: resolveHomeAgentId(taskId),
+		availableProjects: options.registeredProjects,
 	});
 }

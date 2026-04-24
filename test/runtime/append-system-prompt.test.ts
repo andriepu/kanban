@@ -82,6 +82,29 @@ describe("renderAppendSystemPrompt", () => {
 		expect(rendered).toContain("Current home agent: `claude`");
 		expect(rendered).toContain("claude mcp add --transport http --scope user linear https://mcp.linear.app/mcp");
 	});
+
+	it("omits Available Projects section when availableProjects is empty", () => {
+		const rendered = renderAppendSystemPrompt("kanban", { availableProjects: [] });
+		expect(rendered).not.toContain("# Available Projects");
+	});
+
+	it("omits Available Projects section when availableProjects is undefined", () => {
+		const rendered = renderAppendSystemPrompt("kanban", {});
+		expect(rendered).not.toContain("# Available Projects");
+	});
+
+	it("appends Available Projects section with all project entries", () => {
+		const rendered = renderAppendSystemPrompt("kanban", {
+			availableProjects: [
+				{ name: "my-api", path: "/Users/me/repos/my-api" },
+				{ name: "frontend", path: "/Users/me/repos/frontend" },
+			],
+		});
+		expect(rendered).toContain("# Available Projects");
+		expect(rendered).toContain("- my-api: /Users/me/repos/my-api");
+		expect(rendered).toContain("- frontend: /Users/me/repos/frontend");
+		expect(rendered).toContain("--project-path <path>");
+	});
 });
 
 describe("resolveHomeAgentAppendSystemPrompt", () => {
@@ -102,5 +125,32 @@ describe("resolveHomeAgentAppendSystemPrompt", () => {
 		expect(prompt).toContain("'/usr/local/bin/node' '/Users/example/repo/dist/cli.js' task list");
 		expect(prompt).toContain("Current home agent: `claude`");
 		expect(prompt).toContain("claude mcp add --transport http --scope user linear https://mcp.linear.app/mcp");
+	});
+
+	it("includes Available Projects section when registeredProjects passed", () => {
+		const prompt = resolveHomeAgentAppendSystemPrompt("__home_agent__:workspace-1:claude", {
+			currentVersion: "0.1.10",
+			cwd: "/Users/example/repo",
+			execPath: "/usr/local/bin/node",
+			execArgv: [],
+			argv: ["node", "/Users/example/repo/dist/cli.js"],
+			resolveRealPath: (path) => path,
+			registeredProjects: [{ name: "my-repo", path: "/Users/me/repos/my-repo" }],
+		});
+		expect(prompt).toContain("# Available Projects");
+		expect(prompt).toContain("- my-repo: /Users/me/repos/my-repo");
+	});
+
+	it("omits Available Projects section when registeredProjects is empty", () => {
+		const prompt = resolveHomeAgentAppendSystemPrompt("__home_agent__:workspace-1:claude", {
+			currentVersion: "0.1.10",
+			cwd: "/Users/example/repo",
+			execPath: "/usr/local/bin/node",
+			execArgv: [],
+			argv: ["node", "/Users/example/repo/dist/cli.js"],
+			resolveRealPath: (path) => path,
+			registeredProjects: [],
+		});
+		expect(prompt).not.toContain("# Available Projects");
 	});
 });
