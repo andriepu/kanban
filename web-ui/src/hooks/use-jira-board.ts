@@ -13,7 +13,7 @@ export interface UseJiraBoardResult {
 	refetch: () => void;
 }
 
-export function useJiraBoard(currentProjectId: string | null): UseJiraBoardResult {
+export function useJiraBoard(currentProjectId: string | null = null): UseJiraBoardResult {
 	const trpc = getRuntimeTrpcClient(currentProjectId);
 
 	const [board, setBoard] = useState<JiraBoard>({ cards: [] });
