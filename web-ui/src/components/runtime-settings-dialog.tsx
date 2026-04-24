@@ -17,11 +17,13 @@ import {
 	Network,
 	Palette,
 	Plus,
+	RefreshCw,
 	Settings,
 	SlidersHorizontal,
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
 	getRuntimeShortcutIconComponent,
 	getRuntimeShortcutPickerOption,
@@ -36,7 +38,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { TASK_GIT_BASE_REF_PROMPT_VARIABLE, type TaskGitAction } from "@/git-actions/build-task-git-action-prompt";
 import { previewThemeId, readStoredThemeId, saveThemeId, THEME_GROUPS, THEMES, type ThemeId } from "@/hooks/use-theme";
 import { useLayoutCustomizations } from "@/resize/layout-customizations";
-import { openFileOnHost, pickDirectoryOnHost } from "@/runtime/runtime-config-query";
+import { openFileOnHost, pickDirectoryOnHost, syncReposRoot } from "@/runtime/runtime-config-query";
 import type { RuntimeAgentId, RuntimeConfigResponse, RuntimeProjectShortcut } from "@/runtime/types";
 import { useRuntimeConfig } from "@/runtime/use-runtime-config";
 import {
@@ -361,6 +363,7 @@ export function RuntimeSettingsDialog({
 	const [pendingShortcutScrollIndex, setPendingShortcutScrollIndex] = useState<number | null>(null);
 	const [worktreesRoot, setWorktreesRoot] = useState(config?.worktreesRoot ?? "");
 	const [reposRoot, setReposRoot] = useState(config?.reposRoot ?? "");
+	const [isSyncingRepos, setIsSyncingRepos] = useState(false);
 	const [jiraProjectKey, setJiraProjectKey] = useState(config?.jiraProjectKey ?? "");
 	const copiedVariableResetTimerRef = useRef<number | null>(null);
 	const shortcutsSectionRef = useRef<HTMLHeadingElement | null>(null);
@@ -674,6 +677,10 @@ export function RuntimeSettingsDialog({
 			setSaveError("Could not save runtime settings. Check runtime logs and try again.");
 			return;
 		}
+		// Auto-sync repos when reposRoot changed
+		if (reposRoot.trim() !== initialReposRoot) {
+			void handleSyncRepos();
+		}
 		if (draftThemeId !== initialThemeId) {
 			saveThemeId(draftThemeId);
 			setInitialThemeId(draftThemeId);
@@ -707,6 +714,19 @@ export function RuntimeSettingsDialog({
 			const message = error instanceof Error ? error.message : String(error);
 			setSaveError(`Could not open directory picker: ${message}`);
 			return null;
+		}
+	}, [workspaceId]);
+
+	const handleSyncRepos = useCallback(async () => {
+		setIsSyncingRepos(true);
+		try {
+			const result = await syncReposRoot(workspaceId);
+			toast.success(`Added ${result.added} repos, skipped ${result.skipped} already present.`);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			toast.error(`Sync failed: ${message}`);
+		} finally {
+			setIsSyncingRepos(false);
 		}
 	}, [workspaceId]);
 
@@ -1160,6 +1180,15 @@ export function RuntimeSettingsDialog({
 									disabled={controlsDisabled}
 									className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none disabled:opacity-40"
 								/>
+								<Button
+									variant="ghost"
+									size="sm"
+									icon={<RefreshCw size={14} />}
+									disabled={controlsDisabled || !reposRoot.trim() || isSyncingRepos}
+									onClick={() => void handleSyncRepos()}
+								>
+									Sync
+								</Button>
 								<Button
 									variant="ghost"
 									size="sm"

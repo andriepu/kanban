@@ -55,3 +55,8 @@ export async function pickDirectoryOnHost(workspaceId: string | null): Promise<s
 	}
 	return null;
 }
+
+export async function syncReposRoot(workspaceId: string | null): Promise<{ added: number; skipped: number }> {
+	const trpcClient = getRuntimeTrpcClient(workspaceId);
+	return await trpcClient.projects.syncFromReposRoot.mutate();
+}
