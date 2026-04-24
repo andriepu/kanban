@@ -526,10 +526,6 @@ export default function App(): ReactElement {
 	}, []);
 
 	const {
-		handleProgrammaticCardMoveReady,
-		handleCreateDependency,
-		handleDeleteDependency,
-		handleDragEnd,
 		handleStartTask,
 		handleStartAllBacklogTasks,
 		handleDetailTaskDragEnd,
@@ -569,7 +565,8 @@ export default function App(): ReactElement {
 	const handleSubtaskClick = useCallback(
 		(subtask: JiraSubtask) => {
 			const project = projects.find((p) => p.path === subtask.repoPath);
-			if (project) handleSelectProject(project.id);
+			if (!project) return;
+			handleSelectProject(project.id);
 			setSelectedTaskId(subtask.id);
 		},
 		[projects, handleSelectProject, setSelectedTaskId],

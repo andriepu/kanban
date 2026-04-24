@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ProgrammaticCardMoveInFlight } from "@/state/drag-rules";
+import type { BoardColumnId } from "@/types";
 
 export type RequestProgrammaticCardMove = (move: ProgrammaticCardMoveInFlight) => boolean;
-import type { BoardColumnId } from "@/types";
 
 interface RequestMoveTaskToTrashOptions {
 	optimisticMoveApplied?: boolean;
