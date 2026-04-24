@@ -45,6 +45,7 @@ const mockJiraBoard: UseJiraBoardResult = {
 	isLoading: false,
 	isImporting: false,
 	moveCard: vi.fn(),
+	deleteCard: vi.fn(),
 	refetch: vi.fn(),
 };
 
@@ -81,7 +82,7 @@ describe("JiraBoardView", () => {
 		});
 		expect(container.textContent).toContain("To-Do");
 		expect(container.textContent).toContain("In-Progress");
-		expect(container.textContent).toContain("Done");
+		expect(container.textContent).toContain("Trash");
 	});
 
 	it("shows cards in correct columns", async () => {
@@ -115,7 +116,7 @@ describe("JiraBoardView", () => {
 		await act(async () => {
 			root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={importingBoard} />);
 		});
-		expect(container.textContent).toContain("Syncing JIRA issues");
+		expect(container.textContent).toContain("Syncing JIRA tasks");
 	});
 
 	it("shows subtask count chip on card", async () => {
@@ -132,5 +133,36 @@ describe("JiraBoardView", () => {
 		// Three columns → three SVG indicators in headers
 		const svgs = container.querySelectorAll("svg");
 		expect(svgs.length).toBeGreaterThanOrEqual(3);
+	});
+
+	it("shows delete button on Done cards and calls deleteCard when clicked", async () => {
+		const doneBoard: UseJiraBoardResult = {
+			...mockJiraBoard,
+			board: {
+				cards: [
+					{
+						jiraKey: "POL-9",
+						summary: "Done issue",
+						status: "done",
+						subtaskIds: [],
+						createdAt: 1,
+						updatedAt: 1,
+					},
+				],
+			},
+		};
+
+		await act(async () => {
+			root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={doneBoard} />);
+		});
+
+		const deleteBtn = container.querySelector('[aria-label="Delete card"]');
+		expect(deleteBtn).not.toBeNull();
+
+		await act(async () => {
+			(deleteBtn as HTMLElement).click();
+		});
+
+		expect(mockJiraBoard.deleteCard).toHaveBeenCalledWith("POL-9");
 	});
 });

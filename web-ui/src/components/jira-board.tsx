@@ -1,12 +1,14 @@
+import { Trash2 } from "lucide-react";
 import { cn } from "@/components/ui/cn";
 import { ColumnIndicator } from "@/components/ui/column-indicator";
+import { Spinner } from "@/components/ui/spinner";
 import type { UseJiraBoardResult } from "@/hooks/use-jira-board";
 import type { JiraCard, JiraCardStatus } from "@/types/jira";
 
 const COLUMNS: Array<{ id: JiraCardStatus; label: string }> = [
 	{ id: "todo", label: "To-Do" },
 	{ id: "in_progress", label: "In-Progress" },
-	{ id: "done", label: "Done" },
+	{ id: "done", label: "Trash" },
 ];
 
 interface JiraBoardViewProps {
@@ -16,7 +18,7 @@ interface JiraBoardViewProps {
 }
 
 export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraBoardViewProps): React.ReactElement {
-	const { board, isLoading, isImporting, moveCard } = jiraBoard;
+	const { board, isLoading, isImporting, moveCard, deleteCard } = jiraBoard;
 
 	if (isLoading) {
 		return <div className="flex h-full flex-1 items-center justify-center text-text-secondary text-sm">Loading…</div>;
@@ -37,13 +39,15 @@ export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraB
 							selectedJiraKey={selectedJiraKey}
 							onCardClick={onCardClick}
 							onDrop={(jiraKey) => moveCard(jiraKey, col.id)}
+							onDelete={deleteCard}
 						/>
 					);
 				})}
 			</div>
 			{isImporting && (
-				<div className="h-7 flex items-center px-4 border-t border-border bg-surface-1 text-xs text-text-secondary shrink-0">
-					Syncing JIRA issues…
+				<div className="h-7 flex items-center gap-1.5 px-4 border-t border-border bg-surface-1 text-xs text-text-secondary shrink-0">
+					<Spinner size={12} />
+					Syncing JIRA tasks…
 				</div>
 			)}
 		</div>
@@ -58,6 +62,7 @@ function JiraBoardColumn({
 	selectedJiraKey,
 	onCardClick,
 	onDrop,
+	onDelete,
 }: {
 	columnId: string;
 	label: string;
@@ -66,6 +71,7 @@ function JiraBoardColumn({
 	selectedJiraKey: string | null;
 	onCardClick: (jiraKey: string) => void;
 	onDrop: (jiraKey: string) => void;
+	onDelete: (jiraKey: string) => void;
 }): React.ReactElement {
 	const handleDragOver = (e: React.DragEvent) => {
 		e.preventDefault();
@@ -98,6 +104,7 @@ function JiraBoardColumn({
 						subtaskCount={subtaskCounts[card.jiraKey] ?? 0}
 						isSelected={selectedJiraKey === card.jiraKey}
 						onClick={() => onCardClick(card.jiraKey)}
+						onDelete={card.status === "done" ? () => onDelete(card.jiraKey) : undefined}
 					/>
 				))}
 			</div>
@@ -110,12 +117,16 @@ function JiraBoardCard({
 	subtaskCount,
 	isSelected,
 	onClick,
+	onDelete,
 }: {
 	card: JiraCard;
 	subtaskCount: number;
 	isSelected: boolean;
 	onClick: () => void;
+	onDelete?: () => void;
 }): React.ReactElement {
+	const isTrash = card.status === "done";
+
 	const handleDragStart = (e: React.DragEvent) => {
 		e.dataTransfer.setData("jiraKey", card.jiraKey);
 		e.dataTransfer.effectAllowed = "move";
@@ -133,16 +144,38 @@ function JiraBoardCard({
 			)}
 		>
 			<div className="flex items-start justify-between gap-2">
-				<span className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-xs text-text-secondary">
+				<span
+					className={cn(
+						"rounded bg-surface-3 px-1.5 py-0.5 font-mono text-xs",
+						isTrash ? "text-text-tertiary line-through" : "text-text-secondary",
+					)}
+				>
 					{card.jiraKey}
 				</span>
-				{subtaskCount > 0 && (
-					<span className="rounded-full bg-accent/20 px-2 py-0.5 text-xs text-accent">
-						{subtaskCount} {subtaskCount === 1 ? "subtask" : "subtasks"}
-					</span>
-				)}
+				<div className="flex items-center gap-1">
+					{subtaskCount > 0 && (
+						<span className="rounded-full bg-accent/20 px-2 py-0.5 text-xs text-accent">
+							{subtaskCount} {subtaskCount === 1 ? "subtask" : "subtasks"}
+						</span>
+					)}
+					{onDelete !== undefined && (
+						<button
+							type="button"
+							aria-label="Delete card"
+							onClick={(e) => {
+								e.stopPropagation();
+								onDelete();
+							}}
+							className="rounded p-0.5 text-text-tertiary hover:bg-surface-4 hover:text-status-red transition-colors"
+						>
+							<Trash2 size={13} />
+						</button>
+					)}
+				</div>
 			</div>
-			<p className="mt-2 text-sm text-text-primary">{card.summary}</p>
+			<p className={cn("mt-2 text-sm", isTrash ? "text-text-tertiary line-through" : "text-text-primary")}>
+				{card.summary}
+			</p>
 		</button>
 	);
 }
