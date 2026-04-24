@@ -77,4 +77,84 @@ describe("jira-api", () => {
 		);
 		expect(deps.createJiraSubtask).toHaveBeenCalled();
 	});
+
+	it("importFromJira maps Todo status to todo column", async () => {
+		const deps = createMockDeps();
+		(deps.callJiraMcp as ReturnType<typeof vi.fn>).mockResolvedValue([
+			{ key: "POL-1", summary: "Fix bug", status: "Todo" },
+		]);
+		const api = createJiraApi(deps);
+		const result = await api.importFromJira(`assignee = currentUser() ORDER BY updated DESC`);
+		expect(result.imported).toBe(1);
+		expect(result.board.cards[0]?.status).toBe("todo");
+	});
+
+	it("importFromJira maps In-Progress status to in_progress column", async () => {
+		const deps = createMockDeps();
+		(deps.callJiraMcp as ReturnType<typeof vi.fn>).mockResolvedValue([
+			{ key: "POL-2", summary: "In flight", status: "In-Progress" },
+		]);
+		const api = createJiraApi(deps);
+		const result = await api.importFromJira(`assignee = currentUser() ORDER BY updated DESC`);
+		expect(result.board.cards[0]?.status).toBe("in_progress");
+	});
+
+	it("importFromJira maps Ready to Deploy status to done column", async () => {
+		const deps = createMockDeps();
+		(deps.callJiraMcp as ReturnType<typeof vi.fn>).mockResolvedValue([
+			{ key: "POL-3", summary: "Ready", status: "Ready to Deploy" },
+		]);
+		const api = createJiraApi(deps);
+		const result = await api.importFromJira(`assignee = currentUser() ORDER BY updated DESC`);
+		expect(result.board.cards[0]?.status).toBe("done");
+	});
+
+	it("importFromJira skips new issues with unmapped status", async () => {
+		const deps = createMockDeps();
+		(deps.callJiraMcp as ReturnType<typeof vi.fn>).mockResolvedValue([
+			{ key: "POL-4", summary: "Closed issue", status: "Closed" },
+		]);
+		const api = createJiraApi(deps);
+		const result = await api.importFromJira(`assignee = currentUser() ORDER BY updated DESC`);
+		expect(result.imported).toBe(0);
+		expect(result.board.cards).toHaveLength(0);
+	});
+
+	it("importFromJira updates status of existing card", async () => {
+		const deps = createMockDeps();
+		(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
+			cards: [{ jiraKey: "POL-1", summary: "Fix bug", status: "todo", subtaskIds: [], createdAt: 1, updatedAt: 1 }],
+		});
+		(deps.callJiraMcp as ReturnType<typeof vi.fn>).mockResolvedValue([
+			{ key: "POL-1", summary: "Fix bug", status: "In-Progress" },
+		]);
+		const api = createJiraApi(deps);
+		const result = await api.importFromJira(`assignee = currentUser() ORDER BY updated DESC`);
+		expect(result.board.cards[0]?.status).toBe("in_progress");
+	});
+
+	it("importFromJira removes existing card with unmapped status", async () => {
+		const deps = createMockDeps();
+		(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
+			cards: [{ jiraKey: "POL-1", summary: "Fix bug", status: "todo", subtaskIds: [], createdAt: 1, updatedAt: 1 }],
+		});
+		(deps.callJiraMcp as ReturnType<typeof vi.fn>).mockResolvedValue([
+			{ key: "POL-1", summary: "Fix bug", status: "Closed" },
+		]);
+		const api = createJiraApi(deps);
+		const result = await api.importFromJira(`assignee = currentUser() ORDER BY updated DESC`);
+		expect(result.board.cards).toHaveLength(0);
+	});
+
+	it("importFromJira leaves existing card untouched when not returned by Jira", async () => {
+		const deps = createMockDeps();
+		(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
+			cards: [{ jiraKey: "POL-5", summary: "Old card", status: "done", subtaskIds: [], createdAt: 1, updatedAt: 1 }],
+		});
+		(deps.callJiraMcp as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+		const api = createJiraApi(deps);
+		const result = await api.importFromJira(`assignee = currentUser() ORDER BY updated DESC`);
+		expect(result.board.cards).toHaveLength(1);
+		expect(result.board.cards[0]?.jiraKey).toBe("POL-5");
+	});
 });

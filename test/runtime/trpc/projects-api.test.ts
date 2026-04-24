@@ -1,5 +1,4 @@
-import { execSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,11 +8,12 @@ vi.mock("../../../src/state/workspace-state", async (importOriginal) => {
 	return {
 		...actual,
 		listWorkspaceIndexEntries: vi.fn(actual.listWorkspaceIndexEntries),
+		loadWorkspaceContext: vi.fn(actual.loadWorkspaceContext),
 	};
 });
 
 import type { RuntimeProjectTaskCounts } from "../../../src/core/api-contract";
-import { listWorkspaceIndexEntries } from "../../../src/state/workspace-state";
+import { listWorkspaceIndexEntries, loadWorkspaceContext } from "../../../src/state/workspace-state";
 import type { TerminalSessionManager } from "../../../src/terminal/session-manager";
 import { type CreateProjectsApiDependencies, createProjectsApi } from "../../../src/trpc/projects-api";
 
@@ -379,29 +379,23 @@ describe("syncFromReposRoot", () => {
 	});
 
 	it("adds a new repo not already in the workspace index", async () => {
-		const tempHome = mkdtempSync(join(tmpdir(), "kanban-sync-test-"));
-		const originalHome = process.env.HOME;
-		process.env.HOME = tempHome;
-		try {
-			const repoPath = join(tempHome, "my-repo");
-			mkdirSync(repoPath, { recursive: true });
-			execSync("git init && git commit --allow-empty -m init", { cwd: repoPath, stdio: "ignore" });
+		const fakeRepoPath = "/repos/my-repo";
+		const deps = createDefaultDeps(testCwd);
+		(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue("/repos");
+		(deps.scanReposInRoot as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: "my-repo", path: fakeRepoPath }]);
+		vi.mocked(listWorkspaceIndexEntries).mockResolvedValueOnce([]);
+		vi.mocked(loadWorkspaceContext).mockResolvedValueOnce({
+			workspaceId: "ws-my-repo",
+			repoPath: fakeRepoPath,
+			statePath: "/state/ws-my-repo",
+			git: { currentBranch: "main", defaultBranch: "main", branches: ["main"] },
+		});
 
-			const deps = createDefaultDeps(testCwd);
-			(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue(join(tempHome, "repos-root"));
-			(deps.scanReposInRoot as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: "my-repo", path: repoPath }]);
-			// listWorkspaceIndexEntries is now a module-level import, not injected.
-			// With a fresh temp HOME, the workspace index is empty — so the repo will be added.
-
-			const api = createProjectsApi(deps);
-			const result = await api.syncFromReposRoot();
-			expect(result.added).toBe(1);
-			expect(result.skipped).toBe(0);
-			expect(deps.rememberWorkspace).toHaveBeenCalledOnce();
-			expect(deps.broadcastRuntimeProjectsUpdated).toHaveBeenCalledWith(null);
-		} finally {
-			process.env.HOME = originalHome;
-			rmSync(tempHome, { recursive: true, force: true });
-		}
+		const api = createProjectsApi(deps);
+		const result = await api.syncFromReposRoot();
+		expect(result.added).toBe(1);
+		expect(result.skipped).toBe(0);
+		expect(deps.rememberWorkspace).toHaveBeenCalledOnce();
+		expect(deps.broadcastRuntimeProjectsUpdated).toHaveBeenCalledWith(null);
 	});
 });
