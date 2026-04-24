@@ -27,7 +27,7 @@ export interface CreateJiraApiDependencies {
 		customCwd: string,
 	) => Promise<{ started: boolean }>;
 	stopTaskSession: (workspacePath: string, taskId: string) => Promise<{ stopped: boolean }>;
-	addWorkspace: (workspacePath: string) => Promise<void>;
+	addWorkspace: (workspacePath: string) => Promise<string>;
 	getWorktreesRoot: () => string | null;
 	getReposRoot: () => string | null;
 }
@@ -161,18 +161,20 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			};
 		},
 
-		async startSubtaskSession(subtaskId: string): Promise<{ started: boolean; workspacePath: string }> {
+		async startSubtaskSession(
+			subtaskId: string,
+		): Promise<{ started: boolean; workspacePath: string; workspaceId: string }> {
 			const subtasks = await deps.loadJiraSubtasks();
 			const subtask = subtasks[subtaskId];
 			if (!subtask) throw new Error(`Subtask ${subtaskId} not found`);
 
-			await deps.addWorkspace(subtask.repoPath);
+			const workspaceId = await deps.addWorkspace(subtask.repoPath);
 			const result = await deps.startTaskSession(subtask.repoPath, subtask.id, subtask.prompt, subtask.worktreePath);
 
 			subtasks[subtaskId] = { ...subtask, status: "in_progress", updatedAt: Date.now() };
 			await lockedFileSystem.writeJsonFileAtomic(getSubtasksFilePath(), subtasks);
 
-			return { started: result.started, workspacePath: subtask.repoPath };
+			return { started: result.started, workspacePath: subtask.repoPath, workspaceId };
 		},
 
 		async stopSubtaskSession(subtaskId: string, workspacePath: string): Promise<{ stopped: boolean }> {

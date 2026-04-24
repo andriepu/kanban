@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
-import { useJiraBoard } from "@/hooks/use-jira-board";
+import type { UseJiraBoardResult } from "@/hooks/use-jira-board";
 import type { JiraCard, JiraCardStatus } from "@/types/jira";
 
 const COLUMNS: Array<{ id: JiraCardStatus; label: string }> = [
@@ -13,10 +13,11 @@ const COLUMNS: Array<{ id: JiraCardStatus; label: string }> = [
 interface JiraBoardViewProps {
 	onCardClick: (jiraKey: string) => void;
 	selectedJiraKey: string | null;
+	jiraBoard: UseJiraBoardResult;
 }
 
-export function JiraBoardView({ onCardClick, selectedJiraKey }: JiraBoardViewProps): React.ReactElement {
-	const { board, isLoading, isImporting, importFromJira, moveCard } = useJiraBoard();
+export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraBoardViewProps): React.ReactElement {
+	const { board, isLoading, isImporting, importFromJira, moveCard } = jiraBoard;
 
 	return (
 		<div className="flex h-full flex-col">

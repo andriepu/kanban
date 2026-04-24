@@ -407,7 +407,8 @@
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
 - `open-workspace-button.tsx` — OpenTargetIcon — uses useState (~891 tok)
   Note: passcode-gate.tsx deleted (personal-use simplification)
-- `jira-board.tsx` — Stub JiraBoardView component (Task 7 will implement). Props: onCardClick, selectedJiraKey. (~50 tok)
+- `jira-board.tsx` — JiraBoardView: three-column Jira board (To-Do/In-Progress/Done), drag-and-drop cards, Import To-Do button. Subcomponents: JiraBoardColumn, JiraBoardCard. Uses useJiraBoard hook. (~450 tok)
+- `jira-board.test.tsx` — 5 tests: renders three columns, shows cards, onCardClick, Import To-Do button, subtask count chip. Uses createRoot+act pattern. (~300 tok)
 - `project-navigation-panel.test.tsx` — Wrapper that owns the sidebar layout state via the hook and passes it as props. (~2050 tok)
 - `project-navigation-panel.tsx` — COLLAPSED_WIDTH — uses useState, useEffect, useCallback. Now accepts sidebarTab/"task"|"project", onSidebarTabChange, hasJiraConfig props. Renders tab switcher below header. (~7200 tok)
   Note: remote-file-browser-dialog.tsx and remote-file-browser-dialog.test.tsx deleted (personal-use simplification)
@@ -613,9 +614,15 @@
 - `index.ts` (~8 tok)
 - `jira.ts` — Exports JiraCardStatus, JiraSubtaskStatus, JiraCard, JiraBoard, JiraSubtask, RepoOption. Pure type definitions for frontend Jira board feature. (~120 tok)
 
+## web-ui/src/components/ (continued)
+
+- `jira-card-detail-view.tsx` — JiraCardDetailView: detail panel for selected Jira card showing issue metadata, subtask list with click-to-start session, AgentTerminalPanel integration, SubtaskCreateDialog trigger. (~280 tok)
+- `subtask-create-dialog.tsx` — SubtaskCreateDialog: modal for creating a new subtask with repo selection, auto-derived branch name, base ref, and prompt fields. Uses proxy TRPC client pattern. (~250 tok)
+
 ## web-ui/src/utils/
 
 - `detail-view-task-order.test.ts` — Declares nextTaskId (~1264 tok)
+- `jira-utils.ts` — Exports deriveSubtaskBranchName. Derives a git branch name from a Jira key and title. (~40 tok)
 - `detail-view-task-order.ts` — Exports isDetailViewColumnId, getNextDetailTaskIdAfterTrashMove (~204 tok)
 - `file-tree.ts` — Exports FileTreeNode, buildFileTree (~330 tok)
 - `file-url.test.ts` (~231 tok)

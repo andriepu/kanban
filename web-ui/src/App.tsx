@@ -13,6 +13,7 @@ import { DebugDialog } from "@/components/debug-dialog";
 import { AgentTerminalPanel } from "@/components/detail-panels/agent-terminal-panel";
 import { GitHistoryView } from "@/components/git-history-view";
 import { JiraBoardView } from "@/components/jira-board";
+import { JiraCardDetailView } from "@/components/jira-card-detail-view";
 import { KanbanBoard } from "@/components/kanban-board";
 import { ProjectNavigationPanel } from "@/components/project-navigation-panel";
 import { RuntimeSettingsDialog, type RuntimeSettingsSection } from "@/components/runtime-settings-dialog";
@@ -41,6 +42,7 @@ import { useDetailTaskNavigation } from "@/hooks/use-detail-task-navigation";
 import { useDocumentVisibility } from "@/hooks/use-document-visibility";
 import { useGitActions } from "@/hooks/use-git-actions";
 import { useHomeSidebarAgentPanel } from "@/hooks/use-home-sidebar-agent-panel";
+import { useJiraBoard } from "@/hooks/use-jira-board";
 import { useKanbanAccessGate } from "@/hooks/use-kanban-access-gate";
 import { useOpenWorkspace } from "@/hooks/use-open-workspace";
 import { parseRemovedProjectPathFromStreamError, useProjectNavigation } from "@/hooks/use-project-navigation";
@@ -426,6 +428,8 @@ export default function App(): ReactElement {
 			prepareWaitForTerminalConnectionReady,
 			sendTaskSessionInput,
 		});
+
+	const jiraBoard = useJiraBoard(currentProjectId);
 
 	const persistWorkspaceStateAsync = useCallback(
 		async (input: { workspaceId: string; payload: Parameters<typeof saveWorkspaceState>[1] }) =>
@@ -888,7 +892,23 @@ export default function App(): ReactElement {
 												onDragEnd={handleDragEnd}
 											/>
 										) : (
-											<JiraBoardView onCardClick={setSelectedJiraKey} selectedJiraKey={selectedJiraKey} />
+											<div className="flex flex-1 min-h-0 min-w-0">
+												<JiraBoardView
+													onCardClick={setSelectedJiraKey}
+													selectedJiraKey={selectedJiraKey}
+													jiraBoard={jiraBoard}
+												/>
+												{selectedJiraKey && (
+													<div className="w-80 shrink-0 border-l border-border overflow-hidden">
+														<JiraCardDetailView
+															jiraKey={selectedJiraKey}
+															board={jiraBoard.board}
+															subtasks={jiraBoard.subtasks}
+															onSubtaskCreated={jiraBoard.refetch}
+														/>
+													</div>
+												)}
+											</div>
 										)}
 									</div>
 									{showHomeBottomTerminal ? (

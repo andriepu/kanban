@@ -979,7 +979,11 @@ export const jiraScanReposResponseSchema = z.object({
 });
 
 export const jiraSubtaskSessionStartRequestSchema = z.object({ subtaskId: z.string() });
-export const jiraSubtaskSessionStartResponseSchema = z.object({ started: z.boolean(), workspacePath: z.string() });
+export const jiraSubtaskSessionStartResponseSchema = z.object({
+	started: z.boolean(),
+	workspacePath: z.string(),
+	workspaceId: z.string(),
+});
 
 export const jiraSubtaskSessionStopRequestSchema = z.object({ subtaskId: z.string(), workspacePath: z.string() });
 export const jiraSubtaskSessionStopResponseSchema = z.object({ stopped: z.boolean() });

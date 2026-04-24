@@ -127,6 +127,9 @@ describe("ProjectNavigationPanel width persistence", () => {
 					onSelectProject={() => {}}
 					onRemoveProject={async () => true}
 					onAddProject={() => {}}
+					sidebarTab="project"
+					onSidebarTabChange={() => {}}
+					hasJiraConfig={false}
 					{...overrides}
 				/>,
 			);

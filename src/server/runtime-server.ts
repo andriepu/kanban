@@ -185,10 +185,9 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 			return { stopped: result.ok };
 		},
 		addWorkspace: async (workspacePath) => {
-			await deps.ensureTerminalManagerForWorkspace(
-				(await loadWorkspaceContext(workspacePath)).workspaceId,
-				workspacePath,
-			);
+			const ctx = await loadWorkspaceContext(workspacePath);
+			await deps.ensureTerminalManagerForWorkspace(ctx.workspaceId, workspacePath);
+			return ctx.workspaceId;
 		},
 		getWorktreesRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.worktreesRoot ?? null,
 		getReposRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.reposRoot ?? null,
