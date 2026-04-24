@@ -294,11 +294,15 @@ export class TerminalSessionManager implements TerminalSessionService {
 
 		let registeredProjects: Array<{ name: string; path: string }> | undefined;
 		if (isHomeAgentSessionId(request.taskId)) {
-			const entries = await listWorkspaceIndexEntries();
-			registeredProjects = entries.map((e) => ({
-				name: basename(e.repoPath),
-				path: e.repoPath,
-			}));
+			try {
+				const entries = await listWorkspaceIndexEntries();
+				registeredProjects = entries.map((e) => ({
+					name: basename(e.repoPath),
+					path: e.repoPath,
+				}));
+			} catch {
+				// Non-fatal: launch without project context rather than blocking the session.
+			}
 		}
 
 		const launch = await prepareAgentLaunch({
