@@ -149,6 +149,38 @@ describe("useJiraBoard", () => {
 		expect(result.board.cards).toContainEqual(expect.objectContaining({ jiraKey: "POL-1", summary: "Test issue" }));
 	});
 
+	it("strips Done cards from board on load and calls saveBoard to clean up", async () => {
+		const doneCard = {
+			jiraKey: "POL-99",
+			summary: "Already done",
+			status: "done" as const,
+			subtaskIds: [],
+			createdAt: 1,
+			updatedAt: 1,
+		};
+		mockLoadBoard.mockResolvedValue({ board: { cards: [doneCard] }, subtasks: {} });
+
+		let snapshot: UseJiraBoardResult | null = null;
+
+		await act(async () => {
+			root.render(
+				<HookHarness
+					onSnapshot={(s) => {
+						snapshot = s;
+					}}
+				/>,
+			);
+			await flushPromises();
+		});
+
+		if (snapshot === null) throw new Error("Expected a hook snapshot");
+		const result: UseJiraBoardResult = snapshot;
+		expect(result.board.cards).toHaveLength(0);
+		expect(mockSaveBoard).toHaveBeenCalledWith(
+			expect.objectContaining({ board: expect.objectContaining({ cards: [] }) }),
+		);
+	});
+
 	it("calls saveBoard with correct payload when moveCard is invoked", async () => {
 		const testCard = {
 			jiraKey: "POL-1",

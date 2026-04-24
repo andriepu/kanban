@@ -32,6 +32,12 @@ export function useJiraBoard(
 	const isMountedRef = useRef(true);
 	const isImportingRef = useRef(false);
 	const prevIsActiveRef = useRef(false);
+	const boardRef = useRef<JiraBoard>({ cards: [] });
+
+	function applyBoard(b: JiraBoard): void {
+		boardRef.current = b;
+		setBoard(b);
+	}
 
 	useUnmount(() => {
 		isMountedRef.current = false;
@@ -44,8 +50,14 @@ export function useJiraBoard(
 		try {
 			const data = await trpc.jira.loadBoard.query();
 			if (!isMountedRef.current || requestIdRef.current !== requestId) return;
-			setBoard(data.board);
+			const doneOnLoad = data.board.cards.filter((c) => c.status === "done");
+			const cleanBoard =
+				doneOnLoad.length > 0 ? { cards: data.board.cards.filter((c) => c.status !== "done") } : data.board;
+			applyBoard(cleanBoard);
 			setSubtasks(data.subtasks);
+			if (doneOnLoad.length > 0) {
+				void trpc.jira.saveBoard.mutate({ board: cleanBoard });
+			}
 		} finally {
 			if (isMountedRef.current && requestIdRef.current === requestId) {
 				setIsLoading(false);
@@ -70,7 +82,13 @@ export function useJiraBoard(
 				jql: `assignee = currentUser() ORDER BY updated DESC`,
 			});
 			if (isMountedRef.current) {
-				setBoard(result.board);
+				const doneOnSync = result.board.cards.filter((c) => c.status === "done");
+				const cleanBoard =
+					doneOnSync.length > 0 ? { cards: result.board.cards.filter((c) => c.status !== "done") } : result.board;
+				applyBoard(cleanBoard);
+				if (doneOnSync.length > 0) {
+					void trpc.jira.saveBoard.mutate({ board: cleanBoard });
+				}
 			}
 		} finally {
 			isImportingRef.current = false;
@@ -106,12 +124,12 @@ export function useJiraBoard(
 				await trpc.jira.saveBoard.mutate({ board: updatedBoard });
 			} catch {
 				if (isMountedRef.current) {
-					setBoard(previousBoard);
+					applyBoard(previousBoard);
 				}
 				return;
 			}
 			if (isMountedRef.current) {
-				setBoard(updatedBoard);
+				applyBoard(updatedBoard);
 			}
 
 			if (newStatus === "in_progress") {
@@ -120,7 +138,7 @@ export function useJiraBoard(
 				} catch {
 					// Jira transition failed — revert local state and re-fetch
 					if (isMountedRef.current) {
-						setBoard(previousBoard);
+						applyBoard(previousBoard);
 						void fetchBoard();
 					}
 				}
