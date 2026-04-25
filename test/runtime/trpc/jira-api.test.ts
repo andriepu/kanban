@@ -458,7 +458,7 @@ describe("jira-api", () => {
 			expect(result.openUrl).toBeUndefined();
 		});
 
-		it("returns openUrl when subtask has prUrl and no accessible worktreePath", async () => {
+		it("returns openUrl when subtask has prUrl and no worktreePath set", async () => {
 			const deps = createMockDeps();
 			const subtask = {
 				id: "pr-sub",
@@ -483,6 +483,34 @@ describe("jira-api", () => {
 			expect(result.openUrl).toBe("https://github.com/a/b/pull/42");
 			expect(result.started).toBe(false);
 			expect(result.workspaceId).toBe("");
+			expect(deps.startTaskSession).not.toHaveBeenCalled();
+		});
+
+		it("returns openUrl when worktreePath is set but inaccessible and prUrl is present", async () => {
+			const deps = createMockDeps();
+			const subtask = {
+				id: "stale-tree-sub",
+				jiraKey: "POL-1",
+				repoId: "repo",
+				repoPath: "",
+				prompt: "",
+				title: "t",
+				baseRef: "main",
+				branchName: "POL-1-fix",
+				worktreePath: "/worktrees/stale-path",
+				status: "review" as const,
+				prUrl: "https://github.com/a/b/pull/55",
+				prNumber: 55,
+				isDraft: false,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			(deps.loadJiraSubtasks as ReturnType<typeof vi.fn>).mockResolvedValue({ "stale-tree-sub": subtask });
+			fsMocks.access.mockRejectedValueOnce(new Error("ENOENT: no such file or directory"));
+			const api = createJiraApi(deps);
+			const result = await api.startSubtaskSession("stale-tree-sub");
+			expect(result.openUrl).toBe("https://github.com/a/b/pull/55");
+			expect(result.started).toBe(false);
 			expect(deps.startTaskSession).not.toHaveBeenCalled();
 		});
 

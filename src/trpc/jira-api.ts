@@ -199,9 +199,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 				try {
 					await access(subtask.worktreePath);
 					worktreeAccessible = true;
-				} catch {
-					// worktree path does not exist on disk
-				}
+				} catch {}
 
 				if (worktreeAccessible) {
 					const workspaceId = await deps.addWorkspace(subtask.repoPath);
