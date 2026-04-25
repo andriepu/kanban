@@ -118,6 +118,8 @@ export function buildRuntimeConfigResponse(runtimeConfig: RuntimeConfigState): R
 		worktreesRoot: runtimeConfig.worktreesRoot,
 		reposRoot: runtimeConfig.reposRoot,
 		jiraProjectKey: runtimeConfig.jiraProjectKey,
+		jiraBaseUrl: runtimeConfig.jiraBaseUrl,
+		jiraEmail: runtimeConfig.jiraEmail,
 		jiraSyncIntervalMs: runtimeConfig.jiraSyncIntervalMs,
 	};
 }

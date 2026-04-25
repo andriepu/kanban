@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
-import type { JiraBoard, JiraCard, JiraCardStatus, JiraSubtask } from "@/types/jira";
+import type { JiraBoard, JiraCard, JiraCardStatus, JiraPrLink, JiraSubtask } from "@/types/jira";
 import { useInterval, useUnmount } from "@/utils/react-use";
 
 export interface UseJiraBoardOptions {
@@ -16,6 +17,9 @@ export interface UseJiraBoardResult {
 	moveCard: (jiraKey: string, newStatus: JiraCardStatus) => Promise<void>;
 	deleteCard: (jiraKey: string) => void;
 	refetch: () => void;
+	prLinks: Record<string, JiraPrLink[]>;
+	scanPRs: () => Promise<void>;
+	prScanning: boolean;
 }
 
 export function useJiraBoard(
@@ -29,12 +33,16 @@ export function useJiraBoard(
 	const [subtasks, setSubtasks] = useState<Record<string, JiraSubtask>>({});
 	const [isLoading, setIsLoading] = useState(false);
 	const [isImporting, setIsImporting] = useState(false);
+	const [prLinks, setPrLinks] = useState<Record<string, JiraPrLink[]>>({});
+	const [prScanning, setPrScanning] = useState(false);
 	const requestIdRef = useRef(0);
 	const isMountedRef = useRef(true);
 	const isImportingRef = useRef(false);
 	const prevIsActiveRef = useRef(false);
 	const boardRef = useRef<JiraBoard>({ cards: [] });
 	const deleteTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+	const prScannedOnceRef = useRef(false);
+	const scanPRsRef = useRef<() => Promise<void>>(async () => {});
 
 	function applyBoard(b: JiraBoard): void {
 		boardRef.current = b;
@@ -60,12 +68,18 @@ export function useJiraBoard(
 				doneOnLoad.length > 0 ? { cards: data.board.cards.filter((c) => c.status !== "done") } : data.board;
 			applyBoard(cleanBoard);
 			setSubtasks(data.subtasks);
+			setPrLinks(data.prLinks ?? {});
 			if (doneOnLoad.length > 0) {
 				void trpc.jira.saveBoard.mutate({ board: cleanBoard });
 			}
 		} finally {
 			if (isMountedRef.current && requestIdRef.current === requestId) {
 				setIsLoading(false);
+				// auto-scan PRs once after first successful board load
+				if (!prScannedOnceRef.current) {
+					prScannedOnceRef.current = true;
+					void scanPRsRef.current();
+				}
 			}
 		}
 	}, [trpc]);
@@ -107,6 +121,33 @@ export function useJiraBoard(
 	const refetch = useCallback((): void => {
 		void fetchBoard();
 	}, [fetchBoard]);
+
+	const scanPRs = useCallback(async (): Promise<void> => {
+		setPrScanning(true);
+		try {
+			const result = await trpc.jira.scanAndAttachPRs.mutate();
+			if (isMountedRef.current) {
+				setPrLinks(result.prLinks);
+				const totalLinked = Object.values(result.prLinks).reduce((sum, links) => sum + links.length, 0);
+				if (totalLinked > 0) {
+					toast.success(`Synced ${totalLinked} PR${totalLinked === 1 ? "" : "s"}`);
+				}
+			}
+		} catch (error) {
+			if (isMountedRef.current) {
+				const message = error instanceof Error ? error.message : "Failed to sync PRs";
+				toast.error(message);
+			}
+		} finally {
+			if (isMountedRef.current) {
+				setPrScanning(false);
+			}
+		}
+	}, [trpc]);
+
+	useEffect(() => {
+		scanPRsRef.current = scanPRs;
+	}, [scanPRs]);
 
 	const syncFromJira = useCallback(async (): Promise<void> => {
 		if (isImportingRef.current) return;
@@ -200,5 +241,8 @@ export function useJiraBoard(
 		moveCard,
 		deleteCard,
 		refetch,
+		prLinks,
+		scanPRs,
+		prScanning,
 	};
 }

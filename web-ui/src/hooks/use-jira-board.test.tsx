@@ -1,5 +1,6 @@
-import { act } from "react";
+import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type UseJiraBoardResult, useJiraBoard } from "./use-jira-board";
 
@@ -7,6 +8,7 @@ const mockLoadBoard = vi.hoisted(() => vi.fn());
 const mockSaveBoard = vi.hoisted(() => vi.fn());
 const mockImportFromJira = vi.hoisted(() => vi.fn());
 const mockTransitionIssue = vi.hoisted(() => vi.fn());
+const mockScanAndAttachPRs = vi.hoisted(() => vi.fn());
 
 // Return the same client object on every call to avoid reference churn —
 // a new object per call would change `trpc` on every render, which changes
@@ -17,8 +19,11 @@ const mockTrpcClient = {
 		saveBoard: { mutate: mockSaveBoard },
 		importFromJira: { mutate: mockImportFromJira },
 		transitionIssue: { mutate: mockTransitionIssue },
+		scanAndAttachPRs: { mutate: mockScanAndAttachPRs },
 	},
 };
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 vi.mock("@/runtime/trpc-client", () => ({
 	getRuntimeTrpcClient: () => mockTrpcClient,
@@ -51,10 +56,11 @@ describe("useJiraBoard", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Default: empty board resolves immediately so no pending async work is left after each test
-		mockLoadBoard.mockResolvedValue({ board: { cards: [] }, subtasks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [] }, subtasks: {}, prLinks: {} });
 		mockSaveBoard.mockResolvedValue({ board: { cards: [] } });
 		mockImportFromJira.mockResolvedValue({ imported: 2, skipped: 0, board: { cards: [] } });
 		mockTransitionIssue.mockResolvedValue({ ok: true });
+		mockScanAndAttachPRs.mockResolvedValue({ attached: 0, skipped: 0, prLinks: {} });
 
 		previousActEnvironment = (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
 			.IS_REACT_ACT_ENVIRONMENT;
@@ -128,7 +134,7 @@ describe("useJiraBoard", () => {
 		};
 
 		// Override default mock to return a real card
-		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {}, prLinks: {} });
 
 		let snapshot: UseJiraBoardResult | null = null;
 
@@ -158,7 +164,7 @@ describe("useJiraBoard", () => {
 			createdAt: 1,
 			updatedAt: 1,
 		};
-		mockLoadBoard.mockResolvedValue({ board: { cards: [doneCard] }, subtasks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [doneCard] }, subtasks: {}, prLinks: {} });
 
 		let snapshot: UseJiraBoardResult | null = null;
 
@@ -191,7 +197,7 @@ describe("useJiraBoard", () => {
 			createdAt: 1000,
 			updatedAt: 1000,
 		};
-		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {}, prLinks: {} });
 		mockSaveBoard.mockResolvedValue({ board: { cards: [] } });
 
 		let snapshot: UseJiraBoardResult | null = null;
@@ -250,7 +256,7 @@ describe("useJiraBoard", () => {
 			createdAt: 1000,
 			updatedAt: 1000,
 		};
-		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {}, prLinks: {} });
 		mockSaveBoard.mockResolvedValue({ board: { cards: [] } });
 
 		let snapshot: UseJiraBoardResult | null = null;
@@ -305,7 +311,7 @@ describe("useJiraBoard", () => {
 			updatedAt: 1000,
 		};
 
-		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {}, prLinks: {} });
 		mockSaveBoard.mockResolvedValue({ board: { cards: [] } });
 		mockTransitionIssue.mockResolvedValue({ ok: true });
 
@@ -336,5 +342,137 @@ describe("useJiraBoard", () => {
 				}),
 			}),
 		);
+	});
+
+	it("auto-triggers scanPRs once after initial board load", async () => {
+		let snapshot: UseJiraBoardResult | undefined;
+		await act(async () => {
+			root.render(
+				React.createElement(HookHarness, {
+					onSnapshot: (s) => {
+						snapshot = s;
+					},
+				}),
+			);
+			await flushPromises();
+		});
+		expect(mockScanAndAttachPRs).toHaveBeenCalledOnce();
+		expect(snapshot?.prScanning).toBe(false); // settled after auto-scan
+	});
+
+	it("does not auto-trigger scanPRs more than once across renders", async () => {
+		let snapshot: UseJiraBoardResult | undefined;
+		// First render + load
+		await act(async () => {
+			root.render(
+				React.createElement(HookHarness, {
+					onSnapshot: (s) => {
+						snapshot = s;
+					},
+				}),
+			);
+			await flushPromises();
+		});
+		// Trigger a refetch (second board load)
+		await act(async () => {
+			snapshot?.refetch();
+			await flushPromises();
+		});
+		expect(mockScanAndAttachPRs).toHaveBeenCalledOnce(); // still only once
+	});
+
+	it("exposes prLinks from board load", async () => {
+		const mockPrLinks = {
+			"POL-1": [
+				{
+					id: "l-1",
+					jiraKey: "POL-1",
+					prUrl: "https://github.com/a/b/pull/1",
+					prNumber: 1,
+					title: "Fix",
+					repoName: "a/b",
+					headRefName: "fix",
+					addedAt: 1,
+				},
+			],
+		};
+		mockLoadBoard.mockResolvedValue({ board: { cards: [] }, subtasks: {}, prLinks: mockPrLinks });
+		// auto-scan fires after load; make it return the same links so they aren't overwritten
+		mockScanAndAttachPRs.mockResolvedValue({ attached: 0, skipped: 0, prLinks: mockPrLinks });
+		let snapshot: UseJiraBoardResult | undefined;
+		await act(async () => {
+			root.render(
+				React.createElement(HookHarness, {
+					onSnapshot: (s) => {
+						snapshot = s;
+					},
+				}),
+			);
+			await flushPromises();
+		});
+		expect(snapshot?.prLinks).toEqual(mockPrLinks);
+	});
+
+	it("scanPRs updates prLinks and clears prScanning", async () => {
+		const mergedLinks = {
+			"POL-2": [
+				{
+					id: "l-2",
+					jiraKey: "POL-2",
+					prUrl: "https://github.com/a/b/pull/2",
+					prNumber: 2,
+					title: "POL-2",
+					repoName: "a/b",
+					headRefName: "POL-2",
+					addedAt: 2,
+				},
+			],
+		};
+		mockScanAndAttachPRs.mockResolvedValue({ attached: 1, skipped: 0, prLinks: mergedLinks });
+		let snapshot: UseJiraBoardResult | undefined;
+		await act(async () => {
+			root.render(
+				React.createElement(HookHarness, {
+					onSnapshot: (s) => {
+						snapshot = s;
+					},
+				}),
+			);
+			await flushPromises();
+		});
+		await act(async () => {
+			await snapshot?.scanPRs();
+			await flushPromises();
+		});
+		expect(snapshot?.prLinks).toEqual(mergedLinks);
+		expect(snapshot?.prScanning).toBe(false);
+	});
+
+	it("scanPRs calls toast.error on failure", async () => {
+		const toastErrorSpy = vi.spyOn(toast, "error").mockReturnValue("toast-id" as ReturnType<typeof toast.error>);
+
+		// Auto-scan on mount succeeds; the explicit scanPRs call will fail
+		mockScanAndAttachPRs
+			.mockResolvedValueOnce({ attached: 0, skipped: 0, prLinks: {} }) // auto-scan
+			.mockRejectedValueOnce(new Error("scan failed")); // manual scan
+
+		let snapshot: UseJiraBoardResult | undefined;
+		await act(async () => {
+			root.render(
+				React.createElement(HookHarness, {
+					onSnapshot: (s) => {
+						snapshot = s;
+					},
+				}),
+			);
+			await flushPromises();
+		});
+
+		await act(async () => {
+			await snapshot?.scanPRs();
+			await flushPromises();
+		});
+
+		expect(toastErrorSpy).toHaveBeenCalledWith("scan failed");
 	});
 });

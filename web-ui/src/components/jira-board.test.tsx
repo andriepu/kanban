@@ -47,6 +47,9 @@ const mockJiraBoard: UseJiraBoardResult = {
 	moveCard: vi.fn(),
 	deleteCard: vi.fn(),
 	refetch: vi.fn(),
+	prLinks: {},
+	scanPRs: vi.fn().mockResolvedValue(undefined),
+	prScanning: false,
 };
 
 describe("JiraBoardView", () => {
@@ -136,8 +139,10 @@ describe("JiraBoardView", () => {
 	});
 
 	it("shows delete button on Done cards and calls deleteCard when clicked", async () => {
+		const localDeleteCard = vi.fn();
 		const doneBoard: UseJiraBoardResult = {
 			...mockJiraBoard,
+			deleteCard: localDeleteCard,
 			board: {
 				cards: [
 					{
@@ -163,6 +168,40 @@ describe("JiraBoardView", () => {
 			(deleteBtn as HTMLElement).click();
 		});
 
-		expect(mockJiraBoard.deleteCard).toHaveBeenCalledWith("POL-9");
+		expect(localDeleteCard).toHaveBeenCalledWith("POL-9");
+	});
+
+	it("Sync PRs button click calls scanPRs", async () => {
+		const scanPRsMock = vi.fn().mockResolvedValue(undefined);
+		const boardWithScan: UseJiraBoardResult = { ...mockJiraBoard, scanPRs: scanPRsMock };
+
+		await act(async () => {
+			root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={boardWithScan} />);
+		});
+
+		const syncBtn = Array.from(container.querySelectorAll("button")).find((btn) =>
+			btn.textContent?.includes("Sync PRs"),
+		);
+		expect(syncBtn).toBeDefined();
+
+		await act(async () => {
+			syncBtn?.click();
+		});
+
+		expect(scanPRsMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("Sync PRs button is disabled while prScanning", async () => {
+		const scanningBoard: UseJiraBoardResult = { ...mockJiraBoard, prScanning: true };
+
+		await act(async () => {
+			root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={scanningBoard} />);
+		});
+
+		const syncBtn = Array.from(container.querySelectorAll("button")).find((btn) =>
+			btn.textContent?.includes("Sync PRs"),
+		);
+		expect(syncBtn).toBeDefined();
+		expect((syncBtn as HTMLButtonElement).disabled).toBe(true);
 	});
 });

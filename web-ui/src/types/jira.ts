@@ -33,3 +33,14 @@ export interface RepoOption {
 	id: string;
 	path: string;
 }
+
+export interface JiraPrLink {
+	id: string;
+	jiraKey: string;
+	prUrl: string;
+	prNumber: number;
+	title: string;
+	repoName: string;
+	headRefName: string;
+	addedAt: number;
+}

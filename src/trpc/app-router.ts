@@ -70,6 +70,7 @@ import {
 	jiraBoardSaveRequestSchema,
 	jiraFetchIssueRequestSchema,
 	jiraImportRequestSchema,
+	jiraScanAndAttachPrsResponseSchema,
 	jiraSubtaskCreateRequestSchema,
 	jiraSubtaskDeleteRequestSchema,
 	jiraSubtaskSessionStartRequestSchema,
@@ -567,6 +568,9 @@ export const runtimeAppRouter = t.router({
 		updateSubtaskStatus: t.procedure
 			.input(jiraSubtaskUpdateStatusRequestSchema)
 			.mutation(({ ctx, input }) => ctx.jiraApi.updateSubtaskStatus(input.subtaskId, input.status)),
+		scanAndAttachPRs: t.procedure
+			.output(jiraScanAndAttachPrsResponseSchema)
+			.mutation(({ ctx }) => ctx.jiraApi.scanAndAttachPRs()),
 	}),
 });
 

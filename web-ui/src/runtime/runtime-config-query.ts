@@ -27,6 +27,8 @@ export async function saveRuntimeConfig(
 		worktreesRoot?: string | null;
 		reposRoot?: string | null;
 		jiraProjectKey?: string | null;
+		jiraBaseUrl?: string | null;
+		jiraEmail?: string | null;
 		jiraSyncIntervalMs?: number | null;
 	},
 ): Promise<RuntimeConfigResponse> {

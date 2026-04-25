@@ -571,6 +571,8 @@ export const runtimeConfigResponseSchema = z.object({
 	worktreesRoot: z.string().nullable(),
 	reposRoot: z.string().nullable(),
 	jiraProjectKey: z.string().nullable(),
+	jiraBaseUrl: z.string().nullable(),
+	jiraEmail: z.string().nullable(),
 	jiraSyncIntervalMs: z.number(),
 });
 export type RuntimeConfigResponse = z.infer<typeof runtimeConfigResponseSchema>;
@@ -586,6 +588,8 @@ export const runtimeConfigSaveRequestSchema = z.object({
 	worktreesRoot: z.string().nullable().optional(),
 	reposRoot: z.string().nullable().optional(),
 	jiraProjectKey: z.string().nullable().optional(),
+	jiraBaseUrl: z.string().nullable().optional(),
+	jiraEmail: z.string().nullable().optional(),
 	jiraSyncIntervalMs: z.number().nullable().optional(),
 });
 export type RuntimeConfigSaveRequest = z.infer<typeof runtimeConfigSaveRequestSchema>;
@@ -936,9 +940,29 @@ export type RuntimeJiraSubtask = z.infer<typeof jiraSubtaskSchema>;
 
 // ── Jira API request/response schemas ──────────────────────────────────────
 
+export const jiraPrLinkSchema = z.object({
+	id: z.string(),
+	jiraKey: z.string(),
+	prUrl: z.string(),
+	prNumber: z.number(),
+	title: z.string(),
+	repoName: z.string(),
+	headRefName: z.string(),
+	addedAt: z.number(),
+});
+export type RuntimeJiraPrLink = z.infer<typeof jiraPrLinkSchema>;
+
+export const jiraScanAndAttachPrsResponseSchema = z.object({
+	attached: z.number(),
+	skipped: z.number(),
+	prLinks: z.record(z.string(), z.array(jiraPrLinkSchema)),
+});
+export type JiraScanAndAttachPrsResponse = z.infer<typeof jiraScanAndAttachPrsResponseSchema>;
+
 export const jiraBoardLoadResponseSchema = z.object({
 	board: jiraBoardSchema,
 	subtasks: z.record(z.string(), jiraSubtaskSchema),
+	prLinks: z.record(z.string(), z.array(jiraPrLinkSchema)),
 });
 export type JiraBoardLoadResponse = z.infer<typeof jiraBoardLoadResponseSchema>;
 

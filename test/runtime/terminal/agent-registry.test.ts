@@ -31,6 +31,8 @@ function createRuntimeConfigState(overrides: Partial<RuntimeConfigState> = {}): 
 		worktreesRoot: null,
 		reposRoot: null,
 		jiraProjectKey: null,
+		jiraBaseUrl: null,
+		jiraEmail: null,
 		jiraSyncIntervalMs: 60 * 60 * 1000,
 		...overrides,
 	};

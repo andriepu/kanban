@@ -33,6 +33,11 @@ function createMockDeps(): CreateJiraApiDependencies {
 		addWorkspace: vi.fn().mockResolvedValue(undefined),
 		getWorktreesRoot: vi.fn().mockReturnValue("/work"),
 		getReposRoot: vi.fn().mockReturnValue("/repos"),
+		listOpenAuthoredGhPullRequests: vi.fn().mockResolvedValue([]),
+		loadJiraPrLinks: vi.fn().mockResolvedValue({}),
+		saveJiraPrLinks: vi.fn().mockResolvedValue(undefined),
+		mergeScannedPrLinks: vi.fn().mockReturnValue({}),
+		getJiraProjectKey: vi.fn().mockReturnValue("POL"),
 	};
 }
 
@@ -54,6 +59,17 @@ describe("jira-api", () => {
 		const api = createJiraApi(deps);
 		const result = await api.loadBoard();
 		expect(result.board.cards[0]?.jiraKey).toBe("POL-1");
+		expect(result.prLinks).toBeDefined();
+	});
+
+	it("loadBoard includes prLinks", async () => {
+		const deps = createMockDeps();
+		const mockPrLinks = { "POL-1": [] };
+		(deps.loadJiraPrLinks as ReturnType<typeof vi.fn>).mockResolvedValue(mockPrLinks);
+		const api = createJiraApi(deps);
+		const result = await api.loadBoard();
+		expect(result.prLinks).toEqual(mockPrLinks);
+		expect(deps.loadJiraPrLinks).toHaveBeenCalledOnce();
 	});
 
 	it("scanRepos returns repo list", async () => {
@@ -193,5 +209,146 @@ describe("jira-api", () => {
 		const api = createJiraApi(deps);
 		const result = await api.importFromJira(`assignee = currentUser() ORDER BY updated DESC`);
 		expect(result.board.cards).toHaveLength(0);
+	});
+
+	describe("scanAndAttachPRs", () => {
+		it("throws when jiraProjectKey is not configured", async () => {
+			const deps = createMockDeps();
+			(deps.getJiraProjectKey as ReturnType<typeof vi.fn>).mockReturnValue(null);
+			const api = createJiraApi(deps);
+			await expect(api.scanAndAttachPRs()).rejects.toThrow(/project key not configured/i);
+		});
+
+		it("skips PRs with no matching jira key in title", async () => {
+			const deps = createMockDeps();
+			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue([
+				{
+					number: 1,
+					title: "Add dark mode",
+					url: "https://github.com/a/b/pull/1",
+					headRefName: "feature/dark-mode",
+					repository: { nameWithOwner: "a/b" },
+				},
+			]);
+			const api = createJiraApi(deps);
+			const result = await api.scanAndAttachPRs();
+			expect(result.skipped).toBe(1);
+			expect(result.attached).toBe(0);
+		});
+
+		it("skips PRs whose jira key is not on board", async () => {
+			const deps = createMockDeps();
+			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue([
+				{
+					number: 2,
+					title: "POL-999 fix something",
+					url: "https://github.com/a/b/pull/2",
+					headRefName: "POL-999-fix",
+					repository: { nameWithOwner: "a/b" },
+				},
+			]);
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({ cards: [] });
+			const api = createJiraApi(deps);
+			const result = await api.scanAndAttachPRs();
+			expect(result.skipped).toBe(1);
+			expect(result.attached).toBe(0);
+		});
+
+		it("attaches matched PR and saves links", async () => {
+			const deps = createMockDeps();
+			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue([
+				{
+					number: 3,
+					title: "POL-1 fix login",
+					url: "https://github.com/a/b/pull/3",
+					headRefName: "POL-1-fix-login",
+					repository: { nameWithOwner: "a/b" },
+				},
+			]);
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
+				cards: [
+					{ jiraKey: "POL-1", summary: "Fix login", status: "todo", subtaskIds: [], createdAt: 1, updatedAt: 1 },
+				],
+			});
+			const mergedLinks = {
+				"POL-1": [
+					{
+						id: "l-1",
+						jiraKey: "POL-1",
+						prUrl: "https://github.com/a/b/pull/3",
+						prNumber: 3,
+						title: "POL-1 fix login",
+						repoName: "a/b",
+						headRefName: "POL-1-fix-login",
+						addedAt: 1,
+					},
+				],
+			};
+			(deps.mergeScannedPrLinks as ReturnType<typeof vi.fn>).mockReturnValue(mergedLinks);
+			const api = createJiraApi(deps);
+			const result = await api.scanAndAttachPRs();
+			expect(result.attached).toBe(1);
+			expect(result.skipped).toBe(0);
+			expect(deps.saveJiraPrLinks).toHaveBeenCalledWith(mergedLinks);
+			expect(result.prLinks["POL-1"]).toHaveLength(1);
+		});
+
+		it("re-throws gh CLI error with context", async () => {
+			const deps = createMockDeps();
+			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockRejectedValue(
+				new Error("gh CLI not found. Install GitHub CLI (gh) to use PR scan."),
+			);
+			const api = createJiraApi(deps);
+			await expect(api.scanAndAttachPRs()).rejects.toThrow(/Failed to fetch GitHub PRs/);
+		});
+
+		it("counts only newly attached PRs (excludes already-linked)", async () => {
+			const deps = createMockDeps();
+			const prUrl = "https://github.com/a/b/pull/5";
+			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue([
+				{
+					number: 5,
+					title: "POL-1 something",
+					url: prUrl,
+					headRefName: "POL-1-something",
+					repository: { nameWithOwner: "a/b" },
+				},
+			]);
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
+				cards: [{ jiraKey: "POL-1", summary: "S", status: "todo", subtaskIds: [], createdAt: 1, updatedAt: 1 }],
+			});
+			// Simulate PR already in existing links
+			(deps.loadJiraPrLinks as ReturnType<typeof vi.fn>).mockResolvedValue({
+				"POL-1": [
+					{
+						id: "l-old",
+						jiraKey: "POL-1",
+						prUrl,
+						prNumber: 5,
+						title: "POL-1 something",
+						repoName: "a/b",
+						headRefName: "POL-1-something",
+						addedAt: 1,
+					},
+				],
+			});
+			(deps.mergeScannedPrLinks as ReturnType<typeof vi.fn>).mockReturnValue({
+				"POL-1": [
+					{
+						id: "l-old",
+						jiraKey: "POL-1",
+						prUrl,
+						prNumber: 5,
+						title: "POL-1 something",
+						repoName: "a/b",
+						headRefName: "POL-1-something",
+						addedAt: 1,
+					},
+				],
+			});
+			const api = createJiraApi(deps);
+			const result = await api.scanAndAttachPRs();
+			expect(result.attached).toBe(0); // already linked, not new
+		});
 	});
 });

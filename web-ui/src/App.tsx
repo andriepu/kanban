@@ -739,6 +739,7 @@ export default function App(): ReactElement {
 				jiraKey={selectedJiraKey}
 				board={jiraBoard.board}
 				subtasks={jiraBoard.subtasks}
+				prLinks={jiraBoard.prLinks}
 				onSubtaskCreated={jiraBoard.refetch}
 			/>
 		) : undefined;

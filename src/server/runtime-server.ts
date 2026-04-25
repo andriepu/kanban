@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage } from "node:http";
 import { join } from "node:path";
 
+import { TRPCError } from "@trpc/server";
 import { createHTTPHandler } from "@trpc/server/adapters/standalone";
+import { loadJiraApiToken, saveJiraApiToken } from "../config/runtime-config";
 import type { RuntimeCommandRunResponse, RuntimeWorkspaceStateResponse } from "../core/api-contract";
 import {
 	buildKanbanRuntimeUrl,
@@ -17,7 +19,10 @@ import {
 	loadJiraSubtasks,
 	saveJiraBoard,
 } from "../jira/jira-board-state";
-import { callJiraMcp } from "../jira/jira-mcp";
+import { loadJiraPrLinks, mergeScannedPrLinks, saveJiraPrLinks } from "../jira/jira-pr-links";
+import { listOpenAuthoredGhPullRequests } from "../jira/jira-pr-scan";
+import type { JiraRestCredentials } from "../jira/jira-rest";
+import { fetchJiraIssueViaRest, searchJiraIssuesViaRest, transitionJiraIssueViaRest } from "../jira/jira-rest";
 import { createSubtaskWorktree, removeSubtaskWorktree, scanReposInRoot } from "../jira/jira-worktree";
 import { loadWorkspaceContext, loadWorkspaceContextById } from "../state/workspace-state";
 import type { TerminalSessionManager } from "../terminal/session-manager";
@@ -151,13 +156,47 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 		prepareForStateReset,
 	});
 
+	async function loadJiraRestCredentials(): Promise<JiraRestCredentials | null> {
+		const runtimeConfig = deps.workspaceRegistry.getActiveRuntimeConfig?.();
+		const apiToken = await loadJiraApiToken();
+		const baseUrl = runtimeConfig?.jiraBaseUrl ?? null;
+		const email = runtimeConfig?.jiraEmail ?? null;
+		if (baseUrl && email && apiToken) {
+			return { baseUrl, email, apiToken };
+		}
+		return null;
+	}
+
+	async function requireJiraRestCredentials(): Promise<JiraRestCredentials> {
+		const creds = await loadJiraRestCredentials();
+		if (!creds) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message: "Jira credentials not configured. Set base URL, email, and API token in Settings.",
+			});
+		}
+		return creds;
+	}
+
 	const jiraApiInstance = createJiraApi({
 		loadJiraBoard,
 		saveJiraBoard,
 		loadJiraSubtasks,
 		createJiraSubtask,
 		deleteJiraSubtask,
-		callJiraMcp,
+		searchJiraIssues: async (jql: string) => {
+			const creds = await requireJiraRestCredentials();
+			return searchJiraIssuesViaRest(jql, creds);
+		},
+		fetchIssue: async (issueKey: string) => {
+			const creds = await requireJiraRestCredentials();
+			return fetchJiraIssueViaRest(issueKey, creds);
+		},
+		transitionIssue: async (issueKey: string, targetName: string) => {
+			const creds = await requireJiraRestCredentials();
+			await transitionJiraIssueViaRest(issueKey, targetName, creds);
+		},
+		setApiToken: saveJiraApiToken,
 		scanRepos: scanReposInRoot,
 		createSubtaskWorktree,
 		removeSubtaskWorktree,
@@ -191,6 +230,11 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 		},
 		getWorktreesRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.worktreesRoot ?? null,
 		getReposRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.reposRoot ?? null,
+		listOpenAuthoredGhPullRequests,
+		loadJiraPrLinks,
+		saveJiraPrLinks,
+		mergeScannedPrLinks,
+		getJiraProjectKey: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.jiraProjectKey ?? null,
 	});
 
 	const createTrpcContext = async (req: IncomingMessage): Promise<RuntimeTrpcContext> => {

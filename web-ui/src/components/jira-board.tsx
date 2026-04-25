@@ -1,4 +1,5 @@
-import { Trash2 } from "lucide-react";
+import { GitPullRequest, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { ColumnIndicator } from "@/components/ui/column-indicator";
 import { Spinner } from "@/components/ui/spinner";
@@ -18,7 +19,7 @@ interface JiraBoardViewProps {
 }
 
 export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraBoardViewProps): React.ReactElement {
-	const { board, isLoading, isImporting, moveCard, deleteCard } = jiraBoard;
+	const { board, isLoading, isImporting, moveCard, deleteCard, scanPRs, prScanning, prLinks } = jiraBoard;
 
 	if (isLoading) {
 		return <div className="flex h-full flex-1 items-center justify-center text-text-secondary text-sm">Loading…</div>;
@@ -26,6 +27,17 @@ export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraB
 
 	return (
 		<div className="flex h-full flex-1 flex-col overflow-hidden">
+			<div className="flex items-center justify-end gap-1 px-2 pt-2 shrink-0">
+				<Button
+					variant="ghost"
+					size="sm"
+					icon={prScanning ? <Spinner size={12} /> : <GitPullRequest size={14} />}
+					disabled={prScanning}
+					onClick={() => void scanPRs()}
+				>
+					Sync PRs
+				</Button>
+			</div>
 			<div className="flex flex-1 gap-2 overflow-x-auto p-2 min-h-0">
 				{COLUMNS.map((col) => {
 					const cards = board.cards.filter((c) => c.status === col.id);
@@ -36,6 +48,7 @@ export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraB
 							label={col.label}
 							cards={cards}
 							subtaskCounts={Object.fromEntries(cards.map((c) => [c.jiraKey, c.subtaskIds.length]))}
+							prCounts={Object.fromEntries(cards.map((c) => [c.jiraKey, prLinks[c.jiraKey]?.length ?? 0]))}
 							selectedJiraKey={selectedJiraKey}
 							onCardClick={onCardClick}
 							onDrop={(jiraKey) => moveCard(jiraKey, col.id)}
@@ -59,6 +72,7 @@ function JiraBoardColumn({
 	label,
 	cards,
 	subtaskCounts,
+	prCounts,
 	selectedJiraKey,
 	onCardClick,
 	onDrop,
@@ -68,6 +82,7 @@ function JiraBoardColumn({
 	label: string;
 	cards: JiraCard[];
 	subtaskCounts: Record<string, number>;
+	prCounts: Record<string, number>;
 	selectedJiraKey: string | null;
 	onCardClick: (jiraKey: string) => void;
 	onDrop: (jiraKey: string) => void;
@@ -102,6 +117,7 @@ function JiraBoardColumn({
 						key={card.jiraKey}
 						card={card}
 						subtaskCount={subtaskCounts[card.jiraKey] ?? 0}
+						prCount={prCounts[card.jiraKey] ?? 0}
 						isSelected={selectedJiraKey === card.jiraKey}
 						onClick={() => onCardClick(card.jiraKey)}
 						onDelete={card.status === "done" ? () => onDelete(card.jiraKey) : undefined}
@@ -115,12 +131,14 @@ function JiraBoardColumn({
 function JiraBoardCard({
 	card,
 	subtaskCount,
+	prCount,
 	isSelected,
 	onClick,
 	onDelete,
 }: {
 	card: JiraCard;
 	subtaskCount: number;
+	prCount: number;
 	isSelected: boolean;
 	onClick: () => void;
 	onDelete?: () => void;
@@ -153,6 +171,12 @@ function JiraBoardCard({
 					{card.jiraKey}
 				</span>
 				<div className="flex items-center gap-1">
+					{prCount > 0 && (
+						<span className="flex items-center gap-1 rounded-full bg-status-purple/15 px-2 py-0.5 text-xs text-status-purple">
+							<GitPullRequest size={10} />
+							{prCount}
+						</span>
+					)}
 					{subtaskCount > 0 && (
 						<span className="rounded-full bg-accent/20 px-2 py-0.5 text-xs text-accent">
 							{subtaskCount} {subtaskCount === 1 ? "subtask" : "subtasks"}
