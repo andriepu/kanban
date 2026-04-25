@@ -29,21 +29,6 @@ vi.mock("@/components/subtask-create-dialog", () => ({
 	SubtaskCreateDialog: () => null,
 }));
 
-const _baseBoard: JiraBoard = {
-	cards: [
-		{
-			jiraKey: "POL-1",
-			summary: "Fix login",
-			status: "todo",
-			subtaskIds: [],
-			createdAt: 1,
-			updatedAt: 1,
-		},
-	],
-};
-
-const _baseSubtasks: Record<string, JiraSubtask> = {};
-
 describe("JiraCardDetailView", () => {
 	let container: HTMLDivElement;
 	let root: Root;
