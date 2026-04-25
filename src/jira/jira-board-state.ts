@@ -28,6 +28,9 @@ export interface JiraSubtask {
 	branchName: string; // e.g. "POL-1234-fix-auth-flow"
 	worktreePath: string; // absolute path to worktree
 	status: "backlog" | "in_progress" | "review" | "done";
+	prUrl?: string; // GitHub PR URL
+	prNumber?: number; // GitHub PR number
+	isDraft?: boolean; // true if PR is a draft
 	createdAt: number;
 	updatedAt: number;
 }
