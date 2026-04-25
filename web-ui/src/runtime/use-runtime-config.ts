@@ -21,6 +21,8 @@ export interface UseRuntimeConfigResult {
 		reposRoot?: string | null;
 		jiraProjectKey?: string | null;
 		jiraSyncIntervalMs?: number | null;
+		jiraBaseUrl?: string | null;
+		jiraEmail?: string | null;
 	}) => Promise<RuntimeConfigResponse | null>;
 }
 
@@ -92,6 +94,8 @@ export function useRuntimeConfig(
 			reposRoot?: string | null;
 			jiraProjectKey?: string | null;
 			jiraSyncIntervalMs?: number | null;
+			jiraBaseUrl?: string | null;
+			jiraEmail?: string | null;
 		}): Promise<RuntimeConfigResponse | null> => {
 			setIsSaving(true);
 			try {

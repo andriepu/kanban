@@ -14,18 +14,7 @@ vi.mock("node:child_process", () => ({
 }));
 
 import type { GhPullRequest } from "../../../src/jira/jira-pr-scan";
-import { listOpenAuthoredGhPullRequests } from "../../../src/jira/jira-pr-scan";
-
-const EXPECTED_ARGS = [
-	"search",
-	"prs",
-	"--author=@me",
-	"--state=open",
-	"--json",
-	"number,title,url,headRefName,repository",
-	"--limit",
-	"100",
-];
+import { GH_PR_GRAPHQL_QUERY, listOpenAuthoredGhPullRequests } from "../../../src/jira/jira-pr-scan";
 
 const SAMPLE_PRS: GhPullRequest[] = [
 	{
@@ -44,6 +33,10 @@ const SAMPLE_PRS: GhPullRequest[] = [
 	},
 ];
 
+function graphqlResponse(nodes: (GhPullRequest | null)[]) {
+	return { data: { search: { nodes } } };
+}
+
 describe("listOpenAuthoredGhPullRequests", () => {
 	beforeEach(() => {
 		childProcessMocks.execFile.mockReset();
@@ -52,7 +45,7 @@ describe("listOpenAuthoredGhPullRequests", () => {
 
 	it("returns parsed pull requests on happy path", async () => {
 		childProcessMocks.execFilePromise.mockResolvedValueOnce({
-			stdout: JSON.stringify(SAMPLE_PRS),
+			stdout: JSON.stringify(graphqlResponse(SAMPLE_PRS)),
 			stderr: "",
 		});
 
@@ -61,15 +54,26 @@ describe("listOpenAuthoredGhPullRequests", () => {
 		expect(result).toEqual(SAMPLE_PRS);
 	});
 
-	it("returns empty array when stdout is empty array", async () => {
+	it("returns empty array when nodes is empty", async () => {
 		childProcessMocks.execFilePromise.mockResolvedValueOnce({
-			stdout: "[]",
+			stdout: JSON.stringify(graphqlResponse([])),
 			stderr: "",
 		});
 
 		const result = await listOpenAuthoredGhPullRequests();
 
 		expect(result).toEqual([]);
+	});
+
+	it("filters out null nodes from GraphQL sparse results", async () => {
+		childProcessMocks.execFilePromise.mockResolvedValueOnce({
+			stdout: JSON.stringify(graphqlResponse([SAMPLE_PRS[0], null, SAMPLE_PRS[1]])),
+			stderr: "",
+		});
+
+		const result = await listOpenAuthoredGhPullRequests();
+
+		expect(result).toEqual(SAMPLE_PRS);
 	});
 
 	it("throws a clear error when gh CLI is not found (ENOENT)", async () => {
@@ -92,9 +96,9 @@ describe("listOpenAuthoredGhPullRequests", () => {
 		await expect(listOpenAuthoredGhPullRequests()).rejects.toThrow(stderrMessage);
 	});
 
-	it("invokes the exact expected gh command", async () => {
+	it("invokes gh api graphql with headRefName in query", async () => {
 		childProcessMocks.execFilePromise.mockResolvedValueOnce({
-			stdout: "[]",
+			stdout: JSON.stringify(graphqlResponse([])),
 			stderr: "",
 		});
 
@@ -102,7 +106,7 @@ describe("listOpenAuthoredGhPullRequests", () => {
 
 		expect(childProcessMocks.execFilePromise).toHaveBeenCalledWith(
 			"gh",
-			EXPECTED_ARGS,
+			["api", "graphql", "-f", `query=${GH_PR_GRAPHQL_QUERY}`],
 			expect.objectContaining({ encoding: "utf8" }),
 		);
 	});

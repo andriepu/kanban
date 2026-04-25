@@ -40,9 +40,10 @@ function createRuntimeConfigResponse(
 		worktreesRoot: null,
 		reposRoot: null,
 		jiraProjectKey: null,
+		jiraSyncIntervalMs: 60 * 60 * 1000,
 		jiraBaseUrl: null,
 		jiraEmail: null,
-		jiraSyncIntervalMs: 60 * 60 * 1000,
+		jiraApiTokenConfigured: false,
 	};
 	return {
 		...nextConfig,

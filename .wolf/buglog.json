@@ -250,6 +250,1659 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-24T10:15:09.868Z"
+    },
+    {
+      "id": "bug-016",
+      "timestamp": "2026-04-24T12:24:01.777Z",
+      "error_message": "Function not marked async",
+      "file": "test/runtime/trpc/projects-api.test.ts",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T12:24:01.777Z"
+    },
+    {
+      "id": "bug-017",
+      "timestamp": "2026-04-24T12:24:47.028Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/trpc/projects-api.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T12:24:47.028Z"
+    },
+    {
+      "id": "bug-018",
+      "timestamp": "2026-04-24T12:25:03.100Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/server/runtime-server.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T12:25:03.100Z"
+    },
+    {
+      "id": "bug-019",
+      "timestamp": "2026-04-24T12:31:29.131Z",
+      "error_message": "Wrong reference: deps should be listWorkspaceIndexEntries",
+      "file": "src/trpc/projects-api.ts",
+      "root_cause": "Used \"deps\" instead of \"listWorkspaceIndexEntries\"",
+      "fix": "Changed deps → listWorkspaceIndexEntries",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T12:31:29.131Z"
+    },
+    {
+      "id": "bug-020",
+      "timestamp": "2026-04-24T12:31:44.328Z",
+      "error_message": "Missing await",
+      "file": "test/runtime/trpc/projects-api.test.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T12:31:44.328Z"
+    },
+    {
+      "id": "bug-021",
+      "timestamp": "2026-04-24T12:35:28.200Z",
+      "error_message": "Incorrect value in code",
+      "file": "web-ui/src/components/runtime-settings-dialog.tsx",
+      "root_cause": "Had \");\n\tconst [jiraProjectKey, setJiraProjectKey] = u",
+      "fix": "Changed to \");\n\tconst [isSyncingRepos, setIsSyncingRepos] = u",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T12:35:28.200Z"
+    },
+    {
+      "id": "bug-022",
+      "timestamp": "2026-04-24T12:41:11.454Z",
+      "error_message": "Type error",
+      "file": "src/terminal/agent-session-adapters.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T12:41:11.454Z"
+    },
+    {
+      "id": "bug-023",
+      "timestamp": "2026-04-24T12:47:35.716Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "src/terminal/session-manager.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T12:47:35.716Z"
+    },
+    {
+      "id": "bug-024",
+      "timestamp": "2026-04-24T13:34:01.716Z",
+      "error_message": "Missing error handling in importFromJira",
+      "file": "src/trpc/jira-api.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T13:34:01.716Z"
+    },
+    {
+      "id": "bug-025",
+      "timestamp": "2026-04-24T00:00:00.000Z",
+      "error_message": "Import To-Do button does nothing, no backend log",
+      "file": "src/trpc/jira-api.ts",
+      "root_cause": "claude -p --output-format json wraps text in { type, result: \"string\" }. importFromJira only checked Array.isArray(raw.result) — always false when result is a string. issues stayed [] and 0 imports returned silently.",
+      "fix": "Added branch: when raw.result is a string, JSON.parse it and use if it's an array.",
+      "tags": [
+        "jira",
+        "import",
+        "silent-fail",
+        "json-parsing"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T00:00:00.000Z"
+    },
+    {
+      "id": "bug-026",
+      "timestamp": "2026-04-24T00:00:00.000Z",
+      "error_message": "claude -p exited with code 1: Warning: no stdin data received in 3s, proceeding without it.",
+      "file": "src/jira/jira-mcp.ts",
+      "root_cause": "execFile('claude') inherits parent's stdin (a TTY/pipe). Claude CLI waits for stdin input, times out after 3s, exits code 1.",
+      "fix": "Switched from execFile+promisify to spawn with stdio: ['ignore','pipe','pipe'] — stdin ignored, no TTY wait.",
+      "tags": [
+        "jira",
+        "import",
+        "claude-cli",
+        "stdin",
+        "execFile"
+      ],
+      "related_bugs": [
+        "bug-025"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T00:00:00.000Z"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-04-24T13:42:18.932Z",
+      "error_message": "Wrong operator: ?? should be ===",
+      "file": "src/jira/jira-mcp.ts",
+      "root_cause": "Used \"??\" instead of \"===\"",
+      "fix": "Changed operator ?? → ===",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T13:42:18.932Z"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-04-24T14:00:00.000Z",
+      "error_message": "claude -p exited with code 1: (empty stderr) — Import To-Do fails",
+      "file": "src/jira/jira-mcp.ts",
+      "root_cause": "--max-turns 1 is too low: claude uses turn 1 to call the Atlassian MCP tool, needs turn 2 to process the result and return JSON. Hits max turns, exits code 1 with subtype error_max_turns, empty stderr.",
+      "fix": "Changed --max-turns 1 to --max-turns 5. Also improved error handling: parse JSON even on non-zero exit to extract is_error/errors for clearer messages.",
+      "tags": [
+        "jira",
+        "import",
+        "max-turns",
+        "claude-cli",
+        "mcp"
+      ],
+      "related_bugs": [
+        "bug-026"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T14:00:00.000Z"
+    },
+    {
+      "id": "bug-029",
+      "timestamp": "2026-04-24T13:57:19.116Z",
+      "error_message": "Incorrect value in code",
+      "file": "web-ui/src/hooks/use-jira-board.ts",
+      "root_cause": "Had `assignee = currentUser() AND status = \"",
+      "fix": "Changed to `assignee = currentUser() AND statusCategory = \"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-04-24T14:02:47.289Z"
+    },
+    {
+      "id": "bug-028",
+      "timestamp": "2026-04-24T14:10:00.000Z",
+      "error_message": "importFromJira returns 0 cards — claude wraps result in markdown fences, JSON.parse fails",
+      "file": "src/trpc/jira-api.ts",
+      "root_cause": "claude -p returns result field as ```json\n[...]\n``` despite prompt saying no other text. JSON.parse fails on backtick fences → issues = [].",
+      "fix": "Strip markdown code fences from rawObj.result before JSON.parse. Also improved prompt: specify searchJiraIssuesUsingJql tool name, explicitly say no markdown/backticks.",
+      "tags": [
+        "jira",
+        "import",
+        "markdown",
+        "json-parse",
+        "prompt"
+      ],
+      "related_bugs": [
+        "bug-027"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T14:10:00.000Z"
+    },
+    {
+      "id": "bug-029",
+      "timestamp": "2026-04-24T14:10:00.000Z",
+      "error_message": "importFromJira returns 0 cards — JQL status = \"To Do\" too narrow",
+      "file": "web-ui/src/hooks/use-jira-board.ts",
+      "root_cause": "JQL used status = \"To Do\" which requires exact Jira status name match. Users may have status named Backlog, Open, etc. in the To Do category.",
+      "fix": "Changed to statusCategory = \"To Do\" which matches all statuses in the To Do category regardless of name.",
+      "tags": [
+        "jira",
+        "import",
+        "jql",
+        "statusCategory"
+      ],
+      "related_bugs": [
+        "bug-028"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T14:10:00.000Z"
+    },
+    {
+      "id": "bug-032",
+      "timestamp": "2026-04-24T14:04:54.986Z",
+      "error_message": "Incorrect value in code",
+      "file": "web-ui/src/App.tsx",
+      "root_cause": "Had \"project\"",
+      "fix": "Changed to \"task\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T14:04:54.986Z"
+    },
+    {
+      "id": "bug-033",
+      "timestamp": "2026-04-24T14:06:52.401Z",
+      "error_message": "Incorrect value in code",
+      "file": "web-ui/src/components/jira-board.tsx",
+      "root_cause": "Had \"flex h-10 items-center justify-between px-3\"",
+      "fix": "Changed to \"flex h-10 items-center justify-between px-4\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T14:06:52.401Z"
+    },
+    {
+      "id": "bug-034",
+      "timestamp": "2026-04-24T14:09:21.356Z",
+      "error_message": "Wrong reference: all should be color",
+      "file": "web-ui/src/styles/globals.css",
+      "root_cause": "Used \"all\" instead of \"color\"",
+      "fix": "Changed all → color",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T14:09:21.356Z"
+    },
+    {
+      "id": "bug-035",
+      "timestamp": "2026-04-24T14:46:05.991Z",
+      "error_message": "Incorrect value in code",
+      "file": "docs/superpowers/specs/2026-04-24-jira-full-sync-design.md",
+      "root_cause": "Had `useInterval(() => { if (isActive) syncFn(); }, sy",
+      "fix": "Changed to `useInterval(syncFn, isActive ? syncIntervalMs : n",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T14:46:05.991Z"
+    },
+    {
+      "id": "bug-036",
+      "timestamp": "2026-04-24T14:55:10.367Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/jira-full-sync/test/runtime/trpc/jira-api.test.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T14:55:10.367Z"
+    },
+    {
+      "id": "bug-037",
+      "timestamp": "2026-04-24T14:55:42.081Z",
+      "error_message": "Missing error handling in importFromJira",
+      "file": ".worktrees/jira-full-sync/src/trpc/jira-api.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T14:55:42.081Z"
+    },
+    {
+      "id": "bug-038",
+      "timestamp": "2026-04-24T14:56:02.843Z",
+      "error_message": "Type error",
+      "file": ".worktrees/jira-full-sync/src/trpc/jira-api.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T14:56:02.843Z"
+    },
+    {
+      "id": "bug-039",
+      "timestamp": "2026-04-24T15:10:24.561Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/jira-full-sync/src/config/runtime-config.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T15:10:24.561Z"
+    },
+    {
+      "id": "bug-040",
+      "timestamp": "2026-04-24T15:14:10.220Z",
+      "error_message": "Wrong condition in logic",
+      "file": ".worktrees/jira-full-sync/src/config/runtime-config.ts",
+      "root_cause": "Condition was: if (existingJiraSyncIntervalMs !== undefined && existi)",
+      "fix": "Changed to: if (\n\t\texistingJiraSyncIntervalMs !== undefined &&\n\t\te)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T15:14:10.220Z"
+    },
+    {
+      "id": "bug-041",
+      "timestamp": "2026-04-24T15:15:42.231Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/jira-full-sync/web-ui/src/utils/react-use.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T15:15:42.231Z"
+    },
+    {
+      "id": "bug-042",
+      "timestamp": "2026-04-24T15:16:17.968Z",
+      "error_message": "Significant refactor of ",
+      "file": ".worktrees/jira-full-sync/web-ui/src/utils/react-use.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→3 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T15:16:17.968Z"
+    },
+    {
+      "id": "bug-043",
+      "timestamp": "2026-04-24T15:17:48.988Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/jira-full-sync/web-ui/src/App.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T15:17:48.988Z"
+    },
+    {
+      "id": "bug-044",
+      "timestamp": "2026-04-24T15:22:47.386Z",
+      "error_message": "CSS fix: isActive",
+      "file": ".worktrees/jira-full-sync/web-ui/src/App.tsx",
+      "root_cause": "isActive: isJiraBoardActive, syncIntervalMs: jiraSyncIntervalMs → isJiraBoardActive,",
+      "fix": "Changed isActive: isJiraBoardActive, syncIntervalMs: jiraSyncIntervalMs → isJiraBoardActive,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T15:22:47.386Z"
+    },
+    {
+      "id": "bug-045",
+      "timestamp": "2026-04-24T22:57:00Z",
+      "error_message": "claude -p failed: Reached maximum number of turns (5)",
+      "file": "src/jira/jira-mcp.ts",
+      "root_cause": "Subprocess spawned from project cwd inherited CLAUDE.md (OpenWolf), AGENTS.md, project .claude/settings.json hooks (SessionStart/PreToolUse), and user-level superpowers SessionStart injection. These consumed 3-5 turns before the agent could call a single MCP tool. With --max-turns 5 there was no room left for the final JSON response.",
+      "fix": "Spawn with cwd=os.tmpdir() (no project CLAUDE.md/hooks load), add --disable-slash-commands (kills skill invocations), add --allowedTools restricted to 5 Atlassian MCP tools, add --append-system-prompt to anchor agent behavior, bump --max-turns 5→10. Also log session_id+num_turns in error message for forensic debugging.",
+      "tags": [
+        "jira-mcp",
+        "claude-p",
+        "max-turns",
+        "subprocess-isolation",
+        "hooks"
+      ],
+      "related_bugs": [
+        "bug-027"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T22:57:00Z"
+    },
+    {
+      "id": "bug-046",
+      "timestamp": "2026-04-24T00:00:00Z",
+      "error_message": "POL-4504 not fetched by importFromJira despite being assigned to currentUser()",
+      "file": "src/trpc/jira-api.ts",
+      "root_cause": "JIRA_STATUS_MAP only had 'todo' (no hyphen) but Jira returns status name 'To-Do' which lowercases to 'to-do'. Also missing 'in progress' (space) — Jira default is 'In Progress' not 'In-Progress'. Issues with unmapped status are silently skipped (new) or removed (existing).",
+      "fix": "Added 'to do', 'to-do', 'in progress', and 'done' to JIRA_STATUS_MAP to cover Jira's real default status names.",
+      "tags": [
+        "jira",
+        "status-mapping",
+        "import",
+        "silent-skip"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T00:00:00Z"
+    },
+    {
+      "id": "bug-047",
+      "timestamp": "2026-04-24T16:16:43.742Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/config/runtime-config.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:16:43.742Z"
+    },
+    {
+      "id": "bug-048",
+      "timestamp": "2026-04-24T16:17:55.831Z",
+      "error_message": "Missing error handling in getJiraCredentialsPath",
+      "file": "src/config/runtime-config.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:17:55.831Z"
+    },
+    {
+      "id": "bug-049",
+      "timestamp": "2026-04-24T16:20:01.982Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/trpc/jira-api.ts",
+      "root_cause": "29 lines replaced/restructured",
+      "fix": "Rewrote 33→4 lines (29 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:20:01.982Z"
+    },
+    {
+      "id": "bug-050",
+      "timestamp": "2026-04-24T16:20:05.291Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/trpc/jira-api.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:20:05.291Z"
+    },
+    {
+      "id": "bug-051",
+      "timestamp": "2026-04-24T16:20:52.573Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/server/runtime-server.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:20:52.573Z"
+    },
+    {
+      "id": "bug-052",
+      "timestamp": "2026-04-24T16:22:51.383Z",
+      "error_message": "Incorrect value in code",
+      "file": "web-ui/src/components/jira-board.test.tsx",
+      "root_cause": "Had \"Syncing JIRA issues\"",
+      "fix": "Changed to \"Syncing JIRA tasks\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:22:51.383Z"
+    },
+    {
+      "id": "bug-053",
+      "timestamp": "2026-04-24T16:24:38.150Z",
+      "error_message": "Missing guard clause",
+      "file": "web-ui/src/components/runtime-settings-dialog.tsx",
+      "root_cause": "No early return/throw for edge case: jiraProjectKey.trim(",
+      "fix": "Added guard clause: if (jiraProjectKey.trim()",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:24:38.150Z"
+    },
+    {
+      "id": "bug-054",
+      "timestamp": "2026-04-24T16:25:03.127Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "web-ui/src/components/runtime-settings-dialog.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:25:03.127Z"
+    },
+    {
+      "id": "bug-055",
+      "timestamp": "2026-04-24T16:25:12.322Z",
+      "error_message": "Type error",
+      "file": "web-ui/src/components/runtime-settings-dialog.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:25:12.322Z"
+    },
+    {
+      "id": "bug-056",
+      "timestamp": "2026-04-24T16:25:15.805Z",
+      "error_message": "Wrong reference: setJiraApiToken should be saveJiraApiTokenRequest",
+      "file": "web-ui/src/components/runtime-settings-dialog.tsx",
+      "root_cause": "Used \"setJiraApiToken\" instead of \"saveJiraApiTokenRequest\"",
+      "fix": "Changed setJiraApiToken → saveJiraApiTokenRequest",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-24T16:25:18.577Z"
+    },
+    {
+      "id": "bug-057",
+      "timestamp": "2026-04-24T16:25:34.985Z",
+      "error_message": "Null/undefined access in ",
+      "file": "web-ui/src/components/runtime-settings-dialog.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:25:34.985Z"
+    },
+    {
+      "id": "bug-058",
+      "timestamp": "2026-04-24T16:26:45.679Z",
+      "error_message": "Type error",
+      "file": "src/jira/jira-rest.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:26:45.679Z"
+    },
+    {
+      "id": "bug-059",
+      "timestamp": "2026-04-24T16:27:02.030Z",
+      "error_message": "Missing guard clause",
+      "file": "src/jira/jira-rest.ts",
+      "root_cause": "No early return/throw for edge case: key && summary && status",
+      "fix": "Added guard clause: if (key && summary && status)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:27:02.030Z"
+    },
+    {
+      "id": "bug-060",
+      "timestamp": "2026-04-24T16:27:18.547Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/trpc/jira-api.ts",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 21→15 lines (11 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:27:18.547Z"
+    },
+    {
+      "id": "bug-061",
+      "timestamp": "2026-04-24T16:27:28.410Z",
+      "error_message": "Missing guard clause",
+      "file": "src/server/runtime-server.ts",
+      "root_cause": "No early return/throw for edge case: !creds",
+      "fix": "Added guard clause: if (!creds)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:27:28.410Z"
+    },
+    {
+      "id": "bug-062",
+      "timestamp": "2026-04-24T16:27:41.236Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/server/runtime-server.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:27:41.236Z"
+    },
+    {
+      "id": "bug-063",
+      "timestamp": "2026-04-24T16:29:31.583Z",
+      "error_message": "Wrong return value",
+      "file": "test/runtime/jira/jira-rest.test.ts",
+      "root_cause": "Was returning: async (url: RequestInfo | URL, init?: RequestInit)",
+      "fix": "Now returns: async (url: URL | string, init?: RequestInit) => {",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:29:31.583Z"
+    },
+    {
+      "id": "bug-064",
+      "timestamp": "2026-04-24T16:58:04.045Z",
+      "error_message": "Missing guard clause",
+      "file": "web-ui/src/hooks/use-jira-board.test.tsx",
+      "root_cause": "No early return/throw for edge case: snapshot === null",
+      "fix": "Added guard clause: if (snapshot === null)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:58:04.045Z"
+    },
+    {
+      "id": "bug-065",
+      "timestamp": "2026-04-24T16:58:32.454Z",
+      "error_message": "Type error",
+      "file": "web-ui/src/hooks/use-jira-board.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T16:58:32.454Z"
+    },
+    {
+      "id": "bug-066",
+      "timestamp": "2026-04-24T17:02:51.221Z",
+      "error_message": "Null/undefined access in ",
+      "file": "web-ui/src/hooks/use-jira-board.test.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T17:02:51.221Z"
+    },
+    {
+      "id": "bug-067",
+      "timestamp": "2026-04-24T17:03:16.568Z",
+      "error_message": "Null/undefined access in ",
+      "file": "web-ui/src/hooks/use-jira-board.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: const existingTimer = deleteTimersRef.current.get(jiraKey);; if (existingTimer !== undefined) {",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-24T17:03:27.536Z"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-04-24T17:04:05.754Z",
+      "error_message": "Missing guard clause",
+      "file": "web-ui/src/hooks/use-jira-board.test.tsx",
+      "root_cause": "No early return/throw for edge case: snapshot === null",
+      "fix": "Added guard clause: if (snapshot === null)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-24T17:04:10.372Z"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-04-24T17:10:06.337Z",
+      "error_message": "Type error",
+      "file": "web-ui/src/hooks/use-jira-board.test.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T17:10:06.337Z"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-04-24T17:13:36.873Z",
+      "error_message": "Type error",
+      "file": "web-ui/src/components/jira-board.test.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T17:13:36.873Z"
+    },
+    {
+      "id": "bug-071",
+      "timestamp": "2026-04-24T22:44:37.745Z",
+      "error_message": "Incorrect value in code",
+      "file": "web-ui/src/components/jira-board.tsx",
+      "root_cause": "Had \"Trash\"",
+      "fix": "Changed to \"Done\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T22:44:37.745Z"
+    },
+    {
+      "id": "bug-072",
+      "timestamp": "2026-04-24T22:44:43.479Z",
+      "error_message": "Incorrect value in code",
+      "file": "web-ui/src/components/jira-board.test.tsx",
+      "root_cause": "Had \"Trash\"",
+      "fix": "Changed to \"Done\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T22:44:43.479Z"
+    },
+    {
+      "id": "bug-073",
+      "timestamp": "2026-04-24T22:48:14.920Z",
+      "error_message": "Incorrect value in code",
+      "file": "web-ui/src/App.tsx",
+      "root_cause": "Had \"project\"",
+      "fix": "Changed to \"task\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T22:48:14.920Z"
+    },
+    {
+      "id": "bug-074",
+      "timestamp": "2026-04-24T22:57:10.459Z",
+      "error_message": "Significant refactor of ",
+      "file": "web-ui/src/components/jira-board.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→3 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T22:57:10.459Z"
+    },
+    {
+      "id": "bug-075",
+      "timestamp": "2026-04-24T23:03:32.875Z",
+      "error_message": "Missing guard clause",
+      "file": "web-ui/src/hooks/use-jira-board.test.tsx",
+      "root_cause": "No early return/throw for edge case: snapshot === null",
+      "fix": "Added guard clause: if (snapshot === null)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T23:03:32.875Z"
+    },
+    {
+      "id": "bug-076",
+      "timestamp": "2026-04-24T23:13:08.963Z",
+      "error_message": "Incorrect value in code",
+      "file": "src/server/runtime-server.ts",
+      "root_cause": "Had \"@trpc/server/adapters/standalone\"",
+      "fix": "Changed to \"@trpc/server\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T23:13:08.963Z"
+    },
+    {
+      "id": "bug-077",
+      "timestamp": "2026-04-24T23:13:10.219Z",
+      "error_message": "Incorrect value in code",
+      "file": "web-ui/src/hooks/use-jira-board.ts",
+      "root_cause": "Had \"@/runtime/trpc-client\"",
+      "fix": "Changed to \"@/components/app-toaster\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T23:13:10.219Z"
+    },
+    {
+      "id": "bug-078",
+      "timestamp": "2026-04-24T23:13:24.234Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "web-ui/src/hooks/use-jira-board.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T23:13:24.234Z"
+    },
+    {
+      "id": "bug-079",
+      "timestamp": "2026-04-24T23:17:43.093Z",
+      "error_message": "Incorrect value in code",
+      "file": "web-ui/src/components/runtime-settings-dialog.tsx",
+      "root_cause": "Had \"flex flex-col gap-1.5\"",
+      "fix": "Changed to \"flex flex-col gap-1.5 mb-4\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-04-24T23:17:51.792Z"
+    },
+    {
+      "id": "bug-080",
+      "timestamp": "2026-04-24T23:21:48.951Z",
+      "error_message": "Significant refactor of ",
+      "file": "web-ui/src/hooks/use-jira-board.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→3 lines (2 removed) | Also: isImporting,; lastSyncedAt,",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-24T23:21:52.609Z"
+    },
+    {
+      "id": "bug-081",
+      "timestamp": "2026-04-24T23:51:44.597Z",
+      "error_message": "CSS fix: config",
+      "file": "web-ui/src/App.tsx",
+      "root_cause": "config: settingsRuntimeProjectConfig, refresh: refreshSettingsRuntimeProjectConfig → globalRuntimeConfig,",
+      "fix": "Changed config: settingsRuntimeProjectConfig, refresh: refreshSettingsRuntimeProjectConfig → globalRuntimeConfig,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T23:51:44.597Z"
+    },
+    {
+      "id": "bug-082",
+      "timestamp": "2026-04-24T23:51:48.635Z",
+      "error_message": "Missing await",
+      "file": "web-ui/src/App.tsx",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-24T23:51:48.635Z"
+    },
+    {
+      "id": "bug-083",
+      "timestamp": "2026-04-25T00:03:00.905Z",
+      "error_message": "Significant refactor of ",
+      "file": "web-ui/src/components/startup-onboarding-dialog.tsx",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 19→9 lines (11 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T00:03:00.905Z"
+    },
+    {
+      "id": "bug-084",
+      "timestamp": "2026-04-25T00:09:09.015Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/config/runtime-config.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T00:09:09.015Z"
+    },
+    {
+      "id": "bug-085",
+      "timestamp": "2026-04-25T00:34:03.307Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/jira/jira-rest.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T00:34:03.307Z"
+    },
+    {
+      "id": "bug-086",
+      "timestamp": "2026-04-25T00:34:39.103Z",
+      "error_message": "Significant refactor of ",
+      "file": "web-ui/src/components/jira-card-detail-view.tsx",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 87→114 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T00:34:39.103Z"
+    },
+    {
+      "id": "bug-087",
+      "timestamp": "2026-04-25T00:34:48.298Z",
+      "error_message": "Missing await",
+      "file": "test/runtime/jira/jira-rest.test.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T00:34:48.298Z"
+    },
+    {
+      "id": "bug-088",
+      "timestamp": "2026-04-25T01:23:08.306Z",
+      "error_message": "Incorrect value in code",
+      "file": ".worktrees/feature/jira-pr-subtasks/.wolf/anatomy.md",
+      "root_cause": "Had `jira-pr-scan.ts`",
+      "fix": "Changed to `jira-pr-links.ts`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-25T01:23:14.305Z"
+    },
+    {
+      "id": "bug-089",
+      "timestamp": "2026-04-25T01:26:16.327Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/feature/jira-pr-subtasks/src/jira/jira-pr-scan.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:26:16.327Z"
+    },
+    {
+      "id": "bug-090",
+      "timestamp": "2026-04-25T01:26:19.541Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".worktrees/feature/jira-pr-subtasks/src/jira/jira-pr-scan.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:26:19.541Z"
+    },
+    {
+      "id": "bug-091",
+      "timestamp": "2026-04-25T01:26:23.215Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/feature/jira-pr-subtasks/src/jira/jira-pr-links.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:26:23.215Z"
+    },
+    {
+      "id": "bug-092",
+      "timestamp": "2026-04-25T01:26:26.254Z",
+      "error_message": "Wrong reference: existing_links should be existingLinks",
+      "file": ".worktrees/feature/jira-pr-subtasks/src/jira/jira-pr-links.ts",
+      "root_cause": "Used \"existing_links\" instead of \"existingLinks\"",
+      "fix": "Changed existing_links → existingLinks",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:26:26.254Z"
+    },
+    {
+      "id": "bug-093",
+      "timestamp": "2026-04-25T01:27:06.860Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".worktrees/feature/jira-pr-subtasks/.wolf/buglog.json",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:27:06.860Z"
+    },
+    {
+      "id": "bug-094",
+      "timestamp": "2026-04-25T01:27:11.524Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".worktrees/feature/jira-pr-subtasks/.wolf/memory.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:27:11.524Z"
+    },
+    {
+      "id": "bug-095",
+      "timestamp": "2026-04-25T01:30:33.659Z",
+      "error_message": "Wrong return value",
+      "file": ".worktrees/feature/jira-pr-subtasks/src/trpc/jira-api.ts",
+      "root_cause": "Was returning: { board, subtasks };",
+      "fix": "Now returns: { board, subtasks, prLinks };",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:30:33.659Z"
+    },
+    {
+      "id": "bug-096",
+      "timestamp": "2026-04-25T01:32:41.741Z",
+      "error_message": "Missing error handling in getJiraCredentialsPath",
+      "file": ".worktrees/feature/jira-pr-subtasks/src/config/runtime-config.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:32:41.741Z"
+    },
+    {
+      "id": "bug-097",
+      "timestamp": "2026-04-25T01:32:58.556Z",
+      "error_message": "Incorrect value in code",
+      "file": ".worktrees/feature/jira-pr-subtasks/src/server/runtime-server.ts",
+      "root_cause": "Had \"@trpc/server/adapters/standalone\"",
+      "fix": "Changed to \"@trpc/server\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:32:58.556Z"
+    },
+    {
+      "id": "bug-098",
+      "timestamp": "2026-04-25T01:33:10.462Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/feature/jira-pr-subtasks/src/server/runtime-server.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:33:10.462Z"
+    },
+    {
+      "id": "bug-099",
+      "timestamp": "2026-04-25T01:33:40.477Z",
+      "error_message": "Type error",
+      "file": ".worktrees/feature/jira-pr-subtasks/src/server/runtime-server.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:33:40.477Z"
+    },
+    {
+      "id": "bug-100",
+      "timestamp": "2026-04-25T01:45:34.740Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/feature/jira-pr-subtasks/src/server/runtime-server.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:45:34.740Z"
+    },
+    {
+      "id": "bug-101",
+      "timestamp": "2026-04-25T01:45:50.149Z",
+      "error_message": "Missing error handling in scanAndAttachPRs",
+      "file": ".worktrees/feature/jira-pr-subtasks/src/trpc/jira-api.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:45:50.149Z"
+    },
+    {
+      "id": "bug-102",
+      "timestamp": "2026-04-25T01:48:58.297Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".worktrees/feature/jira-pr-subtasks/.wolf/buglog.json",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:48:58.297Z"
+    },
+    {
+      "id": "bug-103",
+      "timestamp": "2026-04-25T01:55:03.315Z",
+      "error_message": "Function not marked async",
+      "file": ".worktrees/feature/jira-pr-subtasks/web-ui/src/hooks/use-jira-board.ts",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:55:03.315Z"
+    },
+    {
+      "id": "bug-104",
+      "timestamp": "2026-04-25T01:55:11.673Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/feature/jira-pr-subtasks/web-ui/src/hooks/use-jira-board.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:55:11.673Z"
+    },
+    {
+      "id": "bug-105",
+      "timestamp": "2026-04-25T01:55:17.533Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".worktrees/feature/jira-pr-subtasks/web-ui/src/hooks/use-jira-board.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:55:17.533Z"
+    },
+    {
+      "id": "bug-106",
+      "timestamp": "2026-04-25T01:56:02.132Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/feature/jira-pr-subtasks/web-ui/src/hooks/use-jira-board.test.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T01:56:02.132Z"
+    },
+    {
+      "id": "bug-107",
+      "timestamp": "2026-04-25T02:04:39.574Z",
+      "error_message": "CSS fix: attached",
+      "file": ".worktrees/feature/jira-pr-subtasks/web-ui/src/hooks/use-jira-board.test.tsx",
+      "root_cause": "attached: 1, skipped: 0, prLinks: mergedLinks → 0, skipped: 0, prLinks: {",
+      "fix": "Changed attached: 1, skipped: 0, prLinks: mergedLinks → 0, skipped: 0, prLinks: {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T02:04:39.574Z"
+    },
+    {
+      "id": "bug-108",
+      "timestamp": "2026-04-25T02:09:09.975Z",
+      "error_message": "Type error",
+      "file": ".worktrees/feature/jira-pr-subtasks/web-ui/src/hooks/use-jira-board.test.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T02:09:09.975Z"
+    },
+    {
+      "id": "bug-109",
+      "timestamp": "2026-04-25T02:09:58.886Z",
+      "error_message": "Missing import: sonner",
+      "file": ".worktrees/feature/jira-pr-subtasks/.wolf/memory.md",
+      "root_cause": "Module(s) not imported: sonner",
+      "fix": "Added import(s) for sonner",
+      "tags": [
+        "auto-detected",
+        "missing-import",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T02:09:58.886Z"
+    },
+    {
+      "id": "bug-110",
+      "timestamp": "2026-04-25T02:10:07.174Z",
+      "error_message": "Missing await",
+      "file": ".worktrees/feature/jira-pr-subtasks/.wolf/buglog.json",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T02:10:07.174Z"
+    },
+    {
+      "id": "bug-111",
+      "timestamp": "2026-04-25T02:12:54.690Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/feature/jira-pr-subtasks/web-ui/src/components/jira-board.test.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T02:12:54.690Z"
+    },
+    {
+      "id": "bug-112",
+      "timestamp": "2026-04-25T02:16:06.042Z",
+      "error_message": "Significant refactor of ",
+      "file": ".worktrees/feature/jira-pr-subtasks/web-ui/src/components/jira-board.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→9 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T02:16:06.042Z"
+    },
+    {
+      "id": "bug-113",
+      "timestamp": "2026-04-25T02:20:15.788Z",
+      "error_message": "CSS fix: hover",
+      "file": ".worktrees/feature/jira-pr-subtasks/web-ui/src/components/jira-card-detail-view.tsx",
+      "root_cause": "hover: text-accent cursor-pointer\"> → bg-surface-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border-focus\"",
+      "fix": "Changed hover: text-accent cursor-pointer\"> → bg-surface-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border-focus\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T02:20:15.788Z"
+    },
+    {
+      "id": "bug-114",
+      "timestamp": "2026-04-25T02:21:17.218Z",
+      "error_message": "Incorrect value in code",
+      "file": ".worktrees/feature/jira-pr-subtasks/.wolf/anatomy.md",
+      "root_cause": "Had `jira-card-detail-view.tsx`",
+      "fix": "Changed to `jira-card-detail-view.test.tsx`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T02:21:17.218Z"
+    },
+    {
+      "id": "bug-115",
+      "timestamp": "2026-04-25T04:12:15.802Z",
+      "error_message": "Wrong reference: jiraBoard should be prLinks",
+      "file": ".worktrees/feature/jira-pr-subtasks/web-ui/src/components/jira-board.tsx",
+      "root_cause": "Used \"jiraBoard\" instead of \"prLinks\"",
+      "fix": "Changed jiraBoard → prLinks",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T04:12:15.802Z"
+    },
+    {
+      "id": "bug-116",
+      "timestamp": "2026-04-25T04:12:21.359Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".worktrees/feature/jira-pr-subtasks/web-ui/src/components/jira-board.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T04:12:21.359Z"
+    },
+    {
+      "id": "bug-117",
+      "timestamp": "2026-04-25T04:36:57.957Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/config/runtime-config.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-25T04:36:57.957Z"
     }
   ]
 }

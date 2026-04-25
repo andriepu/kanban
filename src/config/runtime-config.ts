@@ -49,6 +49,7 @@ export interface RuntimeConfigState {
 	jiraBaseUrl: string | null;
 	jiraEmail: string | null;
 	jiraSyncIntervalMs: number;
+	jiraApiTokenConfigured: boolean;
 }
 
 export interface RuntimeConfigUpdateInput {
@@ -321,6 +322,7 @@ function toRuntimeConfigState({
 		jiraBaseUrl: normalizeOptionalString(globalConfig?.jiraBaseUrl),
 		jiraEmail: normalizeOptionalString(globalConfig?.jiraEmail),
 		jiraSyncIntervalMs: normalizePositiveInteger(globalConfig?.jiraSyncIntervalMs, DEFAULT_JIRA_SYNC_INTERVAL_MS),
+		jiraApiTokenConfigured: false,
 	};
 }
 
@@ -590,6 +592,7 @@ function createRuntimeConfigStateFromValues(input: {
 	jiraBaseUrl: string | null;
 	jiraEmail: string | null;
 	jiraSyncIntervalMs: number;
+	jiraApiTokenConfigured?: boolean;
 }): RuntimeConfigState {
 	return {
 		globalConfigPath: input.globalConfigPath,
@@ -615,6 +618,7 @@ function createRuntimeConfigStateFromValues(input: {
 		jiraBaseUrl: normalizeOptionalString(input.jiraBaseUrl),
 		jiraEmail: normalizeOptionalString(input.jiraEmail),
 		jiraSyncIntervalMs: normalizePositiveInteger(input.jiraSyncIntervalMs, DEFAULT_JIRA_SYNC_INTERVAL_MS),
+		jiraApiTokenConfigured: input.jiraApiTokenConfigured ?? false,
 	};
 }
 

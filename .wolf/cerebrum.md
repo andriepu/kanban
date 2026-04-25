@@ -24,10 +24,14 @@
 
 ## Do-Not-Repeat
 
-<!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
-<!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->
+- [2026-04-24] `execFile` does not support `input` option for stdin. To spawn `claude -p` with stdin closed, use `spawn("claude", args, { stdio: ["ignore", "pipe", "pipe"] })` instead of `execFile` + `promisify`. Without this, Claude CLI waits 3s for stdin and exits code 1.
+- [2026-04-24] `claude -p --output-format json` output is `{ type: "result", result: "<text string>", ... }` — `result` is a **string**, not a parsed object. When `importFromJira` (or any `callJiraMcp` caller) expects Claude to return JSON, must parse `raw.result` as a string: `JSON.parse(raw.result)`. Checking `Array.isArray(raw.result)` is always false and silently returns 0 results.
 
+- [2026-04-24] `claude -p` subprocess spawned from project cwd will inherit and load all project CLAUDE.md/hooks (.wolf/, AGENTS.md, .claude/settings.json) plus user SessionStart injections (superpowers, caveman). These consume 3-5 turns before the agent executes even one tool call. To isolate the subprocess, spawn with `cwd: os.tmpdir()` + `--disable-slash-commands` + `--allowedTools <only-needed-tools>` + `--append-system-prompt`. This drops project context while keeping user-level OAuth auth and MCP server registration. See bug-045.
+
+- [2026-04-24] Jira default status names use hyphens/spaces: `"To-Do"` not `"Todo"`, `"In Progress"` (space) not `"In-Progress"`. JIRA_STATUS_MAP must include both hyphenated and spaced variants, or issues are silently skipped/removed. Always verify against real Jira API response before adding to the map.
 - [2026-04-24] In web-ui tests, always use `./node_modules/.bin/vitest` (not `npx vitest`) to run test files.
+- [2026-04-25] In React hook tests, after `if (snapshot === null) throw new Error(...)`, TypeScript still narrows `snapshot` to `never` for let bindings. After EACH null guard, assign to a typed const: `const snap: MyType = snapshot;` and use that for subsequent assertions. Do NOT use `snapshot!` — it still yields `never`. This applies to every null guard, including secondary ones after `await act(...)` calls.
 - [2026-04-24] The plan for Task 9 referenced React Query-style hooks (`.useQuery()`, `.useMutation()`) for the TRPC client — this is WRONG. The project uses `createTRPCProxyClient` (proxy pattern). All TRPC calls must use `.query()` and `.mutate()` from within `useEffect`/`useCallback`, not React Query hooks. Never use `.useQuery()` or `.useMutation()` in this project. `npx vitest` resolves the root-level vitest which cannot find jsdom (it's in web-ui/node_modules, not root/node_modules). The correct command: `cd web-ui && ./node_modules/.bin/vitest run <file>`.
 
 ## Decision Log

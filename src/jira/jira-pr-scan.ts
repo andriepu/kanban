@@ -11,6 +11,23 @@ export interface GhPullRequest {
 	repository: { nameWithOwner: string };
 }
 
+// gh search prs doesn't expose headRefName; GraphQL does
+export const GH_PR_GRAPHQL_QUERY = `{
+  search(query: "is:pr is:open author:@me", type: ISSUE, first: 100) {
+    nodes {
+      ... on PullRequest {
+        number
+        title
+        url
+        headRefName
+        repository {
+          nameWithOwner
+        }
+      }
+    }
+  }
+}`;
+
 /**
  * Lists open GitHub pull requests authored by the current user via the `gh` CLI.
  * Throws a clear Error if `gh` is not found or exits non-zero.
@@ -19,20 +36,9 @@ export async function listOpenAuthoredGhPullRequests(): Promise<GhPullRequest[]>
 	let stdout: string;
 
 	try {
-		const result = await execFileAsync(
-			"gh",
-			[
-				"search",
-				"prs",
-				"--author=@me",
-				"--state=open",
-				"--json",
-				"number,title,url,headRefName,repository",
-				"--limit",
-				"100",
-			],
-			{ encoding: "utf8" },
-		);
+		const result = await execFileAsync("gh", ["api", "graphql", "-f", `query=${GH_PR_GRAPHQL_QUERY}`], {
+			encoding: "utf8",
+		});
 		stdout = result.stdout;
 	} catch (error) {
 		if (
@@ -43,7 +49,6 @@ export async function listOpenAuthoredGhPullRequests(): Promise<GhPullRequest[]>
 		) {
 			throw new Error("gh CLI not found. Install GitHub CLI (gh) to use PR scan.");
 		}
-		// Non-zero exit: get stderr from error object
 		const stderr =
 			typeof error === "object" && error !== null && "stderr" in error
 				? String((error as { stderr?: unknown }).stderr ?? "")
@@ -52,15 +57,14 @@ export async function listOpenAuthoredGhPullRequests(): Promise<GhPullRequest[]>
 	}
 
 	const trimmed = stdout.trim();
-	if (!trimmed || trimmed === "[]") {
-		return [];
-	}
+	if (!trimmed) return [];
 
-	let parsed: GhPullRequest[];
+	let parsed: { data: { search: { nodes: (GhPullRequest | null)[] } } };
 	try {
-		parsed = JSON.parse(trimmed) as GhPullRequest[];
+		parsed = JSON.parse(trimmed) as { data: { search: { nodes: (GhPullRequest | null)[] } } };
 	} catch {
 		throw new Error(`gh returned malformed JSON: ${trimmed.slice(0, 200)}`);
 	}
-	return parsed;
+
+	return (parsed.data?.search?.nodes ?? []).filter((n): n is GhPullRequest => n !== null);
 }

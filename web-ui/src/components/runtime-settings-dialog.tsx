@@ -38,7 +38,12 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { TASK_GIT_BASE_REF_PROMPT_VARIABLE, type TaskGitAction } from "@/git-actions/build-task-git-action-prompt";
 import { previewThemeId, readStoredThemeId, saveThemeId, THEME_GROUPS, THEMES, type ThemeId } from "@/hooks/use-theme";
 import { useLayoutCustomizations } from "@/resize/layout-customizations";
-import { openFileOnHost, pickDirectoryOnHost, syncReposRoot } from "@/runtime/runtime-config-query";
+import {
+	openFileOnHost,
+	pickDirectoryOnHost,
+	setJiraApiToken as saveJiraApiTokenRequest,
+	syncReposRoot,
+} from "@/runtime/runtime-config-query";
 import type { RuntimeAgentId, RuntimeConfigResponse, RuntimeProjectShortcut } from "@/runtime/types";
 import { useRuntimeConfig } from "@/runtime/use-runtime-config";
 import {
@@ -368,6 +373,10 @@ export function RuntimeSettingsDialog({
 	const [jiraSyncIntervalMinutes, setJiraSyncIntervalMinutes] = useState(
 		Math.round((config?.jiraSyncIntervalMs ?? 60 * 60 * 1000) / 60000),
 	);
+	const [jiraBaseUrl, setJiraBaseUrl] = useState(config?.jiraBaseUrl ?? "");
+	const [jiraEmail, setJiraEmail] = useState(config?.jiraEmail ?? "");
+	const [jiraApiToken, setJiraApiToken] = useState("");
+	const [isSavingToken, setIsSavingToken] = useState(false);
 	const copiedVariableResetTimerRef = useRef<number | null>(null);
 	const shortcutsSectionRef = useRef<HTMLHeadingElement | null>(null);
 	const shortcutRowRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -435,6 +444,8 @@ export function RuntimeSettingsDialog({
 	const initialReposRoot = (config?.reposRoot ?? "").trim();
 	const initialJiraProjectKey = (config?.jiraProjectKey ?? "").trim();
 	const initialJiraSyncIntervalMinutes = Math.round((config?.jiraSyncIntervalMs ?? 60 * 60 * 1000) / 60000);
+	const initialJiraBaseUrl = (config?.jiraBaseUrl ?? "").trim();
+	const initialJiraEmail = (config?.jiraEmail ?? "").trim();
 	const hasUnsavedChanges = useMemo(() => {
 		if (!config) {
 			return false;
@@ -473,7 +484,9 @@ export function RuntimeSettingsDialog({
 			return true;
 		}
 		if (jiraProjectKey.trim() !== initialJiraProjectKey) return true;
-		return jiraSyncIntervalMinutes !== initialJiraSyncIntervalMinutes;
+		if (jiraSyncIntervalMinutes !== initialJiraSyncIntervalMinutes) return true;
+		if (jiraBaseUrl.trim() !== initialJiraBaseUrl) return true;
+		return jiraEmail.trim() !== initialJiraEmail;
 	}, [
 		agentAutonomousModeEnabled,
 		commitPromptTemplate,
@@ -481,6 +494,8 @@ export function RuntimeSettingsDialog({
 		draftThemeId,
 		initialAgentAutonomousModeEnabled,
 		initialCommitPromptTemplate,
+		initialJiraBaseUrl,
+		initialJiraEmail,
 		initialJiraProjectKey,
 		initialJiraSyncIntervalMinutes,
 		initialOpenPrPromptTemplate,
@@ -490,6 +505,8 @@ export function RuntimeSettingsDialog({
 		initialShortcuts,
 		initialThemeId,
 		initialWorktreesRoot,
+		jiraBaseUrl,
+		jiraEmail,
 		jiraProjectKey,
 		jiraSyncIntervalMinutes,
 		openPrPromptTemplate,
@@ -514,10 +531,15 @@ export function RuntimeSettingsDialog({
 		setReposRoot(config?.reposRoot ?? "");
 		setJiraProjectKey(config?.jiraProjectKey ?? "");
 		setJiraSyncIntervalMinutes(Math.round((config?.jiraSyncIntervalMs ?? 60 * 60 * 1000) / 60000));
+		setJiraBaseUrl(config?.jiraBaseUrl ?? "");
+		setJiraEmail(config?.jiraEmail ?? "");
+		setJiraApiToken("");
 		setSaveError(null);
 	}, [
 		config?.agentAutonomousModeEnabled,
 		config?.commitPromptTemplate,
+		config?.jiraBaseUrl,
+		config?.jiraEmail,
 		config?.jiraProjectKey,
 		config?.jiraSyncIntervalMs,
 		config?.openPrPromptTemplate,
@@ -682,6 +704,8 @@ export function RuntimeSettingsDialog({
 			reposRoot: reposRoot.trim() || null,
 			jiraProjectKey: jiraProjectKey.trim() || null,
 			jiraSyncIntervalMs: Math.max(1, jiraSyncIntervalMinutes) * 60000,
+			jiraBaseUrl: jiraBaseUrl.trim() || null,
+			jiraEmail: jiraEmail.trim() || null,
 		});
 		if (!saved) {
 			setSaveError("Could not save runtime settings. Check runtime logs and try again.");
@@ -698,6 +722,35 @@ export function RuntimeSettingsDialog({
 		onSaved?.();
 		handleDialogOpenChange(false);
 	};
+
+	const handleSaveJiraToken = useCallback(() => {
+		void (async () => {
+			setIsSavingToken(true);
+			try {
+				await saveJiraApiTokenRequest(workspaceId, jiraApiToken.trim() || null);
+				setJiraApiToken("");
+				toast.success("Jira API token saved");
+			} catch {
+				toast.error("Failed to save Jira API token");
+			} finally {
+				setIsSavingToken(false);
+			}
+		})();
+	}, [jiraApiToken, workspaceId]);
+
+	const handleClearJiraToken = useCallback(() => {
+		void (async () => {
+			setIsSavingToken(true);
+			try {
+				await saveJiraApiTokenRequest(workspaceId, null);
+				toast.success("Jira API token cleared");
+			} catch {
+				toast.error("Failed to clear Jira API token");
+			} finally {
+				setIsSavingToken(false);
+			}
+		})();
+	}, [workspaceId]);
 
 	const handleRequestPermission = () => {
 		void (async () => {
@@ -1214,7 +1267,7 @@ export function RuntimeSettingsDialog({
 						</div>
 
 						{/* Jira Project Key */}
-						<div className="flex flex-col gap-1.5">
+						<div className="flex flex-col gap-1.5 mb-4">
 							<label htmlFor="settings-jira-project-key" className="text-xs font-medium text-text-secondary">
 								Jira Project Key
 							</label>
@@ -1231,7 +1284,7 @@ export function RuntimeSettingsDialog({
 						</div>
 
 						{/* Jira Sync Interval */}
-						<div className="flex flex-col gap-1.5">
+						<div className="flex flex-col gap-1.5 mb-4">
 							<label htmlFor="settings-jira-sync-interval" className="text-xs font-medium text-text-secondary">
 								Jira Sync Interval
 							</label>
@@ -1252,6 +1305,90 @@ export function RuntimeSettingsDialog({
 									className="w-24 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none disabled:opacity-40"
 								/>
 								<span className="text-xs text-text-tertiary">minutes</span>
+							</div>
+						</div>
+
+						{/* Jira REST API credentials */}
+						<div className="flex flex-col gap-1.5 mb-4">
+							<label htmlFor="settings-jira-base-url" className="text-xs font-medium text-text-secondary">
+								Jira Base URL
+							</label>
+							<p className="text-xs text-text-tertiary m-0">
+								Your Atlassian domain (e.g. your-company.atlassian.net). Enables fast direct REST sync.
+							</p>
+							<input
+								id="settings-jira-base-url"
+								type="text"
+								value={jiraBaseUrl}
+								onChange={(e) => setJiraBaseUrl(e.target.value)}
+								placeholder="your-company.atlassian.net"
+								disabled={controlsDisabled}
+								className="w-72 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none disabled:opacity-40"
+							/>
+						</div>
+
+						<div className="flex flex-col gap-1.5 mb-4">
+							<label htmlFor="settings-jira-email" className="text-xs font-medium text-text-secondary">
+								Jira Email
+							</label>
+							<input
+								id="settings-jira-email"
+								type="email"
+								value={jiraEmail}
+								onChange={(e) => setJiraEmail(e.target.value)}
+								placeholder="you@company.com"
+								disabled={controlsDisabled}
+								className="w-72 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none disabled:opacity-40"
+							/>
+						</div>
+
+						<div className="flex flex-col gap-1.5">
+							<label htmlFor="settings-jira-api-token" className="text-xs font-medium text-text-secondary">
+								Jira API Token
+							</label>
+							<p className="text-xs text-text-tertiary m-0">
+								{config?.jiraApiTokenConfigured ? (
+									<span className="text-status-green">Token configured ✓</span>
+								) : (
+									"No token configured."
+								)}{" "}
+								<a
+									href="https://id.atlassian.com/manage-profile/security/api-tokens"
+									target="_blank"
+									rel="noreferrer"
+									className="text-accent hover:text-accent-hover underline"
+								>
+									Generate token
+								</a>
+							</p>
+							<div className="flex items-center gap-2">
+								<input
+									id="settings-jira-api-token"
+									type="password"
+									value={jiraApiToken}
+									onChange={(e) => setJiraApiToken(e.target.value)}
+									placeholder="Paste token here"
+									disabled={controlsDisabled || isSavingToken}
+									className="w-72 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none disabled:opacity-40"
+								/>
+								<Button
+									size="sm"
+									variant="default"
+									onClick={handleSaveJiraToken}
+									disabled={controlsDisabled || isSavingToken || !jiraApiToken.trim()}
+								>
+									Save token
+								</Button>
+								{config?.jiraApiTokenConfigured && (
+									<Button
+										size="sm"
+										variant="danger"
+										onClick={handleClearJiraToken}
+										disabled={controlsDisabled || isSavingToken}
+									>
+										Clear
+									</Button>
+								)}
 							</div>
 						</div>
 					</div>

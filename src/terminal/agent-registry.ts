@@ -121,5 +121,6 @@ export function buildRuntimeConfigResponse(runtimeConfig: RuntimeConfigState): R
 		jiraBaseUrl: runtimeConfig.jiraBaseUrl,
 		jiraEmail: runtimeConfig.jiraEmail,
 		jiraSyncIntervalMs: runtimeConfig.jiraSyncIntervalMs,
+		jiraApiTokenConfigured: runtimeConfig.jiraApiTokenConfigured,
 	};
 }

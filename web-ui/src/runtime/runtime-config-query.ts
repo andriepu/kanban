@@ -30,6 +30,8 @@ export async function saveRuntimeConfig(
 		jiraBaseUrl?: string | null;
 		jiraEmail?: string | null;
 		jiraSyncIntervalMs?: number | null;
+		jiraBaseUrl?: string | null;
+		jiraEmail?: string | null;
 	},
 ): Promise<RuntimeConfigResponse> {
 	const trpcClient = getRuntimeTrpcClient(workspaceId);
@@ -62,4 +64,12 @@ export async function pickDirectoryOnHost(workspaceId: string | null): Promise<s
 export async function syncReposRoot(workspaceId: string | null): Promise<{ added: number; skipped: number }> {
 	const trpcClient = getRuntimeTrpcClient(workspaceId);
 	return await trpcClient.projects.syncFromReposRoot.mutate();
+}
+
+export async function setJiraApiToken(
+	workspaceId: string | null,
+	token: string | null,
+): Promise<{ configured: boolean }> {
+	const trpcClient = getRuntimeTrpcClient(workspaceId);
+	return await trpcClient.jira.setApiToken.mutate({ token });
 }

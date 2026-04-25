@@ -574,6 +574,7 @@ export const runtimeConfigResponseSchema = z.object({
 	jiraBaseUrl: z.string().nullable(),
 	jiraEmail: z.string().nullable(),
 	jiraSyncIntervalMs: z.number(),
+	jiraApiTokenConfigured: z.boolean(),
 });
 export type RuntimeConfigResponse = z.infer<typeof runtimeConfigResponseSchema>;
 
@@ -1019,3 +1020,6 @@ export const jiraSubtaskUpdateStatusRequestSchema = z.object({
 	status: jiraSubtaskStatusSchema,
 });
 export const jiraSubtaskUpdateStatusResponseSchema = z.object({ subtask: jiraSubtaskSchema });
+
+export const jiraSetApiTokenRequestSchema = z.object({ token: z.string().nullable() });
+export const jiraSetApiTokenResponseSchema = z.object({ configured: z.boolean() });

@@ -1,11 +1,27 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-24T10:15:28.369Z
-> Files: 411 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-25T04:37:16.780Z
+> Files: 489 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
 
+- `1-api-trpc-jira-importfromjira-batch-1-i-quirky-pancake.md` — Speed up `/api/trpc/jira.importFromJira` + Syncing status polish (~2277 tok)
+- `also-read-the-current-zany-garden.md` — Plan: Scan Open GitHub PRs → Attach as Subtasks on Matching Jira Cards (~1630 tok)
 - `collapsed-tab-sidebar-styling-cryptic-kitten.md` — Restore collapsed project-tab sidebar button styling (~877 tok)
+- `create-onboarding-to-always-happy-platypus.md` — Startup Onboarding Dialog (Always-On When Config Incomplete) (~2025 tok)
+- `create-toats-error-to-nested-mccarthy.md` — Missing Jira Credentials — Toast + Open Settings Action (~1445 tok)
+- `fetching-jira-details-should-iterative-fiddle.md` — Plan: Background-prefetch Jira card details after board load (~1404 tok)
+- `how-could-api-trpc-jira-importfromjira-b-snappy-wreath.md` — Fix: Jira ops silently succeed when credentials missing (~1237 tok)
+- `i-feel-statusline-not-modular-pancake.md` — Delete SyncStatusLine Entirely (~904 tok)
+- `i-got-zippy-allen.md` — Fix: Jira MCP import hits `Reached maximum number of turns (5)` (~1628 tok)
+- `i-see-jira-for-shimmying-lovelace.md` — Fix inconsistent gaps in Jira & Repos settings fields (~435 tok)
+- `jira-task-details-need-peppy-corbato.md` — Jira Task Details Polish (~1311 tok)
+- `statusline-should-always-been-wobbly-donut.md` — Make JIRA sync statusline globally visible (~1505 tok)
+
+## ../../../.claude/projects/-Users-andriepu-Workspace--private-kanban/memory/
+
+- `jira_full_sync_plan.md` (~195 tok)
+- `MEMORY.md` — Memory Index (~115 tok)
 
 ## ./
 
@@ -112,6 +128,144 @@
 - `plan.md` — Terminal Core Rewrite (~162 tok)
 - `status.md` — Status (~844 tok)
 
+## .worktrees/feature/jira-pr-subtasks/.wolf/
+
+- `anatomy.md` — anatomy.md (~9805 tok)
+- `buglog.json` — Declares import (~4381 tok)
+- `cerebrum.md` — Cerebrum (~1037 tok)
+- `memory.md` — Memory (~3873 tok)
+
+## .worktrees/feature/jira-pr-subtasks/src/config/
+
+- `runtime-config.ts` — Persists Kanban-owned runtime preferences on disk. (~10385 tok)
+
+## .worktrees/feature/jira-pr-subtasks/src/core/
+
+- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceCha (~10781 tok)
+
+## .worktrees/feature/jira-pr-subtasks/src/jira/
+
+- `jira-key-extract.ts` — Extracts the first Jira issue key matching the given project key from a text string. (~95 tok)
+- `jira-pr-links.ts` — Exports JiraPrLink, loadJiraPrLinks, saveJiraPrLinks, mergeScannedPrLinks (~800 tok)
+- `jira-pr-scan.ts` — Lists open GitHub pull requests authored by the current user via the `gh` CLI. (~440 tok)
+
+## .worktrees/feature/jira-pr-subtasks/src/server/
+
+- `runtime-server.ts` — API routes: GET (1 endpoints) (~4210 tok)
+
+## .worktrees/feature/jira-pr-subtasks/src/terminal/
+
+- `agent-registry.ts` — Exports ResolvedAgentCommand, detectInstalledCommands, resolveAgentCommand, buildRuntimeConfigRespon (~1236 tok)
+
+## .worktrees/feature/jira-pr-subtasks/src/trpc/
+
+- `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. (~6370 tok)
+- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~2786 tok)
+
+## .worktrees/feature/jira-pr-subtasks/test/runtime/jira/
+
+- `jira-key-extract.test.ts` (~327 tok)
+- `jira-pr-links.test.ts` — We override HOME so lockedFileSystem writes to a temp dir (~1946 tok)
+- `jira-pr-scan.test.ts` — Declares childProcessMocks (~844 tok)
+
+## .worktrees/feature/jira-pr-subtasks/test/runtime/terminal/
+
+- `agent-registry.test.ts` — commandDiscoveryMocks: createRuntimeConfigState (~1092 tok)
+
+## .worktrees/feature/jira-pr-subtasks/test/runtime/trpc/
+
+- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~3615 tok)
+- `runtime-api.test.ts` — agentRegistryMocks: createSummary, createRuntimeConfigState (~2709 tok)
+
+## .worktrees/feature/jira-pr-subtasks/web-ui/src/
+
+- `App.tsx` — Main React composition root for the browser app. (~10863 tok)
+
+## .worktrees/feature/jira-pr-subtasks/web-ui/src/components/
+
+- `jira-board.test.tsx` — mockJiraBoard (~1739 tok)
+- `jira-board.tsx` — COLUMNS (~1733 tok)
+- `jira-card-detail-view.test.tsx` — mockFetchIssue (~1185 tok)
+- `jira-card-detail-view.tsx` — SUBTASK_STATUS_COLORS (~2011 tok)
+
+## .worktrees/feature/jira-pr-subtasks/web-ui/src/hooks/
+
+- `use-git-actions.test.tsx` — showAppToastMock (~1676 tok)
+- `use-home-agent-session.test.tsx` — startTaskSessionMutateMock (~4345 tok)
+- `use-jira-board.test.tsx` — Flush multiple microtask queue levels so that async effects (like fetchBoard) (~3879 tok)
+- `use-jira-board.ts` — Exports UseJiraBoardOptions, UseJiraBoardResult, useJiraBoard (~2094 tok)
+
+## .worktrees/feature/jira-pr-subtasks/web-ui/src/runtime/
+
+- `native-agent.test.ts` — createRuntimeConfigResponse: createLatestTaskChatMessage (~1107 tok)
+- `runtime-config-query.ts` — Opens the OS native directory picker and returns the selected path, (~695 tok)
+- `use-runtime-config.test.tsx` — fetchRuntimeConfigMock (~2215 tok)
+- `use-runtime-project-config.test.tsx` — fetchRuntimeConfigMock (~1587 tok)
+
+## .worktrees/feature/jira-pr-subtasks/web-ui/src/types/
+
+- `jira.ts` — Exports JiraCardStatus, JiraSubtaskStatus, JiraCard, JiraBoard + 3 more (~242 tok)
+
+## .worktrees/jira-full-sync/.wolf/
+
+- `buglog.json` — Declares import (~3281 tok)
+- `memory.md` — Memory (~3160 tok)
+
+## .worktrees/jira-full-sync/src/config/
+
+- `runtime-config.ts` — Persists Kanban-owned runtime preferences on disk. (~9357 tok)
+
+## .worktrees/jira-full-sync/src/core/
+
+- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceCha (~10559 tok)
+
+## .worktrees/jira-full-sync/src/terminal/
+
+- `agent-registry.ts` — Exports ResolvedAgentCommand, detectInstalledCommands, resolveAgentCommand, buildRuntimeConfigRespon (~1213 tok)
+
+## .worktrees/jira-full-sync/src/trpc/
+
+- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~2496 tok)
+
+## .worktrees/jira-full-sync/test/runtime/terminal/
+
+- `agent-registry.test.ts` — commandDiscoveryMocks: createRuntimeConfigState (~1080 tok)
+
+## .worktrees/jira-full-sync/test/runtime/trpc/
+
+- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~1791 tok)
+- `projects-api.test.ts` — actual: createTestCwd, createDefaultDeps (~4817 tok)
+- `runtime-api.test.ts` — agentRegistryMocks: createSummary, createRuntimeConfigState (~2698 tok)
+
+## .worktrees/jira-full-sync/web-ui/src/
+
+- `App.tsx` — Main React composition root for the browser app. (~10854 tok)
+
+## .worktrees/jira-full-sync/web-ui/src/components/
+
+- `jira-board.test.tsx` — mockJiraBoard (~1158 tok)
+- `jira-board.tsx` — COLUMNS (~1224 tok)
+- `runtime-settings-dialog.tsx` — Settings dialog composition for Kanban. (~13295 tok)
+
+## .worktrees/jira-full-sync/web-ui/src/hooks/
+
+- `use-git-actions.test.tsx` — showAppToastMock (~1664 tok)
+- `use-home-agent-session.test.tsx` — startTaskSessionMutateMock (~4334 tok)
+- `use-jira-board.test.tsx` — Flush multiple microtask queue levels so that async effects (like fetchBoard) (~2100 tok)
+- `use-jira-board.ts` — Exports IssueData, JiraDetailEntry, UseJiraBoardOptions, UseJiraBoardResult, useJiraBoard; details + ensureDetail for background prefetch (~1500 tok)
+
+## .worktrees/jira-full-sync/web-ui/src/runtime/
+
+- `native-agent.test.ts` — createRuntimeConfigResponse: createLatestTaskChatMessage (~1095 tok)
+- `runtime-config-query.ts` — Opens the OS native directory picker and returns the selected path, (~678 tok)
+- `use-runtime-config.test.tsx` — fetchRuntimeConfigMock (~2204 tok)
+- `use-runtime-config.ts` — Exports UseRuntimeConfigResult, useRuntimeConfig (~1158 tok)
+- `use-runtime-project-config.test.tsx` — fetchRuntimeConfigMock (~1576 tok)
+
+## .worktrees/jira-full-sync/web-ui/src/utils/
+
+- `react-use.ts` — Exports useWindowEvent, useDocumentEvent, useInterval, useDebouncedEffect + 7 more (~1054 tok)
+
 ## docs/
 
 - `architecture.md` — Architecture Overview (~2481 tok)
@@ -119,11 +273,18 @@
 
 ## docs/superpowers/plans/
 
+- `2026-04-24-jira-done-cleanup.md` — Jira Done-Card Cleanup Implementation Plan (~6762 tok)
+- `2026-04-24-jira-full-sync.md` — Jira Full-Status Sync — Implementation Plan (~9641 tok)
 - `2026-04-24-remove-onboarding.md` — Remove "Get Started" Onboarding Implementation Plan (~2890 tok)
+- `2026-04-24-repos-root-sync.md` — Repos Root Sync & Agent Repo Visibility — Implementation Plan (~6794 tok)
 
 ## docs/superpowers/specs/
 
+- `2026-04-24-jira-done-cleanup-design.md` — Jira Done-Card Cleanup — Design Spec (~867 tok)
+- `2026-04-24-jira-full-sync-design.md` — Jira Full-Status Sync — Design Spec (~920 tok)
 - `2026-04-24-remove-onboarding-design.md` — Remove "Get Started" Onboarding — Design Spec (~549 tok)
+- `2026-04-24-repos-root-sync-design.md` — Repos Root Sync & Agent Repo Visibility — Design Spec (~750 tok)
+- `2026-04-24-repos-root-sync-design.md` — Repos Root Sync & Agent Repo Visibility — Design Spec (~1286 tok)
 
 ## grit/
 
@@ -170,13 +331,13 @@
 
 ## src/config/
 
-- `runtime-config.ts` — Persists Kanban-owned runtime preferences on disk. (~7250 tok)
+- `runtime-config.ts` — Persists Kanban-owned runtime preferences on disk. (~10432 tok)
 - `shortcut-utils.ts` — Exports areRuntimeProjectShortcutsEqual (~178 tok)
 
 ## src/core/
 
 - `agent-catalog.ts` — Exports RuntimeAgentCatalogEntry, RUNTIME_AGENT_CATALOG, RUNTIME_LAUNCH_SUPPORTED_AGENT_IDS, isRuntimeAgentLaunchSupported + 2 more (~350 tok)
-- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceChangesRequestSchema, runtimeWorkspaceChangesModeS... (~9445 tok)
+- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceCha (~10842 tok)
 - `api-validation.ts` — API routes: GET (6 endpoints) (~3242 tok)
 - `git-process-env.ts` — Exports createGitProcessEnv (~173 tok)
 - `graceful-shutdown.ts` — Exports HandledShutdownSignal, GracefulShutdownProcess, getExitCodeForSignal, shouldSuppressImmediateDuplicateShutdownSignals, installGracefulShutd... (~1807 tok)
@@ -196,7 +357,8 @@
 ## src/jira/
 
 - `jira-board-state.ts` — Exports JiraCard, JiraBoard, JiraSubtask, loadJiraBoard, saveJiraBoard, loadJiraSubtasks, createJiraSubtask, deleteJiraSubtask. Atomic JSON persistence to ~/.kanban/kanban/jira-board.json and jira-subtasks.json via lockedFileSystem. Multi-file locking for create/delete subtask operations. (~500 tok)
-- `jira-mcp.ts` — Exports SpawnClaudeResult, SpawnClaudeFn, callJiraMcp. Spawns `claude -p <prompt> --output-format json --max-turns 1` and parses JSON result. Dependency-injected spawn for testability. (~200 tok)
+- `jira-pr-scan.ts` — Lists open GitHub pull requests authored by the current user via the `gh` CLI. (~547 tok)
+- `jira-rest.ts` — Exports JiraRestCredentials, JiraIssueRaw, JiraRestAuthError, searchJiraIssuesViaRest + 2 more (~1839 tok)
 - `jira-worktree.ts` — Exports RepoInfo, deriveSubtaskBranchName, buildSubtaskWorktreePath, scanReposInRoot, createSubtaskWorktree, removeSubtaskWorktree. Git worktree operations and repo scanning for Jira subtasks. (~350 tok)
 
 ## src/projects/
@@ -205,7 +367,7 @@
 
 ## src/prompts/
 
-- `append-system-prompt.ts` — Exports ResolveAppendSystemPromptCommandPrefixOptions, RenderAppendSystemPromptOptions, resolveAppendSystemPromptCommandPrefix, renderAppendSystemP... (~4341 tok)
+- `append-system-prompt.ts` — Exports ResolveAppendSystemPromptCommandPrefixOptions, RenderAppendSystemPromptOptions, resolveAppen (~4494 tok)
 
 ## src/security/
 
@@ -216,7 +378,7 @@
 - `browser.ts` — Exports openInBrowser (~270 tok)
 - `directory-picker.ts` — Exports pickDirectoryPathFromSystemDialog (~1345 tok)
 - `process-termination.ts` — Exports terminateProcessForTimeout (~252 tok)
-- `runtime-server.ts` — API routes: GET (1 endpoints) (~4909 tok)
+- `runtime-server.ts` — API routes: GET (1 endpoints) (~4103 tok)
 - `runtime-state-hub.ts` — Streams live runtime state to browser clients over websocket. (~4867 tok)
 - `shell.ts` (~19 tok)
 - `shutdown-coordinator.ts` — Exports RuntimeShutdownCoordinatorDependencies, shutdownRuntimeServer (~2010 tok)
@@ -232,15 +394,15 @@
 
 ## src/terminal/
 
-- `agent-registry.ts` — Exports ResolvedAgentCommand, detectInstalledCommands, resolveAgentCommand, buildRuntimeConfigResponse (~1159 tok)
-- `agent-session-adapters.ts` — Exports AgentAdapterLaunchInput, AgentOutputTransitionDetector, AgentOutputTransitionInspectionPredicate, PreparedAgentLaunch, prepareAgentLaunch (~2098 tok)
+- `agent-registry.ts` — Exports ResolvedAgentCommand, detectInstalledCommands, resolveAgentCommand, buildRuntimeConfigRespon (~1254 tok)
+- `agent-session-adapters.ts` — Exports AgentAdapterLaunchInput, AgentOutputTransitionDetector, AgentOutputTransitionInspectionPredi (~2132 tok)
 - `claude-workspace-trust.ts` — Exports WORKSPACE_TRUST_CONFIRM_DELAY_MS, hasClaudeWorkspaceTrustPrompt, shouldAutoConfirmClaudeWorkspaceTrust, stopWorkspaceTrustTimers (~676 tok)
 - `command-discovery.ts` — Exports isBinaryAvailableOnPath (~862 tok)
 - `hook-runtime-context.ts` — Exports KANBAN_HOOK_TASK_ID_ENV, KANBAN_HOOK_WORKSPACE_ID_ENV, HookRuntimeContext, createHookRuntimeEnv, parseHookRuntimeContextFromEnv (~264 tok)
 - `opencode-paths.ts` — Exports getOpenCodeConfigPathCandidates, getOpenCodeModelStatePathCandidates, getOpenCodeAuthPathCandidates (~828 tok)
 - `output-utils.ts` — Exports stripAnsi (~248 tok)
 - `pty-session.ts` — Exports PtyExitEvent, SpawnPtySessionRequest, PtySession (~1194 tok)
-- `session-manager.ts` — PTY-backed runtime for non-Cline task sessions and the workspace shell terminal. (~8728 tok)
+- `session-manager.ts` — PTY-backed runtime for non-Cline task sessions and the workspace shell terminal. (~8901 tok)
 - `session-state-machine.ts` — Exports SessionTransitionEvent, SessionTransitionResult, reduceSessionTransition (~600 tok)
 - `task-image-prompt.ts` — Exports prepareTaskPromptWithImages (~724 tok)
 - `terminal-protocol-filter.ts` — Exports TerminalProtocolFilterState, CreateTerminalProtocolFilterStateOptions, FilterTerminalProtocolOutputOptions, createTerminalProtocolFilterSta... (~1348 tok)
@@ -250,10 +412,10 @@
 
 ## src/trpc/
 
-- `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. Includes jira router. (~6500 tok)
+- `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. (~6368 tok)
 - `hooks-api.ts` — Exports CreateHooksApiDependencies, createHooksApi (~1298 tok)
-- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi — Jira board/subtask/session/MCP operations (~1800 tok)
-- `projects-api.ts` — Exports CreateProjectsApiDependencies, createProjectsApi (~3672 tok)
+- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~2191 tok)
+- `projects-api.ts` — Exports CreateProjectsApiDependencies, createProjectsApi (~3936 tok)
 - `runtime-api.ts` — Coordinates the runtime-side TRPC handlers used by the browser. Supports customCwd. (~3800 tok)
 - `workspace-api.ts` — Exports CreateWorkspaceApiDependencies, createWorkspaceApi (~3436 tok)
 
@@ -293,7 +455,7 @@
 ## test/runtime/
 
 - `api-validation.test.ts` — Declares parsed (~653 tok)
-- `append-system-prompt.test.ts` — Declares prefix (~1234 tok)
+- `append-system-prompt.test.ts` — Declares prefix (~1812 tok)
 - `directory-picker.test.ts` — RecordedCommand: createSpawnResult, createRunCommand (~1572 tok)
 - `git-history.test.ts` — runGit: initRepository, commitAll (~2031 tok)
 - `git-utils.test.ts` — childProcessMocks: createExecError (~585 tok)
@@ -321,7 +483,8 @@
 ## test/runtime/jira/
 
 - `jira-board-state.test.ts` — Tests for loadJiraBoard, saveJiraBoard, loadJiraSubtasks, createJiraSubtask, deleteJiraSubtask. Uses temp HOME override for isolation. (~350 tok)
-- `jira-mcp.test.ts` — Tests for callJiraMcp: JSON parsing, non-zero exit error, invalid JSON error. Uses vi.fn() mock spawn. (~120 tok)
+- `jira-pr-scan.test.ts` — childProcessMocks: graphqlResponse (~968 tok)
+- `jira-rest.test.ts` — CREDS: makeSearchFetch (~1997 tok)
 - `jira-worktree.test.ts` — Tests for deriveSubtaskBranchName, buildSubtaskWorktreePath, scanReposInRoot. Uses injected readdir/access mocks. (~200 tok)
 
 ## test/runtime/server/
@@ -333,8 +496,8 @@
 
 ## test/runtime/terminal/
 
-- `agent-registry.test.ts` — commandDiscoveryMocks: createRuntimeConfigState (~1050 tok)
-- `agent-session-adapters.test.ts` — originalHome: setupTempHome, setKanbanProcessContext (~1360 tok)
+- `agent-registry.test.ts` — commandDiscoveryMocks: createRuntimeConfigState (~1101 tok)
+- `agent-session-adapters.test.ts` — originalHome: setupTempHome, setKanbanProcessContext (~1718 tok)
 - `hook-runtime-context.test.ts` — Declares env (~295 tok)
 - `opencode-paths.test.ts` — Declares candidates (~520 tok)
 - `pty-session.test.ts` — ptyMocks: setPlatform, createMockPtyProcess (~2494 tok)
@@ -347,9 +510,9 @@
 ## test/runtime/trpc/
 
 - `hooks-api.test.ts` — Declares createSummary (~1268 tok)
-- `jira-api.test.ts` — Tests createJiraApi: loadBoard, scanRepos, createSubtask (~450 tok)
-- `projects-api.test.ts` — CreateProjectsApiDependencies: createTestCwd, createDefaultDeps (~3713 tok)
-- `runtime-api.test.ts` — agentRegistryMocks: createSummary, createRuntimeConfigState (~2668 tok)
+- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~2344 tok)
+- `projects-api.test.ts` — actual: createTestCwd, createDefaultDeps (~4896 tok)
+- `runtime-api.test.ts` — agentRegistryMocks: createSummary, createRuntimeConfigState (~2718 tok)
 - `workspace-api.test.ts` — workspaceTaskWorktreeMocks: createSummary, createChangesResponse (~1748 tok)
 
 ## test/runtime/update/
@@ -390,7 +553,7 @@
 
 ## web-ui/src/
 
-- `App.tsx` — Main React composition root for the browser app. (~10838 tok)
+- `App.tsx` — Main React composition root for the browser app. (~11094 tok)
 - `main.tsx` — _savedTheme (~441 tok)
 - `vite-env.d.ts` — / <reference types="vite/client" /> (~66 tok)
 
@@ -411,17 +574,18 @@
 - `git-history-view.test.tsx` — mockGitRefsPanel (~1332 tok)
 - `git-history-view.tsx` — CommitDiffHeader — uses useState, useCallback, useEffect (~2740 tok)
 - `inline-completion-picker.tsx` — InlineCompletionPicker — uses useRef, useCallback, useEffect (~1125 tok)
-- `jira-board.test.tsx` — 5 tests: renders three columns, shows cards, onCardClick, Import To-Do button, subtask count chip. Uses createRoot+act pattern. (~300 tok)
-- `jira-board.tsx` — JiraBoardView: three-column Jira board (To-Do/In-Progress/Done), drag-and-drop cards, Import To-Do button. Subcomponents: JiraBoardColumn, JiraBoardCard. Uses useJiraBoard hook. (~450 tok)
+- `jira-board.test.tsx` — mockJiraBoard (~1275 tok)
+- `jira-board.tsx` — COLUMNS (~1411 tok)
+- `jira-card-detail-view.tsx` — pure consumer; reads details/ensureDetail from props; SUBTASK_STATUS_COLORS (~1900 tok)
 - `kanban-board.test.tsx` — dndMock — uses useEffect (~1704 tok)
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
 - `open-workspace-button.tsx` — OpenTargetIcon — uses useState (~891 tok)
 - `project-navigation-panel.test.tsx` — Wrapper that owns the sidebar layout state via the hook and passes it as props. (~2217 tok)
 - `project-navigation-panel.tsx` — COLLAPSED_WIDTH (~6730 tok)
 - `runtime-settings-dialog.test.tsx` — RadixSelectCtx — uses useContext (~2853 tok)
-- `runtime-settings-dialog.tsx` — Settings dialog composition for Kanban. (~11026 tok)
+- `runtime-settings-dialog.tsx` — Settings dialog composition for Kanban. (~14678 tok)
 - `search-select-dropdown.tsx` — MATCHED_TEXT_STYLE — uses useState, useMemo, useCallback, useEffect (~3277 tok)
-- `startup-onboarding-dialog.tsx` — StartupOnboardingDialog — renders modal — uses useState, useEffect, useCallback (~1139 tok)
+- `startup-onboarding-dialog.tsx` — StartupOnboardingDialog — renders modal (~2512 tok)
 - `task-create-dialog.tsx` — Default agent ID from runtimeConfig.selectedAgentId, used to show "Default (AgentName)" in picker (~6375 tok)
 - `task-image-input-utils.ts` — Synchronously collect accepted image files from a DataTransfer. (~716 tok)
 - `task-image-strip.tsx` — TaskImageStrip (~603 tok)
@@ -514,8 +678,8 @@
 - `use-home-sidebar-agent-panel.test.tsx` — createSummary (~498 tok)
 - `use-home-sidebar-agent-panel.tsx` — Composes the sidebar agent surface for the current workspace. (~1124 tok)
 - `use-is-mobile.ts` — Exports useIsMobile (~53 tok)
-- `use-jira-board.test.tsx` — 5 tests: empty board, importFromJira/moveCard exposed, board populates on resolve, saveBoard called with correct payload. Uses stable mock client (avoids ref churn), flushPromises pattern inside async act. (~350 tok)
-- `use-jira-board.ts` — Exports UseJiraBoardResult, useJiraBoard. Uses useUnmount for cleanup, fetchBoard via useEffect+useCallback. moveCard has rollback on transitionIssue failure. No type casts (TRPC inferred). (~280 tok)
+- `use-jira-board.test.tsx` — Flush multiple microtask queue levels so that async effects (like fetchBoard) (~4626 tok)
+- `use-jira-board.ts` — Exports IssueData, JiraDetailEntry, UseJiraBoardOptions, UseJiraBoardResult, useJiraBoard (~2196 tok)
 - `use-kanban-access-gate.ts` — Exports useKanbanAccessGate (~57 tok)
 - `use-linked-backlog-task-actions.test.tsx` — trackTaskDependencyCreatedMock — uses useEffect (~3805 tok)
 - `use-linked-backlog-task-actions.ts` — Exports useLinkedBacklogTaskActions (~2072 tok)
@@ -530,8 +694,6 @@
 - `use-review-ready-notifications.ts` — Exports useReviewReadyNotifications (~2290 tok)
 - `use-shortcut-actions.test.tsx` — saveRuntimeConfigMock — uses useEffect (~1917 tok)
 - `use-shortcut-actions.ts` — Exports useShortcutActions (~1869 tok)
-- `use-startup-onboarding.test.tsx` — saveRuntimeConfigMock — uses useEffect (~2541 tok)
-- `use-startup-onboarding.ts` — Exports UseStartupOnboardingResult, useStartupOnboarding (~1085 tok)
 - `use-task-branch-options.ts` — Exports useTaskBranchOptions (~485 tok)
 - `use-task-editor.test.tsx` — createTask — uses useEffect (~3556 tok)
 - `use-task-editor.ts` — Exports UseTaskEditorResult, useTaskEditor (~4682 tok)
@@ -562,16 +724,16 @@
 
 - `native-agent.test.ts` — createRuntimeConfigResponse: createLatestTaskChatMessage (~1066 tok)
 - `native-agent.ts` — Exports isTaskAgentSetupSatisfied, getTaskAgentNavbarHint, selectLatestTaskChatMessageForTask, selectTaskChatMessagesForTask (~438 tok)
-- `onboarding.test.ts` (~158 tok)
-- `onboarding.ts` — Exports shouldShowStartupOnboardingDialog (~52 tok)
-- `runtime-config-query.ts` — Browser-side query helpers for runtime settings. (~450 tok)
+- `onboarding.test.ts` — Declares makeConfig (~934 tok)
+- `onboarding.ts` — Exports shouldShowStartupOnboardingDialog (~165 tok)
+- `runtime-config-query.ts` — Opens the OS native directory picker and returns the selected path, (~766 tok)
 - `task-session-geometry.test.ts` (~143 tok)
 - `task-session-geometry.ts` — Exports TaskSessionGeometry, estimateTaskSessionGeometry (~241 tok)
 - `trpc-client.ts` — Exports getRuntimeTrpcClient, createWorkspaceTrpcClient, readTrpcConflictRevision (~454 tok)
 - `types.ts` (~12 tok)
-- `use-runtime-config.test.tsx` — fetchRuntimeConfigMock — uses useEffect (~2174 tok)
-- `use-runtime-config.ts` — Exports UseRuntimeConfigResult, useRuntimeConfig (~1080 tok)
-- `use-runtime-project-config.test.tsx` — fetchRuntimeConfigMock — uses useEffect (~1546 tok)
+- `use-runtime-config.test.tsx` — fetchRuntimeConfigMock (~2224 tok)
+- `use-runtime-config.ts` — Exports UseRuntimeConfigResult, useRuntimeConfig (~1193 tok)
+- `use-runtime-project-config.test.tsx` — fetchRuntimeConfigMock (~1597 tok)
 - `use-runtime-project-config.ts` — Exports UseRuntimeProjectConfigResult, useRuntimeProjectConfig (~350 tok)
 - `use-runtime-state-stream.ts` — Exports UseRuntimeStateStreamResult, useRuntimeStateStream (~3954 tok)
 - `use-runtime-workspace-changes.test.tsx` — getChangesQueryMock — uses useEffect (~2012 tok)
@@ -598,7 +760,7 @@
 
 ## web-ui/src/styles/
 
-- `globals.css` — Styles: 44 rules, 214 vars, 1 media queries (~7247 tok)
+- `globals.css` — Styles: 42 rules, 214 vars (~7282 tok)
 
 ## web-ui/src/telemetry/
 
