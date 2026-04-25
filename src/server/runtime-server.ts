@@ -19,7 +19,6 @@ import {
 	loadJiraSubtasks,
 	saveJiraBoard,
 } from "../jira/jira-board-state";
-import { loadJiraPrLinks, mergeScannedPrLinks, saveJiraPrLinks } from "../jira/jira-pr-links";
 import { listOpenAuthoredGhPullRequests } from "../jira/jira-pr-scan";
 import type { JiraRestCredentials } from "../jira/jira-rest";
 import { fetchJiraIssueViaRest, searchJiraIssuesViaRest, transitionJiraIssueViaRest } from "../jira/jira-rest";
@@ -231,9 +230,6 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 		getWorktreesRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.worktreesRoot ?? null,
 		getReposRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.reposRoot ?? null,
 		listOpenAuthoredGhPullRequests,
-		loadJiraPrLinks,
-		saveJiraPrLinks,
-		mergeScannedPrLinks,
 		getJiraProjectKey: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.jiraProjectKey ?? null,
 	});
 

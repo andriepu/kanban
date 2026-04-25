@@ -1,9 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { lockedFileSystem } from "../fs/locked-file-system.js";
 import type { JiraBoard, JiraCard, JiraSubtask } from "../jira/jira-board-state.js";
 import { extractJiraKey } from "../jira/jira-key-extract.js";
-import type { JiraPrLink } from "../jira/jira-pr-links.js";
 import type { GhPullRequest } from "../jira/jira-pr-scan.js";
 import type { JiraIssueRaw } from "../jira/jira-rest.js";
 import type { RepoInfo } from "../jira/jira-worktree.js";
@@ -38,12 +38,6 @@ export interface CreateJiraApiDependencies {
 	getWorktreesRoot: () => string | null;
 	getReposRoot: () => string | null;
 	listOpenAuthoredGhPullRequests: () => Promise<GhPullRequest[]>;
-	loadJiraPrLinks: () => Promise<Record<string, JiraPrLink[]>>;
-	saveJiraPrLinks: (links: Record<string, JiraPrLink[]>) => Promise<void>;
-	mergeScannedPrLinks: (
-		existing: Record<string, JiraPrLink[]>,
-		scanned: Array<{ jiraKey: string; pr: GhPullRequest }>,
-	) => Record<string, JiraPrLink[]>;
 	getJiraProjectKey: () => string | null;
 }
 
@@ -66,17 +60,9 @@ const JIRA_STATUS_MAP: Record<string, "todo" | "in_progress" | "done"> = {
 
 export function createJiraApi(deps: CreateJiraApiDependencies) {
 	return {
-		async loadBoard(): Promise<{
-			board: JiraBoard;
-			subtasks: Record<string, JiraSubtask>;
-			prLinks: Record<string, JiraPrLink[]>;
-		}> {
-			const [board, subtasks, prLinks] = await Promise.all([
-				deps.loadJiraBoard(),
-				deps.loadJiraSubtasks(),
-				deps.loadJiraPrLinks(),
-			]);
-			return { board, subtasks, prLinks };
+		async loadBoard(): Promise<{ board: JiraBoard; subtasks: Record<string, JiraSubtask> }> {
+			const [board, subtasks] = await Promise.all([deps.loadJiraBoard(), deps.loadJiraSubtasks()]);
+			return { board, subtasks };
 		},
 
 		async saveBoard(board: JiraBoard): Promise<{ board: JiraBoard }> {
@@ -233,7 +219,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			return { subtask: updated };
 		},
 
-		async scanAndAttachPRs(): Promise<{ attached: number; skipped: number; prLinks: Record<string, JiraPrLink[]> }> {
+		async scanAndAttachPRs(): Promise<{ attached: number; skipped: number; subtasks: Record<string, JiraSubtask> }> {
 			const projectKey = deps.getJiraProjectKey();
 			if (!projectKey) {
 				throw new Error("Jira project key not configured. Set it in Settings → Jira & Repos.");
@@ -246,10 +232,19 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 				const message = error instanceof Error ? error.message : String(error);
 				throw new Error(`Failed to fetch GitHub PRs: ${message}`);
 			}
-			const [board, existingLinks] = await Promise.all([deps.loadJiraBoard(), deps.loadJiraPrLinks()]);
 
+			const [board, subtasks] = await Promise.all([deps.loadJiraBoard(), deps.loadJiraSubtasks()]);
 			const boardKeySet = new Set(board.cards.map((c) => c.jiraKey));
-			const scanned: Array<{ jiraKey: string; pr: GhPullRequest }> = [];
+
+			const prUrlToSubtaskId = new Map<string, string>();
+			for (const [id, subtask] of Object.entries(subtasks)) {
+				if (subtask.prUrl) prUrlToSubtaskId.set(subtask.prUrl, id);
+			}
+
+			const updatedSubtasks: Record<string, JiraSubtask> = { ...subtasks };
+			const newSubtasksByCard = new Map<string, string[]>();
+			const now = Date.now();
+			let attached = 0;
 			let skipped = 0;
 
 			for (const pr of prs) {
@@ -258,15 +253,68 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 					skipped++;
 					continue;
 				}
-				scanned.push({ jiraKey, pr });
+
+				const existingId = prUrlToSubtaskId.get(pr.url);
+				if (existingId) {
+					const existing = updatedSubtasks[existingId];
+					if (existing) {
+						const newStatus: JiraSubtask["status"] = pr.isDraft ? "in_progress" : "review";
+						const shouldUpdateStatus = existing.status === "in_progress" || existing.status === "review";
+						updatedSubtasks[existingId] = {
+							...existing,
+							isDraft: pr.isDraft,
+							status: shouldUpdateStatus ? newStatus : existing.status,
+							updatedAt: now,
+						};
+					}
+				} else {
+					const repoShortName = pr.repository.nameWithOwner.split("/").pop() ?? pr.repository.nameWithOwner;
+					const reposRoot = deps.getReposRoot();
+					let repoPath = "";
+					if (reposRoot) {
+						const repos = await deps.scanRepos(reposRoot);
+						const match = repos.find((r) => r.id === repoShortName);
+						if (match) repoPath = match.path;
+					}
+
+					const id = randomUUID();
+					const newSubtask: JiraSubtask = {
+						id,
+						jiraKey,
+						repoId: repoShortName,
+						repoPath,
+						prompt: "",
+						title: pr.title,
+						baseRef: "main",
+						branchName: pr.headRefName,
+						worktreePath: "",
+						status: pr.isDraft ? "in_progress" : "review",
+						prUrl: pr.url,
+						prNumber: pr.number,
+						isDraft: pr.isDraft,
+						createdAt: now,
+						updatedAt: now,
+					};
+					updatedSubtasks[id] = newSubtask;
+
+					const existing = newSubtasksByCard.get(jiraKey) ?? [];
+					newSubtasksByCard.set(jiraKey, [...existing, id]);
+					attached++;
+				}
 			}
 
-			const existingPrUrls = new Set(Object.values(existingLinks).flatMap((links) => links.map((l) => l.prUrl)));
-			const merged = deps.mergeScannedPrLinks(existingLinks, scanned);
-			await deps.saveJiraPrLinks(merged);
+			if (newSubtasksByCard.size > 0) {
+				const updatedCards = board.cards.map((card) => {
+					const newIds = newSubtasksByCard.get(card.jiraKey);
+					if (!newIds) return card;
+					return { ...card, subtaskIds: [...card.subtaskIds, ...newIds], updatedAt: now };
+				});
+				await deps.saveJiraBoard({ cards: updatedCards });
+			}
 
-			const attached = scanned.filter((s) => !existingPrUrls.has(s.pr.url)).length;
-			return { attached, skipped, prLinks: merged };
+			await lockedFileSystem.writeJsonFileAtomic(getSubtasksFilePath(), updatedSubtasks);
+
+			return { attached, skipped, subtasks: updatedSubtasks };
 		},
 	};
 }
