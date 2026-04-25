@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { access } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { lockedFileSystem } from "../fs/locked-file-system.js";
@@ -188,18 +189,39 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 
 		async startSubtaskSession(
 			subtaskId: string,
-		): Promise<{ started: boolean; workspacePath: string; workspaceId: string }> {
+		): Promise<{ started: boolean; workspacePath: string; workspaceId: string; openUrl?: string }> {
 			const subtasks = await deps.loadJiraSubtasks();
 			const subtask = subtasks[subtaskId];
 			if (!subtask) throw new Error(`Subtask ${subtaskId} not found`);
 
-			const workspaceId = await deps.addWorkspace(subtask.repoPath);
-			const result = await deps.startTaskSession(subtask.repoPath, subtask.id, subtask.prompt, subtask.worktreePath);
+			if (subtask.worktreePath) {
+				let worktreeAccessible = false;
+				try {
+					await access(subtask.worktreePath);
+					worktreeAccessible = true;
+				} catch {
+					// worktree path does not exist on disk
+				}
 
-			subtasks[subtaskId] = { ...subtask, status: "in_progress", updatedAt: Date.now() };
-			await lockedFileSystem.writeJsonFileAtomic(getSubtasksFilePath(), subtasks);
+				if (worktreeAccessible) {
+					const workspaceId = await deps.addWorkspace(subtask.repoPath);
+					const result = await deps.startTaskSession(
+						subtask.repoPath,
+						subtask.id,
+						subtask.prompt,
+						subtask.worktreePath,
+					);
+					subtasks[subtaskId] = { ...subtask, status: "in_progress", updatedAt: Date.now() };
+					await lockedFileSystem.writeJsonFileAtomic(getSubtasksFilePath(), subtasks);
+					return { started: result.started, workspacePath: subtask.repoPath, workspaceId };
+				}
+			}
 
-			return { started: result.started, workspacePath: subtask.repoPath, workspaceId };
+			if (subtask.prUrl) {
+				return { started: false, workspacePath: "", workspaceId: "", openUrl: subtask.prUrl };
+			}
+
+			throw new Error(`Subtask ${subtaskId}: no worktree path and no PR URL`);
 		},
 
 		async stopSubtaskSession(subtaskId: string, workspacePath: string): Promise<{ stopped: boolean }> {

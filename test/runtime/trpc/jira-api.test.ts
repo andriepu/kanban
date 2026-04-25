@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { type CreateJiraApiDependencies, createJiraApi } from "../../../src/trpc/jira-api";
 
+const fsMocks = vi.hoisted(() => ({
+	access: vi.fn(),
+}));
+vi.mock("node:fs/promises", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("node:fs/promises")>();
+	return { ...actual, access: fsMocks.access };
+});
+
 function createMockDeps(): CreateJiraApiDependencies {
 	return {
 		loadJiraBoard: vi.fn().mockResolvedValue({ cards: [] }),
@@ -419,6 +427,84 @@ describe("jira-api", () => {
 			);
 			const api = createJiraApi(deps);
 			await expect(api.scanAndAttachPRs()).rejects.toThrow(/Failed to fetch GitHub PRs/i);
+		});
+	});
+
+	describe("startSubtaskSession", () => {
+		it("starts agent session when worktreePath exists on disk", async () => {
+			const deps = createMockDeps();
+			const subtask = {
+				id: "sub-with-tree",
+				jiraKey: "POL-1",
+				repoId: "repo",
+				repoPath: "/repos/repo",
+				prompt: "Fix it",
+				title: "t",
+				baseRef: "main",
+				branchName: "POL-1-fix",
+				worktreePath: "/worktrees/POL-1-fix",
+				status: "in_progress" as const,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			(deps.loadJiraSubtasks as ReturnType<typeof vi.fn>).mockResolvedValue({ "sub-with-tree": subtask });
+			(deps.addWorkspace as ReturnType<typeof vi.fn>).mockResolvedValue("ws-id-1");
+			(deps.startTaskSession as ReturnType<typeof vi.fn>).mockResolvedValue({ started: true });
+			fsMocks.access.mockResolvedValueOnce(undefined);
+			const api = createJiraApi(deps);
+			const result = await api.startSubtaskSession("sub-with-tree");
+			expect(result.started).toBe(true);
+			expect(result.workspaceId).toBe("ws-id-1");
+			expect(result.openUrl).toBeUndefined();
+		});
+
+		it("returns openUrl when subtask has prUrl and no accessible worktreePath", async () => {
+			const deps = createMockDeps();
+			const subtask = {
+				id: "pr-sub",
+				jiraKey: "POL-1",
+				repoId: "repo",
+				repoPath: "",
+				prompt: "",
+				title: "t",
+				baseRef: "main",
+				branchName: "POL-1-fix",
+				worktreePath: "",
+				status: "review" as const,
+				prUrl: "https://github.com/a/b/pull/42",
+				prNumber: 42,
+				isDraft: false,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			(deps.loadJiraSubtasks as ReturnType<typeof vi.fn>).mockResolvedValue({ "pr-sub": subtask });
+			const api = createJiraApi(deps);
+			const result = await api.startSubtaskSession("pr-sub");
+			expect(result.openUrl).toBe("https://github.com/a/b/pull/42");
+			expect(result.started).toBe(false);
+			expect(result.workspaceId).toBe("");
+			expect(deps.startTaskSession).not.toHaveBeenCalled();
+		});
+
+		it("throws when subtask has no worktreePath and no prUrl", async () => {
+			const deps = createMockDeps();
+			const subtask = {
+				id: "no-tree-no-pr",
+				jiraKey: "POL-1",
+				repoId: "repo",
+				repoPath: "",
+				prompt: "",
+				title: "t",
+				baseRef: "main",
+				branchName: "POL-1-fix",
+				worktreePath: "",
+				status: "backlog" as const,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			(deps.loadJiraSubtasks as ReturnType<typeof vi.fn>).mockResolvedValue({ "no-tree-no-pr": subtask });
+			const api = createJiraApi(deps);
+			await expect(api.startSubtaskSession("no-tree-no-pr")).rejects.toThrow(/no worktree path and no PR URL/i);
 		});
 	});
 });
