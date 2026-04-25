@@ -3,6 +3,10 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 07:51 | Background prefetch Jira card details after board load; ensureDetail dedup; error+retry UI | use-jira-board.ts, jira-card-detail-view.tsx, App.tsx, test files | 18 tests pass, tsc clean | ~1800 |
+| 12:44 | Task 5: update startSubtaskSession for openUrl fallback; add vi.mock with importOriginal for node:fs/promises | src/trpc/jira-api.ts, test/runtime/trpc/jira-api.test.ts | 365 tests pass, committed 651fba0 | ~800 |
+| 12:35 | Task 4: Rewrote scanAndAttachPRs to create JiraSubtask records instead of JiraPrLink records; removed prLink deps from interface; updated runtime-server.ts; 21 tests pass | src/trpc/jira-api.ts, test/runtime/trpc/jira-api.test.ts, src/server/runtime-server.ts | committed, all checks pass | ~2200 |
+| 11:57 | Smooth expand/collapse for description in JiraCardDetailView — max-height transition 0.3s | jira-card-detail-view.tsx | visual change only | ~100 |
+| 11:53 | Make Jira card detail sidebar scrollable when description expanded | jira-card-detail-view.tsx | wrapped header+body in min-h-0 flex-1 overflow-y-auto div | ~150 |
 
 | session | Task 1 TDD: added 3 tests (skip Done new, remove Done existing, rename Ready-to-Deploy test), confirmed 3 failures, implemented `mappedStatus !== "done"` guards in importFromJira, all 12 tests pass | src/trpc/jira-api.ts, test/runtime/trpc/jira-api.test.ts | commit adb08c1 | ~900 |
 | session | Jira Done-card cleanup (4 tasks): server skips/removes Done cards; client strips on load+sync; 60s auto-delete timer + deleteCard; UI renames Done→Trash with strikethrough+delete button. 359/359 tests pass. | src/trpc/jira-api.ts, web-ui/src/hooks/use-jira-board.ts, web-ui/src/components/jira-board.tsx + tests | commits adb08c1,5232e1c,31181bf,15d4b6f | ~5000 |
@@ -1029,3 +1033,86 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+
+## Session: 2026-04-25 11:43
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:48 | Created ../../../.claude/plans/jira-task-details-need-snazzy-cherny.md | — | ~2236 |
+| 11:49 | Created web-ui/src/components/markdown-text.tsx | — | ~489 |
+| 11:49 | Edited web-ui/src/components/jira-card-detail-view.tsx | 2→2 lines | ~39 |
+| 11:49 | Edited web-ui/src/components/jira-card-detail-view.tsx | added 1 import(s) | ~42 |
+| 11:49 | Edited web-ui/src/components/jira-card-detail-view.tsx | 2→5 lines | ~97 |
+| 11:49 | Edited web-ui/src/components/jira-card-detail-view.tsx | added optional chaining | ~126 |
+| 11:49 | Edited web-ui/src/components/jira-card-detail-view.tsx | fetchIssue() → setIsDescriptionExpanded() | ~305 |
+| 11:49 | Session end: 7 writes across 3 files (jira-task-details-need-snazzy-cherny.md, markdown-text.tsx, jira-card-detail-view.tsx) | 11 reads | ~38552 tok |
+
+## Session: 2026-04-25 11:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:50 | Edited web-ui/src/App.tsx | inline fix | ~22 |
+| 11:50 | Session end: 1 writes across 1 files (App.tsx) | 2 reads | ~13830 tok |
+
+## Session: 2026-04-25 11:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:52 | Edited web-ui/src/components/jira-card-detail-view.tsx | modified return() | ~393 |
+| 11:52 | Edited web-ui/src/components/jira-card-detail-view.tsx | 5→6 lines | ~21 |
+| 11:53 | Session end: 2 writes across 1 files (jira-card-detail-view.tsx) | 1 reads | ~2725 tok |
+
+## Session: 2026-04-25 11:55
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:57 | Edited web-ui/src/components/jira-card-detail-view.tsx | 5→5 lines | ~52 |
+| 11:57 | Edited web-ui/src/components/jira-card-detail-view.tsx | added optional chaining | ~108 |
+| 11:57 | Session end: 2 writes across 1 files (jira-card-detail-view.tsx) | 1 reads | ~2516 tok |
+
+## Session: 2026-04-25 11:58
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:07 | Created docs/superpowers/specs/2026-04-25-pr-as-subtask-design.md | — | ~1327 |
+| 12:07 | Edited docs/superpowers/specs/2026-04-25-pr-as-subtask-design.md | 1→3 lines | ~83 |
+| 12:07 | Session end: 2 writes across 1 files (2026-04-25-pr-as-subtask-design.md) | 5 reads | ~7104 tok |
+| 12:16 | Created docs/superpowers/plans/2026-04-25-pr-as-subtask.md | — | ~13811 |
+| 12:17 | Edited docs/superpowers/plans/2026-04-25-pr-as-subtask.md | 3→3 lines | ~43 |
+| 12:17 | Edited docs/superpowers/plans/2026-04-25-pr-as-subtask.md | expanded (+11 lines) | ~443 |
+| 12:17 | Edited docs/superpowers/plans/2026-04-25-pr-as-subtask.md | 3→5 lines | ~60 |
+| 12:17 | Session end: 6 writes across 2 files (2026-04-25-pr-as-subtask-design.md, 2026-04-25-pr-as-subtask.md) | 12 reads | ~56067 tok |
+| 12:21 | Edited test/runtime/jira/jira-pr-scan.test.ts | 16→18 lines | ~130 |
+| 12:21 | Edited test/runtime/jira/jira-pr-scan.test.ts | added optional chaining | ~227 |
+| 12:21 | Edited src/jira/jira-pr-scan.ts | 7→8 lines | ~47 |
+| 12:21 | Edited src/jira/jira-pr-scan.ts | modified search() | ~103 |
+| 12:23 | Edited test/runtime/jira/jira-pr-links.test.ts | 13→14 lines | ~101 |
+| 12:23 | Edited test/runtime/jira/jira-pr-links.test.ts | 15→16 lines | ~113 |
+| 12:23 | Edited test/runtime/jira/jira-pr-links.test.ts | 26→28 lines | ~194 |
+| 12:23 | Edited test/runtime/jira/jira-pr-links.test.ts | 16→17 lines | ~125 |
+| 12:26 | Edited src/jira/jira-board-state.ts | 14→17 lines | ~172 |
+| 12:28 | Edited src/core/api-contract.ts | 15→18 lines | ~142 |
+| 12:28 | Edited src/core/api-contract.ts | reduced (-12 lines) | ~96 |
+| 12:28 | Edited src/core/api-contract.ts | 6→5 lines | ~62 |
+| 12:28 | Edited src/core/api-contract.ts | 6→7 lines | ~76 |
+| 12:33 | Created test/runtime/trpc/jira-api.test.ts | — | ~4325 |
+| 12:34 | Created src/trpc/jira-api.ts | — | ~3204 |
+| 12:34 | Edited src/server/runtime-server.ts | — | ~0 |
+| 12:34 | Edited src/server/runtime-server.ts | 5→2 lines | ~16 |
+| 12:35 | Edited test/runtime/trpc/jira-api.test.ts | expanded (+9 lines) | ~74 |
+| 12:35 | Edited test/runtime/trpc/jira-api.test.ts | expanded (+9 lines) | ~73 |
+
+## Session: 2026-04-25 12:39
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:40 | Edited test/runtime/trpc/jira-api.test.ts | modified createMockDeps() | ~99 |
+| 12:41 | Edited test/runtime/trpc/jira-api.test.ts | expanded (+78 lines) | ~853 |
+| 12:41 | Edited test/runtime/trpc/jira-api.test.ts | 6→7 lines | ~74 |
+| 12:41 | Edited src/trpc/jira-api.ts | added 1 import(s) | ~44 |
+| 12:41 | Edited src/trpc/jira-api.ts | added error handling | ~347 |
+| 12:43 | Edited test/runtime/trpc/jira-api.test.ts | 3→3 lines | ~17 |
+| 12:46 | Edited test/runtime/trpc/jira-api.test.ts | "returns openUrl when subt" → "returns openUrl when subt" | ~24 |
+| 12:47 | Edited test/runtime/trpc/jira-api.test.ts | expanded (+28 lines) | ~304 |
+| 12:47 | Edited src/trpc/jira-api.ts | 3→2 lines | ~6 |
+| 12:47 | Edited src/trpc/jira-api.ts | 2→1 lines | ~4 |

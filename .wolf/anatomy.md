@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-25T04:37:16.780Z
-> Files: 489 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-25T05:47:39.281Z
+> Files: 494 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
 
@@ -16,6 +16,7 @@
 - `i-got-zippy-allen.md` — Fix: Jira MCP import hits `Reached maximum number of turns (5)` (~1628 tok)
 - `i-see-jira-for-shimmying-lovelace.md` — Fix inconsistent gaps in Jira & Repos settings fields (~435 tok)
 - `jira-task-details-need-peppy-corbato.md` — Jira Task Details Polish (~1311 tok)
+- `jira-task-details-need-snazzy-cherny.md` — Jira Task Details: Snazzier Display (~2096 tok)
 - `statusline-should-always-been-wobbly-donut.md` — Make JIRA sync statusline globally visible (~1505 tok)
 
 ## ../../../.claude/projects/-Users-andriepu-Workspace--private-kanban/memory/
@@ -277,6 +278,7 @@
 - `2026-04-24-jira-full-sync.md` — Jira Full-Status Sync — Implementation Plan (~9641 tok)
 - `2026-04-24-remove-onboarding.md` — Remove "Get Started" Onboarding Implementation Plan (~2890 tok)
 - `2026-04-24-repos-root-sync.md` — Repos Root Sync & Agent Repo Visibility — Implementation Plan (~6794 tok)
+- `2026-04-25-pr-as-subtask.md` — PR-as-Subtask Unification — Implementation Plan (~13023 tok)
 
 ## docs/superpowers/specs/
 
@@ -285,6 +287,7 @@
 - `2026-04-24-remove-onboarding-design.md` — Remove "Get Started" Onboarding — Design Spec (~549 tok)
 - `2026-04-24-repos-root-sync-design.md` — Repos Root Sync & Agent Repo Visibility — Design Spec (~750 tok)
 - `2026-04-24-repos-root-sync-design.md` — Repos Root Sync & Agent Repo Visibility — Design Spec (~1286 tok)
+- `2026-04-25-pr-as-subtask-design.md` — PR-as-Subtask Unification — Design Spec (~1292 tok)
 
 ## grit/
 
@@ -337,7 +340,7 @@
 ## src/core/
 
 - `agent-catalog.ts` — Exports RuntimeAgentCatalogEntry, RUNTIME_AGENT_CATALOG, RUNTIME_LAUNCH_SUPPORTED_AGENT_IDS, isRuntimeAgentLaunchSupported + 2 more (~350 tok)
-- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceCha (~10842 tok)
+- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceCha (~10778 tok)
 - `api-validation.ts` — API routes: GET (6 endpoints) (~3242 tok)
 - `git-process-env.ts` — Exports createGitProcessEnv (~173 tok)
 - `graceful-shutdown.ts` — Exports HandledShutdownSignal, GracefulShutdownProcess, getExitCodeForSignal, shouldSuppressImmediateDuplicateShutdownSignals, installGracefulShutd... (~1807 tok)
@@ -356,8 +359,8 @@
 
 ## src/jira/
 
-- `jira-board-state.ts` — Exports JiraCard, JiraBoard, JiraSubtask, loadJiraBoard, saveJiraBoard, loadJiraSubtasks, createJiraSubtask, deleteJiraSubtask. Atomic JSON persistence to ~/.kanban/kanban/jira-board.json and jira-subtasks.json via lockedFileSystem. Multi-file locking for create/delete subtask operations. (~500 tok)
-- `jira-pr-scan.ts` — Lists open GitHub pull requests authored by the current user via the `gh` CLI. (~547 tok)
+- `jira-board-state.ts` — Exports JiraCard, JiraBoard, JiraSubtask, loadJiraBoard + 4 more (~1678 tok)
+- `jira-pr-scan.ts` — Lists open GitHub pull requests authored by the current user via the `gh` CLI. (~557 tok)
 - `jira-rest.ts` — Exports JiraRestCredentials, JiraIssueRaw, JiraRestAuthError, searchJiraIssuesViaRest + 2 more (~1839 tok)
 - `jira-worktree.ts` — Exports RepoInfo, deriveSubtaskBranchName, buildSubtaskWorktreePath, scanReposInRoot, createSubtaskWorktree, removeSubtaskWorktree. Git worktree operations and repo scanning for Jira subtasks. (~350 tok)
 
@@ -378,7 +381,7 @@
 - `browser.ts` — Exports openInBrowser (~270 tok)
 - `directory-picker.ts` — Exports pickDirectoryPathFromSystemDialog (~1345 tok)
 - `process-termination.ts` — Exports terminateProcessForTimeout (~252 tok)
-- `runtime-server.ts` — API routes: GET (1 endpoints) (~4103 tok)
+- `runtime-server.ts` — API routes: GET (1 endpoints) (~4166 tok)
 - `runtime-state-hub.ts` — Streams live runtime state to browser clients over websocket. (~4867 tok)
 - `shell.ts` (~19 tok)
 - `shutdown-coordinator.ts` — Exports RuntimeShutdownCoordinatorDependencies, shutdownRuntimeServer (~2010 tok)
@@ -414,7 +417,7 @@
 
 - `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. (~6368 tok)
 - `hooks-api.ts` — Exports CreateHooksApiDependencies, createHooksApi (~1298 tok)
-- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~2191 tok)
+- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~3348 tok)
 - `projects-api.ts` — Exports CreateProjectsApiDependencies, createProjectsApi (~3936 tok)
 - `runtime-api.ts` — Coordinates the runtime-side TRPC handlers used by the browser. Supports customCwd. (~3800 tok)
 - `workspace-api.ts` — Exports CreateWorkspaceApiDependencies, createWorkspaceApi (~3436 tok)
@@ -483,7 +486,8 @@
 ## test/runtime/jira/
 
 - `jira-board-state.test.ts` — Tests for loadJiraBoard, saveJiraBoard, loadJiraSubtasks, createJiraSubtask, deleteJiraSubtask. Uses temp HOME override for isolation. (~350 tok)
-- `jira-pr-scan.test.ts` — childProcessMocks: graphqlResponse (~968 tok)
+- `jira-pr-links.test.ts` — We override HOME so lockedFileSystem writes to a temp dir (~1976 tok)
+- `jira-pr-scan.test.ts` — childProcessMocks: graphqlResponse (~1078 tok)
 - `jira-rest.test.ts` — CREDS: makeSearchFetch (~1997 tok)
 - `jira-worktree.test.ts` — Tests for deriveSubtaskBranchName, buildSubtaskWorktreePath, scanReposInRoot. Uses injected readdir/access mocks. (~200 tok)
 
@@ -510,7 +514,7 @@
 ## test/runtime/trpc/
 
 - `hooks-api.test.ts` — Declares createSummary (~1268 tok)
-- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~2344 tok)
+- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~5444 tok)
 - `projects-api.test.ts` — actual: createTestCwd, createDefaultDeps (~4896 tok)
 - `runtime-api.test.ts` — agentRegistryMocks: createSummary, createRuntimeConfigState (~2718 tok)
 - `workspace-api.test.ts` — workspaceTaskWorktreeMocks: createSummary, createChangesResponse (~1748 tok)
@@ -553,7 +557,7 @@
 
 ## web-ui/src/
 
-- `App.tsx` — Main React composition root for the browser app. (~11094 tok)
+- `App.tsx` — Main React composition root for the browser app. (~10862 tok)
 - `main.tsx` — _savedTheme (~441 tok)
 - `vite-env.d.ts` — / <reference types="vite/client" /> (~66 tok)
 
@@ -576,9 +580,10 @@
 - `inline-completion-picker.tsx` — InlineCompletionPicker — uses useRef, useCallback, useEffect (~1125 tok)
 - `jira-board.test.tsx` — mockJiraBoard (~1275 tok)
 - `jira-board.tsx` — COLUMNS (~1411 tok)
-- `jira-card-detail-view.tsx` — pure consumer; reads details/ensureDetail from props; SUBTASK_STATUS_COLORS (~1900 tok)
+- `jira-card-detail-view.tsx` — SUBTASK_STATUS_COLORS (~2356 tok)
 - `kanban-board.test.tsx` — dndMock — uses useEffect (~1704 tok)
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
+- `markdown-text.tsx` — MarkdownText (~489 tok)
 - `open-workspace-button.tsx` — OpenTargetIcon — uses useState (~891 tok)
 - `project-navigation-panel.test.tsx` — Wrapper that owns the sidebar layout state via the hook and passes it as props. (~2217 tok)
 - `project-navigation-panel.tsx` — COLLAPSED_WIDTH (~6730 tok)

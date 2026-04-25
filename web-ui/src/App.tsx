@@ -81,7 +81,7 @@ export default function App(): ReactElement {
 	const [canPersistWorkspaceState, setCanPersistWorkspaceState] = useState(false);
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [settingsInitialSection, setSettingsInitialSection] = useState<RuntimeSettingsSection | null>(null);
-	const [sidebarTab, setSidebarTab] = useState<"task" | "project">("project");
+	const [sidebarTab, setSidebarTab] = useState<"task" | "project">("task");
 	const [selectedJiraKey, setSelectedJiraKey] = useState<string | null>(null);
 	const [isClearTrashDialogOpen, setIsClearTrashDialogOpen] = useState(false);
 	const [isGitHistoryOpen, setIsGitHistoryOpen] = useState(false);
