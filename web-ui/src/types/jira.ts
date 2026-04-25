@@ -25,6 +25,9 @@ export interface JiraSubtask {
 	branchName: string;
 	worktreePath: string;
 	status: JiraSubtaskStatus;
+	prUrl?: string;
+	prNumber?: number;
+	isDraft?: boolean;
 	createdAt: number;
 	updatedAt: number;
 }
@@ -32,15 +35,4 @@ export interface JiraSubtask {
 export interface RepoOption {
 	id: string;
 	path: string;
-}
-
-export interface JiraPrLink {
-	id: string;
-	jiraKey: string;
-	prUrl: string;
-	prNumber: number;
-	title: string;
-	repoName: string;
-	headRefName: string;
-	addedAt: number;
 }
