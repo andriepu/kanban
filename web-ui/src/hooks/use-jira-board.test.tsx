@@ -60,7 +60,7 @@ describe("useJiraBoard", () => {
 		mockSaveBoard.mockResolvedValue({ board: { cards: [] } });
 		mockImportFromJira.mockResolvedValue({ imported: 2, skipped: 0, board: { cards: [] } });
 		mockTransitionIssue.mockResolvedValue({ ok: true });
-		mockScanAndAttachPRs.mockResolvedValue({ attached: 0, skipped: 0, prLinks: {} });
+		mockScanAndAttachPRs.mockResolvedValue({ attached: 0, skipped: 0, subtasks: {} });
 
 		previousActEnvironment = (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
 			.IS_REACT_ACT_ENVIRONMENT;
@@ -381,54 +381,26 @@ describe("useJiraBoard", () => {
 		expect(mockScanAndAttachPRs).toHaveBeenCalledOnce(); // still only once
 	});
 
-	it("exposes prLinks from board load", async () => {
-		const mockPrLinks = {
-			"POL-1": [
-				{
-					id: "l-1",
-					jiraKey: "POL-1",
-					prUrl: "https://github.com/a/b/pull/1",
-					prNumber: 1,
-					title: "Fix",
-					repoName: "a/b",
-					headRefName: "fix",
-					addedAt: 1,
-				},
-			],
+	it("scanPRs updates subtasks and clears prScanning", async () => {
+		const mergedSubtasks = {
+			"sub-1": {
+				id: "sub-1",
+				jiraKey: "POL-2",
+				repoId: "repo-1",
+				repoPath: "/repos/a",
+				prompt: "fix",
+				title: "Fix POL-2",
+				baseRef: "main",
+				branchName: "POL-2",
+				worktreePath: "/wt/POL-2",
+				status: "in_progress" as const,
+				prUrl: "https://github.com/a/b/pull/2",
+				prNumber: 2,
+				createdAt: 1,
+				updatedAt: 2,
+			},
 		};
-		mockLoadBoard.mockResolvedValue({ board: { cards: [] }, subtasks: {}, prLinks: mockPrLinks });
-		// auto-scan fires after load; make it return the same links so they aren't overwritten
-		mockScanAndAttachPRs.mockResolvedValue({ attached: 0, skipped: 0, prLinks: mockPrLinks });
-		let snapshot: UseJiraBoardResult | undefined;
-		await act(async () => {
-			root.render(
-				React.createElement(HookHarness, {
-					onSnapshot: (s) => {
-						snapshot = s;
-					},
-				}),
-			);
-			await flushPromises();
-		});
-		expect(snapshot?.prLinks).toEqual(mockPrLinks);
-	});
-
-	it("scanPRs updates prLinks and clears prScanning", async () => {
-		const mergedLinks = {
-			"POL-2": [
-				{
-					id: "l-2",
-					jiraKey: "POL-2",
-					prUrl: "https://github.com/a/b/pull/2",
-					prNumber: 2,
-					title: "POL-2",
-					repoName: "a/b",
-					headRefName: "POL-2",
-					addedAt: 2,
-				},
-			],
-		};
-		mockScanAndAttachPRs.mockResolvedValue({ attached: 1, skipped: 0, prLinks: mergedLinks });
+		mockScanAndAttachPRs.mockResolvedValue({ attached: 1, skipped: 0, subtasks: mergedSubtasks });
 		let snapshot: UseJiraBoardResult | undefined;
 		await act(async () => {
 			root.render(
@@ -444,7 +416,7 @@ describe("useJiraBoard", () => {
 			await snapshot?.scanPRs();
 			await flushPromises();
 		});
-		expect(snapshot?.prLinks).toEqual(mergedLinks);
+		expect(snapshot?.subtasks).toEqual(mergedSubtasks);
 		expect(snapshot?.prScanning).toBe(false);
 	});
 

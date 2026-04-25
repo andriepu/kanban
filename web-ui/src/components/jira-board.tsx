@@ -19,7 +19,7 @@ interface JiraBoardViewProps {
 }
 
 export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraBoardViewProps): React.ReactElement {
-	const { board, isLoading, isImporting, moveCard, deleteCard, scanPRs, prScanning, prLinks } = jiraBoard;
+	const { board, subtasks, isLoading, isImporting, moveCard, deleteCard, scanPRs, prScanning } = jiraBoard;
 
 	if (isLoading) {
 		return <div className="flex h-full flex-1 items-center justify-center text-text-secondary text-sm">Loading…</div>;
@@ -48,7 +48,12 @@ export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraB
 							label={col.label}
 							cards={cards}
 							subtaskCounts={Object.fromEntries(cards.map((c) => [c.jiraKey, c.subtaskIds.length]))}
-							prCounts={Object.fromEntries(cards.map((c) => [c.jiraKey, prLinks[c.jiraKey]?.length ?? 0]))}
+							prCounts={Object.fromEntries(
+								cards.map((c) => [
+									c.jiraKey,
+									c.subtaskIds.filter((id) => subtasks[id]?.prUrl !== undefined).length,
+								]),
+							)}
 							selectedJiraKey={selectedJiraKey}
 							onCardClick={onCardClick}
 							onDrop={(jiraKey) => moveCard(jiraKey, col.id)}

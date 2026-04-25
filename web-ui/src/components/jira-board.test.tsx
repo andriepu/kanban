@@ -47,7 +47,6 @@ const mockJiraBoard: UseJiraBoardResult = {
 	moveCard: vi.fn(),
 	deleteCard: vi.fn(),
 	refetch: vi.fn(),
-	prLinks: {},
 	scanPRs: vi.fn().mockResolvedValue(undefined),
 	prScanning: false,
 };
