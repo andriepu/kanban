@@ -22,6 +22,7 @@ const SAMPLE_PRS: GhPullRequest[] = [
 		title: "Fix POL-123 login bug",
 		url: "https://github.com/org/repo/pull/42",
 		headRefName: "feature/pol-123-login-fix",
+		isDraft: false,
 		repository: { nameWithOwner: "org/repo" },
 	},
 	{
@@ -29,6 +30,7 @@ const SAMPLE_PRS: GhPullRequest[] = [
 		title: "POL-456 add dashboard",
 		url: "https://github.com/org/repo/pull/57",
 		headRefName: "feature/pol-456-dashboard",
+		isDraft: true,
 		repository: { nameWithOwner: "org/repo" },
 	},
 ];
@@ -109,5 +111,17 @@ describe("listOpenAuthoredGhPullRequests", () => {
 			["api", "graphql", "-f", `query=${GH_PR_GRAPHQL_QUERY}`],
 			expect.objectContaining({ encoding: "utf8" }),
 		);
+	});
+
+	it("preserves isDraft field from GraphQL response", async () => {
+		childProcessMocks.execFilePromise.mockResolvedValueOnce({
+			stdout: JSON.stringify(graphqlResponse(SAMPLE_PRS)),
+			stderr: "",
+		});
+
+		const result = await listOpenAuthoredGhPullRequests();
+
+		expect(result[0]?.isDraft).toBe(false);
+		expect(result[1]?.isDraft).toBe(true);
 	});
 });

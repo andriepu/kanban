@@ -8,6 +8,7 @@ export interface GhPullRequest {
 	title: string;
 	url: string;
 	headRefName: string;
+	isDraft: boolean;
 	repository: { nameWithOwner: string };
 }
 
@@ -20,6 +21,7 @@ export const GH_PR_GRAPHQL_QUERY = `{
         title
         url
         headRefName
+        isDraft
         repository {
           nameWithOwner
         }

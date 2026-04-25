@@ -92,6 +92,7 @@ describe("mergeScannedPrLinks", () => {
 					url: "https://github.com/org/repo/pull/10",
 					headRefName: "POL-1-my-pr",
 					repository: { nameWithOwner: "org/repo" },
+					isDraft: false,
 				},
 			},
 		]);
@@ -132,6 +133,7 @@ describe("mergeScannedPrLinks", () => {
 					url: "https://github.com/org/repo/pull/10",
 					headRefName: "POL-1-my-pr",
 					repository: { nameWithOwner: "org/repo" },
+					isDraft: false,
 				},
 			},
 		]);
@@ -162,6 +164,7 @@ describe("mergeScannedPrLinks", () => {
 					url: "https://github.com/org/repo/pull/10",
 					headRefName: "POL-1-my-pr",
 					repository: { nameWithOwner: "org/repo" },
+					isDraft: false,
 				},
 			},
 			{
@@ -172,6 +175,7 @@ describe("mergeScannedPrLinks", () => {
 					url: "https://github.com/org/repo/pull/20",
 					headRefName: "POL-2-second-pr",
 					repository: { nameWithOwner: "org/repo" },
+					isDraft: false,
 				},
 			},
 		]);
@@ -233,6 +237,7 @@ describe("mergeScannedPrLinks", () => {
 					url: "https://github.com/org/repo/pull/1",
 					headRefName: "POL-1-a",
 					repository: { nameWithOwner: "org/repo" },
+					isDraft: false,
 				},
 			},
 		]);
