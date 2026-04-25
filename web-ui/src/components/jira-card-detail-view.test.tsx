@@ -2,7 +2,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { JiraBoard, JiraPrLink, JiraSubtask } from "@/types/jira";
+import type { JiraBoard, JiraSubtask } from "@/types/jira";
 import { JiraCardDetailView } from "./jira-card-detail-view";
 
 const mockFetchIssue = vi.hoisted(() => vi.fn());
@@ -29,7 +29,7 @@ vi.mock("@/components/subtask-create-dialog", () => ({
 	SubtaskCreateDialog: () => null,
 }));
 
-const baseBoard: JiraBoard = {
+const _baseBoard: JiraBoard = {
 	cards: [
 		{
 			jiraKey: "POL-1",
@@ -42,7 +42,7 @@ const baseBoard: JiraBoard = {
 	],
 };
 
-const baseSubtasks: Record<string, JiraSubtask> = {};
+const _baseSubtasks: Record<string, JiraSubtask> = {};
 
 describe("JiraCardDetailView", () => {
 	let container: HTMLDivElement;
@@ -75,78 +75,96 @@ describe("JiraCardDetailView", () => {
 		}
 	});
 
-	it("renders PR list when prLinks has entries for the card key", async () => {
-		const prLinks: Record<string, JiraPrLink[]> = {
-			"POL-1": [
+	it("renders subtask title when subtask has a prUrl (PR-backed)", async () => {
+		const board: JiraBoard = {
+			cards: [
 				{
-					id: "pr-1",
 					jiraKey: "POL-1",
-					prUrl: "https://github.com/org/repo/pull/42",
-					prNumber: 42,
-					title: "feat: add login fix",
-					repoName: "org/repo",
-					headRefName: "feature/login-fix",
-					addedAt: 1,
+					summary: "Fix login",
+					status: "todo",
+					subtaskIds: ["sub-1"],
+					createdAt: 1,
+					updatedAt: 1,
 				},
 			],
+		};
+		const subtasks: Record<string, JiraSubtask> = {
+			"sub-1": {
+				id: "sub-1",
+				jiraKey: "POL-1",
+				repoId: "org/repo",
+				repoPath: "/path/to/repo",
+				prompt: "Fix login",
+				title: "feat: add login fix",
+				baseRef: "main",
+				branchName: "feature/login-fix",
+				worktreePath: "/worktrees/sub-1",
+				status: "review",
+				prUrl: "https://github.com/org/repo/pull/42",
+				prNumber: 42,
+				createdAt: 1,
+				updatedAt: 1,
+			},
 		};
 
 		await act(async () => {
 			root.render(
-				<JiraCardDetailView
-					jiraKey="POL-1"
-					board={baseBoard}
-					subtasks={baseSubtasks}
-					prLinks={prLinks}
-					onSubtaskCreated={vi.fn()}
-				/>,
+				<JiraCardDetailView jiraKey="POL-1" board={board} subtasks={subtasks} onSubtaskCreated={vi.fn()} />,
 			);
 		});
 
 		expect(container.textContent).toContain("feat: add login fix");
-		const prButton = container.querySelector('[aria-label="Open PR: feat: add login fix"]');
-		expect(prButton).not.toBeNull();
+		// PR-backed subtask should show GitPullRequest icon (svg) instead of status text
+		const subtaskButtons = container.querySelectorAll('button[type="button"]');
+		const subtaskButton = Array.from(subtaskButtons).find((btn) => btn.textContent?.includes("feat: add login fix"));
+		expect(subtaskButton).not.toBeNull();
+		// The button should contain an svg (GitPullRequest icon) rather than the raw status text
+		expect(subtaskButton?.querySelector("svg")).not.toBeNull();
 	});
 
-	it("clicking a PR row opens the URL in a new tab", async () => {
-		const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
-
-		const prLinks: Record<string, JiraPrLink[]> = {
-			"POL-1": [
+	it("renders status text for subtasks without a prUrl", async () => {
+		const board: JiraBoard = {
+			cards: [
 				{
-					id: "pr-2",
 					jiraKey: "POL-1",
-					prUrl: "https://github.com/org/repo/pull/99",
-					prNumber: 99,
-					title: "fix: dashboard crash",
-					repoName: "org/repo",
-					headRefName: "fix/dashboard",
-					addedAt: 1,
+					summary: "Fix login",
+					status: "todo",
+					subtaskIds: ["sub-2"],
+					createdAt: 1,
+					updatedAt: 1,
 				},
 			],
+		};
+		const subtasks: Record<string, JiraSubtask> = {
+			"sub-2": {
+				id: "sub-2",
+				jiraKey: "POL-1",
+				repoId: "org/repo",
+				repoPath: "/path/to/repo",
+				prompt: "Fix dashboard",
+				title: "fix: dashboard crash",
+				baseRef: "main",
+				branchName: "fix/dashboard",
+				worktreePath: "/worktrees/sub-2",
+				status: "in_progress",
+				createdAt: 1,
+				updatedAt: 1,
+			},
 		};
 
 		await act(async () => {
 			root.render(
-				<JiraCardDetailView
-					jiraKey="POL-1"
-					board={baseBoard}
-					subtasks={baseSubtasks}
-					prLinks={prLinks}
-					onSubtaskCreated={vi.fn()}
-				/>,
+				<JiraCardDetailView jiraKey="POL-1" board={board} subtasks={subtasks} onSubtaskCreated={vi.fn()} />,
 			);
 		});
 
-		const prButton = container.querySelector('[aria-label="Open PR: fix: dashboard crash"]') as HTMLElement | null;
-		expect(prButton).not.toBeNull();
-
-		await act(async () => {
-			prButton?.click();
-		});
-
-		expect(openSpy).toHaveBeenCalledWith("https://github.com/org/repo/pull/99", "_blank", "noopener,noreferrer");
-
-		openSpy.mockRestore();
+		expect(container.textContent).toContain("fix: dashboard crash");
+		// Non-PR subtask shows status text, not an icon
+		expect(container.textContent).toContain("in_progress");
+		const subtaskButtons = container.querySelectorAll('button[type="button"]');
+		const subtaskButton = Array.from(subtaskButtons).find((btn) => btn.textContent?.includes("fix: dashboard crash"));
+		expect(subtaskButton).not.toBeNull();
+		// No svg icon — status text rendered instead
+		expect(subtaskButton?.querySelector("svg")).toBeNull();
 	});
 });

@@ -8,7 +8,7 @@ import { cn } from "@/components/ui/cn";
 import { Spinner } from "@/components/ui/spinner";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
-import type { JiraBoard, JiraPrLink, JiraSubtask } from "@/types/jira";
+import type { JiraBoard, JiraSubtask } from "@/types/jira";
 
 interface IssueData {
 	jiraKey: string;
@@ -20,7 +20,6 @@ interface JiraCardDetailViewProps {
 	jiraKey: string;
 	board: JiraBoard;
 	subtasks: Record<string, JiraSubtask>;
-	prLinks: Record<string, JiraPrLink[]>;
 	onSubtaskCreated: () => void;
 }
 
@@ -35,7 +34,6 @@ export function JiraCardDetailView({
 	jiraKey,
 	board,
 	subtasks,
-	prLinks,
 	onSubtaskCreated,
 }: JiraCardDetailViewProps): React.ReactElement {
 	const trpc = getRuntimeTrpcClient(null);
@@ -53,7 +51,6 @@ export function JiraCardDetailView({
 
 	const card = board.cards.find((c) => c.jiraKey === jiraKey);
 	const cardSubtasks = (card?.subtaskIds ?? []).map((id) => subtasks[id]).filter((s): s is JiraSubtask => Boolean(s));
-	const cardPrLinks = prLinks[jiraKey] ?? [];
 
 	const fetchIssue = useCallback(async () => {
 		setIsLoadingIssue(true);
@@ -98,7 +95,12 @@ export function JiraCardDetailView({
 			setIsStartingSession(true);
 			try {
 				const result = await trpc.jira.startSubtaskSession.mutate({ subtaskId: subtask.id });
-				setActiveSession({ subtaskId: subtask.id, workspaceId: result.workspaceId });
+				if (result.openUrl) {
+					window.open(result.openUrl, "_blank", "noopener,noreferrer");
+					setSelectedSubtaskId(null);
+				} else {
+					setActiveSession({ subtaskId: subtask.id, workspaceId: result.workspaceId });
+				}
 			} finally {
 				setIsStartingSession(false);
 			}
@@ -154,34 +156,6 @@ export function JiraCardDetailView({
 				</div>
 
 				<div className="flex flex-col gap-1 p-3">
-					{cardPrLinks.length > 0 && (
-						<div className="mb-3">
-							<div className="mb-1 flex items-center justify-between">
-								<span className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
-									Pull Requests
-								</span>
-							</div>
-							{cardPrLinks.map((pr) => (
-								<button
-									key={pr.id}
-									type="button"
-									aria-label={`Open PR: ${pr.title}`}
-									onClick={() => window.open(pr.prUrl, "_blank", "noopener,noreferrer")}
-									className="group flex w-full items-start gap-2 rounded-md px-3 py-2 text-left transition-colors hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border-focus"
-								>
-									<GitPullRequest size={14} className="mt-0.5 shrink-0 text-status-purple" />
-									<div className="flex flex-col gap-0.5 min-w-0">
-										<span className="truncate text-sm text-text-primary group-hover:text-accent">
-											{pr.title}
-										</span>
-										<span className="truncate text-xs text-text-tertiary">
-											{pr.repoName} · {pr.headRefName}
-										</span>
-									</div>
-								</button>
-							))}
-						</div>
-					)}
 					<div className="mb-1 flex items-center justify-between">
 						<span className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">Subtasks</span>
 					</div>
@@ -199,10 +173,16 @@ export function JiraCardDetailView({
 								selectedSubtaskId === subtask.id && "bg-surface-2",
 							)}
 						>
-							<span className={cn("shrink-0 text-xs font-medium", SUBTASK_STATUS_COLORS[subtask.status])}>
-								{subtask.status}
+							{subtask.prUrl ? (
+								<GitPullRequest size={14} className={cn("shrink-0", SUBTASK_STATUS_COLORS[subtask.status])} />
+							) : (
+								<span className={cn("shrink-0 text-xs font-medium", SUBTASK_STATUS_COLORS[subtask.status])}>
+									{subtask.status}
+								</span>
+							)}
+							<span className="flex-1 truncate text-sm text-text-primary">
+								{subtask.title || subtask.repoId}
 							</span>
-							<span className="flex-1 truncate text-sm text-text-primary">{subtask.repoId}</span>
 							<span className="truncate font-mono text-xs text-text-tertiary">{subtask.branchName}</span>
 						</button>
 					))}
