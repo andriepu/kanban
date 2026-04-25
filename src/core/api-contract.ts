@@ -934,6 +934,9 @@ export const jiraSubtaskSchema = z.object({
 	branchName: z.string(),
 	worktreePath: z.string(),
 	status: jiraSubtaskStatusSchema,
+	prUrl: z.string().optional(),
+	prNumber: z.number().optional(),
+	isDraft: z.boolean().optional(),
 	createdAt: z.number(),
 	updatedAt: z.number(),
 });
@@ -941,29 +944,16 @@ export type RuntimeJiraSubtask = z.infer<typeof jiraSubtaskSchema>;
 
 // ── Jira API request/response schemas ──────────────────────────────────────
 
-export const jiraPrLinkSchema = z.object({
-	id: z.string(),
-	jiraKey: z.string(),
-	prUrl: z.string(),
-	prNumber: z.number(),
-	title: z.string(),
-	repoName: z.string(),
-	headRefName: z.string(),
-	addedAt: z.number(),
-});
-export type RuntimeJiraPrLink = z.infer<typeof jiraPrLinkSchema>;
-
 export const jiraScanAndAttachPrsResponseSchema = z.object({
 	attached: z.number(),
 	skipped: z.number(),
-	prLinks: z.record(z.string(), z.array(jiraPrLinkSchema)),
+	subtasks: z.record(z.string(), jiraSubtaskSchema),
 });
 export type JiraScanAndAttachPrsResponse = z.infer<typeof jiraScanAndAttachPrsResponseSchema>;
 
 export const jiraBoardLoadResponseSchema = z.object({
 	board: jiraBoardSchema,
 	subtasks: z.record(z.string(), jiraSubtaskSchema),
-	prLinks: z.record(z.string(), z.array(jiraPrLinkSchema)),
 });
 export type JiraBoardLoadResponse = z.infer<typeof jiraBoardLoadResponseSchema>;
 
@@ -1010,6 +1000,7 @@ export const jiraSubtaskSessionStartResponseSchema = z.object({
 	started: z.boolean(),
 	workspacePath: z.string(),
 	workspaceId: z.string(),
+	openUrl: z.string().optional(),
 });
 
 export const jiraSubtaskSessionStopRequestSchema = z.object({ subtaskId: z.string(), workspacePath: z.string() });
