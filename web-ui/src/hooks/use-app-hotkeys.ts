@@ -8,14 +8,10 @@ function isEventInsideDialog(target: EventTarget | null): boolean {
 
 interface UseAppHotkeysInput {
 	selectedCard: CardSelection | null;
-	isDetailTerminalOpen: boolean;
-	isHomeTerminalOpen: boolean;
 	isHomeGitHistoryOpen: boolean;
 	canUseCreateTaskShortcut: boolean;
 	handleToggleDetailTerminal: () => void;
 	handleToggleHomeTerminal: () => void;
-	handleToggleExpandDetailTerminal: () => void;
-	handleToggleExpandHomeTerminal: () => void;
 	handleOpenCreateTask: () => void;
 	handleOpenSettings: () => void;
 	handleToggleGitHistory: () => void;
@@ -25,14 +21,10 @@ interface UseAppHotkeysInput {
 
 export function useAppHotkeys({
 	selectedCard,
-	isDetailTerminalOpen,
-	isHomeTerminalOpen,
 	isHomeGitHistoryOpen,
 	canUseCreateTaskShortcut,
 	handleToggleDetailTerminal,
 	handleToggleHomeTerminal,
-	handleToggleExpandDetailTerminal,
-	handleToggleExpandHomeTerminal,
 	handleOpenCreateTask,
 	handleOpenSettings,
 	handleToggleGitHistory,
@@ -65,33 +57,6 @@ export function useAppHotkeys({
 			preventDefault: true,
 		},
 		[onStartAllTasks],
-	);
-
-	useHotkeys(
-		"mod+m",
-		() => {
-			if (selectedCard) {
-				if (isDetailTerminalOpen) {
-					handleToggleExpandDetailTerminal();
-				}
-				return;
-			}
-			if (isHomeTerminalOpen) {
-				handleToggleExpandHomeTerminal();
-			}
-		},
-		{
-			enableOnFormTags: true,
-			enableOnContentEditable: true,
-			preventDefault: true,
-		},
-		[
-			handleToggleExpandDetailTerminal,
-			handleToggleExpandHomeTerminal,
-			isDetailTerminalOpen,
-			isHomeTerminalOpen,
-			selectedCard,
-		],
 	);
 
 	useHotkeys(

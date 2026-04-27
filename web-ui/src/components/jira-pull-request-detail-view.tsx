@@ -1,11 +1,10 @@
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { ArrowLeft } from "lucide-react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AgentTerminalPanel } from "@/components/detail-panels/agent-terminal-panel";
+import { useCallback, useRef, useState } from "react";
+import { PullRequestTerminalPanel } from "@/components/detail-panels/pull-request-terminal-panel";
 import { JiraPullRequestDetailSidebar } from "@/components/jira-pull-request-detail-sidebar";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { clampBetween } from "@/resize/resize-persistence";
 import {
 	loadResizePreference,
@@ -13,10 +12,7 @@ import {
 	type ResizeNumberPreference,
 } from "@/resize/resize-preferences";
 import { useResizeDrag } from "@/resize/use-resize-drag";
-import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
-import type { RuntimeTaskSessionSummary } from "@/runtime/types";
 import { LocalStorageKey } from "@/storage/local-storage-store";
-import { useTerminalThemeColors } from "@/terminal/theme-colors";
 import type { JiraPullRequest } from "@/types/jira";
 
 const SIDEBAR_RATIO_PREFERENCE: ResizeNumberPreference = {
@@ -34,46 +30,22 @@ export function JiraPullRequestDetailView({
 	pullRequest,
 	onClose,
 }: JiraPullRequestDetailViewProps): React.ReactElement {
-	const trpc = getRuntimeTrpcClient(null);
-	const terminalThemeColors = useTerminalThemeColors();
-
-	const [activeSession, setActiveSession] = useState<{ workspaceId: string } | null>(null);
-	const [isStartingSession, setIsStartingSession] = useState(false);
-	const [sessionError, setSessionError] = useState<string | null>(null);
-	const [sessionSummary, setSessionSummary] = useState<RuntimeTaskSessionSummary | null>(null);
 	const [sidebarRatio, setSidebarRatioState] = useState(() => loadResizePreference(SIDEBAR_RATIO_PREFERENCE));
 
 	const containerRef = useRef<HTMLDivElement>(null);
 	const { startDrag } = useResizeDrag();
 
-	useEffect(() => {
-		setIsStartingSession(true);
-		setActiveSession(null);
-		setSessionError(null);
-		setSessionSummary(null);
-		trpc.jira.startPullRequestSession
-			.mutate({ pullRequestId: pullRequest.id })
-			.then((result) => {
-				if (result.openUrl) {
-					window.open(result.openUrl, "_blank", "noopener,noreferrer");
-					onClose();
-				} else if (result.workspaceId) {
-					setActiveSession({ workspaceId: result.workspaceId });
-				} else {
-					setSessionError("Session not available — no workspace or PR URL was returned.");
-				}
-			})
-			.catch((err: unknown) => {
-				setSessionError(err instanceof Error ? err.message : "Failed to start session.");
-			})
-			.finally(() => {
-				setIsStartingSession(false);
-			});
-	}, [pullRequest.id, trpc, onClose]);
-
 	const setSidebarRatio = useCallback((ratio: number) => {
 		setSidebarRatioState(persistResizePreference(SIDEBAR_RATIO_PREFERENCE, ratio));
 	}, []);
+
+	const handleOpenExternalUrl = useCallback(
+		(url: string) => {
+			window.open(url, "_blank", "noopener,noreferrer");
+			onClose();
+		},
+		[onClose],
+	);
 
 	const handleDividerMouseDown = useCallback(
 		(e: ReactMouseEvent) => {
@@ -136,37 +108,11 @@ export function JiraPullRequestDetailView({
 
 						{/* Terminal */}
 						<div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-surface-1">
-							{isStartingSession ? (
-								<div className="flex h-full items-center justify-center">
-									<Spinner size={20} />
-								</div>
-							) : sessionError ? (
-								<div className="flex h-full items-center justify-center p-6">
-									<p className="max-w-sm text-center text-sm text-status-red">{sessionError}</p>
-								</div>
-							) : activeSession ? (
-								<div
-									style={{
-										display: "flex",
-										flex: "1 1 0",
-										minWidth: 0,
-										paddingLeft: 12,
-										paddingRight: 12,
-									}}
-								>
-									<AgentTerminalPanel
-										taskId={pullRequest.id}
-										workspaceId={activeSession.workspaceId}
-										summary={sessionSummary}
-										onSummary={setSessionSummary}
-										showSessionToolbar={false}
-										showMoveToTrash={false}
-										panelBackgroundColor="var(--color-surface-1)"
-										terminalBackgroundColor={terminalThemeColors.surfaceRaised}
-										cursorColor={terminalThemeColors.textPrimary}
-									/>
-								</div>
-							) : null}
+							<PullRequestTerminalPanel
+								pullRequestId={pullRequest.id}
+								baseRef={pullRequest.baseRef}
+								onOpenExternalUrl={handleOpenExternalUrl}
+							/>
 						</div>
 					</div>
 				</RadixDialog.Content>

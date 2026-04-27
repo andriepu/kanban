@@ -6,9 +6,9 @@ import {
 	readOptionalPersistedResizeNumber,
 	writePersistedResizeNumber,
 } from "@/resize/resize-persistence";
-import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import type { RuntimeGitRepositoryInfo, RuntimeTaskSessionSummary } from "@/runtime/types";
 import { LocalStorageKey, removeLocalStorageItem } from "@/storage/local-storage-store";
+import { startShellTerminalSession } from "@/terminal/shell-session-flow";
 import { getTerminalGeometry, prepareWaitForTerminalGeometry } from "@/terminal/terminal-geometry-registry";
 import type { SendTerminalInputOptions } from "@/terminal/terminal-input";
 import type { BoardCard, CardSelection } from "@/types";
@@ -19,7 +19,6 @@ const DETAIL_TERMINAL_TASK_PREFIX = "__detail_terminal__:";
 const APPROX_TERMINAL_CELL_WIDTH_PX = 8;
 const MIN_TERMINAL_COLS = 40;
 const MIN_BOTTOM_TERMINAL_PANE_HEIGHT = 200;
-const EXPANDED_TERMINAL_PANE_HEIGHT = 99999;
 
 function estimateShellTerminalCols(): number {
 	if (typeof window === "undefined") {
@@ -82,12 +81,10 @@ interface PrepareTerminalForShortcutResult {
 }
 
 interface DetailTerminalPanelState {
-	isExpanded: boolean;
 	isOpen: boolean;
 }
 
 const DEFAULT_DETAIL_TERMINAL_PANEL_STATE: DetailTerminalPanelState = {
-	isExpanded: false,
 	isOpen: false,
 };
 
@@ -101,12 +98,8 @@ export interface UseTerminalPanelsResult {
 	detailTerminalTaskId: string | null;
 	isDetailTerminalStarting: boolean;
 	detailTerminalPaneHeight: number | undefined;
-	isHomeTerminalExpanded: boolean;
-	isDetailTerminalExpanded: boolean;
 	setHomeTerminalPaneHeight: (height: number | undefined) => void;
 	setDetailTerminalPaneHeight: (height: number | undefined) => void;
-	handleToggleExpandHomeTerminal: () => void;
-	handleToggleExpandDetailTerminal: () => void;
 	openHomeTerminal: () => void;
 	handleToggleHomeTerminal: () => void;
 	handleToggleDetailTerminal: () => void;
@@ -141,17 +134,13 @@ export function useTerminalPanels({
 		Record<string, DetailTerminalPanelState>
 	>({});
 	const [isDetailTerminalStarting, setIsDetailTerminalStarting] = useState(false);
-	const [isHomeTerminalExpanded, setIsHomeTerminalExpanded] = useState(false);
 	const detailTerminalTaskId = selectedCard ? getDetailTerminalTaskId(selectedCard.card.id) : null;
 	const currentDetailTerminalPanelState = detailTerminalTaskId
 		? (detailTerminalPanelStateByTaskId[detailTerminalTaskId] ?? DEFAULT_DETAIL_TERMINAL_PANEL_STATE)
 		: DEFAULT_DETAIL_TERMINAL_PANEL_STATE;
 	const isDetailTerminalOpen = currentDetailTerminalPanelState.isOpen;
-	const isDetailTerminalExpanded = currentDetailTerminalPanelState.isExpanded;
-	const homeTerminalPaneHeight = isHomeTerminalExpanded ? EXPANDED_TERMINAL_PANE_HEIGHT : lastBottomTerminalPaneHeight;
-	const detailTerminalPaneHeight = isDetailTerminalExpanded
-		? EXPANDED_TERMINAL_PANE_HEIGHT
-		: lastBottomTerminalPaneHeight;
+	const homeTerminalPaneHeight = lastBottomTerminalPaneHeight;
+	const detailTerminalPaneHeight = lastBottomTerminalPaneHeight;
 
 	const updateDetailTerminalPanelState = useCallback(
 		(taskId: string, updater: (previous: DetailTerminalPanelState) => DetailTerminalPanelState) => {
@@ -182,23 +171,10 @@ export function useTerminalPanels({
 
 	const resetBottomTerminalLayoutCustomizations = useCallback(() => {
 		resetBottomTerminalPaneHeight();
-		setIsHomeTerminalExpanded(false);
-		setDetailTerminalPanelStateByTaskId((previous) =>
-			Object.fromEntries(
-				Object.entries(previous).map(([taskId, panelState]) => [
-					taskId,
-					{
-						...panelState,
-						isExpanded: false,
-					},
-				]),
-			),
-		);
 	}, [resetBottomTerminalPaneHeight]);
 
 	const closeHomeTerminal = useCallback(() => {
 		setIsHomeTerminalOpen(false);
-		setIsHomeTerminalExpanded(false);
 		homeTerminalRepoIdRef.current = null;
 	}, []);
 
@@ -221,37 +197,17 @@ export function useTerminalPanels({
 
 	const setHomeTerminalPaneHeight = useCallback(
 		(height: number | undefined) => {
-			if (isHomeTerminalExpanded) {
-				return;
-			}
 			persistBottomTerminalPaneHeight(height);
 		},
-		[isHomeTerminalExpanded, persistBottomTerminalPaneHeight],
+		[persistBottomTerminalPaneHeight],
 	);
 
 	const setDetailTerminalPaneHeight = useCallback(
 		(height: number | undefined) => {
-			if (isDetailTerminalExpanded) {
-				return;
-			}
 			persistBottomTerminalPaneHeight(height);
 		},
-		[isDetailTerminalExpanded, persistBottomTerminalPaneHeight],
+		[persistBottomTerminalPaneHeight],
 	);
-
-	const handleToggleExpandHomeTerminal = useCallback(() => {
-		setIsHomeTerminalExpanded((previous) => !previous);
-	}, []);
-
-	const handleToggleExpandDetailTerminal = useCallback(() => {
-		if (!detailTerminalTaskId) {
-			return;
-		}
-		updateDetailTerminalPanelState(detailTerminalTaskId, (previous) => ({
-			...previous,
-			isExpanded: !previous.isExpanded,
-		}));
-	}, [detailTerminalTaskId, updateDetailTerminalPanelState]);
 
 	const startHomeTerminalSession = useCallback(async (): Promise<boolean> => {
 		if (!currentRepoId) {
@@ -260,8 +216,8 @@ export function useTerminalPanels({
 		setIsHomeTerminalStarting(true);
 		try {
 			const geometry = await resolveShellTerminalGeometry(HOME_TERMINAL_TASK_ID);
-			const trpcClient = getRuntimeTrpcClient(currentRepoId);
-			const payload = await trpcClient.runtime.startShellSession.mutate({
+			const payload = await startShellTerminalSession({
+				workspaceId: currentRepoId,
 				taskId: HOME_TERMINAL_TASK_ID,
 				cols: geometry.cols,
 				rows: geometry.rows,
@@ -316,8 +272,8 @@ export function useTerminalPanels({
 			try {
 				const targetTaskId = getDetailTerminalTaskId(card.id);
 				const geometry = await resolveShellTerminalGeometry(targetTaskId);
-				const trpcClient = getRuntimeTrpcClient(currentRepoId);
-				const payload = await trpcClient.runtime.startShellSession.mutate({
+				const payload = await startShellTerminalSession({
+					workspaceId: currentRepoId,
 					taskId: targetTaskId,
 					cols: geometry.cols,
 					rows: geometry.rows,
@@ -508,12 +464,8 @@ export function useTerminalPanels({
 		detailTerminalTaskId,
 		isDetailTerminalStarting,
 		detailTerminalPaneHeight,
-		isHomeTerminalExpanded,
-		isDetailTerminalExpanded,
 		setHomeTerminalPaneHeight,
 		setDetailTerminalPaneHeight,
-		handleToggleExpandHomeTerminal,
-		handleToggleExpandDetailTerminal,
 		openHomeTerminal,
 		handleToggleHomeTerminal,
 		handleToggleDetailTerminal,

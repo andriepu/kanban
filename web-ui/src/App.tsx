@@ -372,12 +372,8 @@ export default function App(): ReactElement {
 		detailTerminalTaskId,
 		isDetailTerminalStarting,
 		detailTerminalPaneHeight,
-		isHomeTerminalExpanded,
-		isDetailTerminalExpanded,
 		setHomeTerminalPaneHeight,
 		setDetailTerminalPaneHeight,
-		handleToggleExpandHomeTerminal,
-		handleToggleExpandDetailTerminal,
 		openHomeTerminal,
 		handleToggleHomeTerminal,
 		handleToggleDetailTerminal,
@@ -617,14 +613,10 @@ export default function App(): ReactElement {
 
 	useAppHotkeys({
 		selectedCard,
-		isDetailTerminalOpen,
-		isHomeTerminalOpen: showHomeBottomTerminal,
 		isHomeGitHistoryOpen: !selectedCard && isGitHistoryOpen,
 		canUseCreateTaskShortcut: !hasNoRepos && currentRepoId !== null,
 		handleToggleDetailTerminal,
 		handleToggleHomeTerminal,
-		handleToggleExpandDetailTerminal,
-		handleToggleExpandHomeTerminal: handleToggleExpandHomeTerminal,
 		handleOpenCreateTask,
 		handleOpenSettings,
 		handleToggleGitHistory,
@@ -947,7 +939,6 @@ export default function App(): ReactElement {
 											initialHeight={homeTerminalPaneHeight}
 											onHeightChange={setHomeTerminalPaneHeight}
 											onCollapse={collapseHomeTerminal}
-											isExpanded={isHomeTerminalExpanded}
 										>
 											<div
 												style={{
@@ -976,8 +967,6 @@ export default function App(): ReactElement {
 													onConnectionReady={markTerminalConnectionReady}
 													agentCommand={agentCommand}
 													onSendAgentCommand={handleSendAgentCommandToHomeTerminal}
-													isExpanded={isHomeTerminalExpanded}
-													onToggleExpand={handleToggleExpandHomeTerminal}
 												/>
 											</div>
 										</ResizableBottomPane>
@@ -1044,8 +1033,6 @@ export default function App(): ReactElement {
 									onBottomTerminalConnectionReady={markTerminalConnectionReady}
 									bottomTerminalAgentCommand={agentCommand}
 									onBottomTerminalSendAgentCommand={handleSendAgentCommandToDetailTerminal}
-									isBottomTerminalExpanded={isDetailTerminalExpanded}
-									onBottomTerminalToggleExpand={handleToggleExpandDetailTerminal}
 									isDocumentVisible={isDocumentVisible}
 								/>
 							</div>

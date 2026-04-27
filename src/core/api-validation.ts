@@ -312,6 +312,10 @@ export function parseShellSessionStartRequest(value: unknown): RuntimeShellSessi
 		throw new Error("Invalid shell session workspaceTaskId.");
 	}
 	const workspaceTaskId = parsed.workspaceTaskId?.trim() || undefined;
+	if (parsed.customCwd !== undefined && !parsed.customCwd.trim()) {
+		throw new Error("Invalid shell session customCwd.");
+	}
+	const customCwd = parsed.customCwd?.trim() || undefined;
 	const baseRef = parsed.baseRef.trim();
 	if (!baseRef) {
 		throw new Error("Shell session baseRef cannot be empty.");
@@ -320,6 +324,7 @@ export function parseShellSessionStartRequest(value: unknown): RuntimeShellSessi
 		...parsed,
 		taskId,
 		workspaceTaskId,
+		customCwd,
 		baseRef,
 	};
 }

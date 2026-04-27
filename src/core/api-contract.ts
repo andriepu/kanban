@@ -738,6 +738,7 @@ export const runtimeShellSessionStartRequestSchema = z.object({
 	cols: z.number().int().positive().optional(),
 	rows: z.number().int().positive().optional(),
 	workspaceTaskId: z.string().optional(),
+	customCwd: z.string().optional(),
 	baseRef: z.string(),
 });
 export type RuntimeShellSessionStartRequest = z.infer<typeof runtimeShellSessionStartRequestSchema>;
@@ -1004,6 +1005,7 @@ export const jiraPullRequestSessionStartResponseSchema = z.object({
 	started: z.boolean(),
 	workspacePath: z.string(),
 	workspaceId: z.string(),
+	worktreePath: z.string().optional(),
 	openUrl: z.string().optional(),
 });
 

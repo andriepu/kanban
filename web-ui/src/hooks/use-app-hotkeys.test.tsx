@@ -52,14 +52,10 @@ describe("useAppHotkeys", () => {
 			root.render(
 				<HookHarness
 					selectedCard={null}
-					isDetailTerminalOpen={false}
-					isHomeTerminalOpen={false}
 					isHomeGitHistoryOpen={false}
 					canUseCreateTaskShortcut
 					handleToggleDetailTerminal={() => {}}
 					handleToggleHomeTerminal={() => {}}
-					handleToggleExpandDetailTerminal={() => {}}
-					handleToggleExpandHomeTerminal={() => {}}
 					handleOpenCreateTask={() => {}}
 					handleOpenSettings={handleOpenSettings}
 					handleToggleGitHistory={handleToggleGitHistory}
@@ -96,14 +92,10 @@ describe("useAppHotkeys", () => {
 			root.render(
 				<HookHarness
 					selectedCard={null}
-					isDetailTerminalOpen={false}
-					isHomeTerminalOpen={false}
 					isHomeGitHistoryOpen
 					canUseCreateTaskShortcut
 					handleToggleDetailTerminal={() => {}}
 					handleToggleHomeTerminal={() => {}}
-					handleToggleExpandDetailTerminal={() => {}}
-					handleToggleExpandHomeTerminal={() => {}}
 					handleOpenCreateTask={() => {}}
 					handleOpenSettings={() => {}}
 					handleToggleGitHistory={() => {}}
@@ -133,14 +125,10 @@ describe("useAppHotkeys", () => {
 			root.render(
 				<HookHarness
 					selectedCard={null}
-					isDetailTerminalOpen={false}
-					isHomeTerminalOpen={false}
 					isHomeGitHistoryOpen={false}
 					canUseCreateTaskShortcut
 					handleToggleDetailTerminal={() => {}}
 					handleToggleHomeTerminal={() => {}}
-					handleToggleExpandDetailTerminal={() => {}}
-					handleToggleExpandHomeTerminal={() => {}}
 					handleOpenCreateTask={() => {}}
 					handleOpenSettings={() => {}}
 					handleToggleGitHistory={() => {}}
@@ -170,14 +158,10 @@ describe("useAppHotkeys", () => {
 			root.render(
 				<HookHarness
 					selectedCard={null}
-					isDetailTerminalOpen={false}
-					isHomeTerminalOpen={false}
 					isHomeGitHistoryOpen={false}
 					canUseCreateTaskShortcut={false}
 					handleToggleDetailTerminal={() => {}}
 					handleToggleHomeTerminal={() => {}}
-					handleToggleExpandDetailTerminal={() => {}}
-					handleToggleExpandHomeTerminal={() => {}}
 					handleOpenCreateTask={handleOpenCreateTask}
 					handleOpenSettings={() => {}}
 					handleToggleGitHistory={() => {}}

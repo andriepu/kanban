@@ -707,13 +707,14 @@ describe("jira-api", () => {
 			};
 			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "sub-with-tree": pullRequest });
 			(deps.addWorkspace as ReturnType<typeof vi.fn>).mockResolvedValue("ws-id-1");
-			(deps.startTaskSession as ReturnType<typeof vi.fn>).mockResolvedValue({ started: true });
 			fsMocks.access.mockResolvedValueOnce(undefined);
 			const api = createJiraApi(deps);
 			const result = await api.startPullRequestSession("sub-with-tree");
 			expect(result.started).toBe(true);
 			expect(result.workspaceId).toBe("ws-id-1");
+			expect(result.worktreePath).toBe("/worktrees/POL-1-fix");
 			expect(result.openUrl).toBeUndefined();
+			expect(deps.startTaskSession).not.toHaveBeenCalled();
 		});
 
 		it("returns openUrl when pullRequest has prUrl and no worktreePath set", async () => {
@@ -939,7 +940,6 @@ describe("jira-api", () => {
 				worktreePath: "/work/POL-2/myrepo__POL-2-feature",
 			});
 			(deps.addWorkspace as ReturnType<typeof vi.fn>).mockResolvedValue("ws-auto");
-			(deps.startTaskSession as ReturnType<typeof vi.fn>).mockResolvedValue({ started: true });
 			fsMocks.access.mockRejectedValueOnce(new Error("ENOENT"));
 			const api = createJiraApi(deps);
 			const result = await api.startPullRequestSession("auto-sub");
@@ -947,7 +947,9 @@ describe("jira-api", () => {
 				expect.objectContaining({ repoPath: "/repos/myrepo", branchName: "POL-2-feature" }),
 			);
 			expect(result.started).toBe(true);
+			expect(result.worktreePath).toBe("/work/POL-2/myrepo__POL-2-feature");
 			expect(result.openUrl).toBeUndefined();
+			expect(deps.startTaskSession).not.toHaveBeenCalled();
 		});
 
 		it("falls back to openUrl when repoPath is empty (no local repo)", async () => {

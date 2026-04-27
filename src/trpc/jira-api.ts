@@ -234,9 +234,13 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			return { body: detail.body, threads: unresolvedThreads };
 		},
 
-		async startPullRequestSession(
-			pullRequestId: string,
-		): Promise<{ started: boolean; workspacePath: string; workspaceId: string; openUrl?: string }> {
+		async startPullRequestSession(pullRequestId: string): Promise<{
+			started: boolean;
+			workspacePath: string;
+			workspaceId: string;
+			worktreePath?: string;
+			openUrl?: string;
+		}> {
 			const pullRequests = await deps.loadJiraPullRequests();
 			const pullRequest = pullRequests[pullRequestId];
 			if (!pullRequest) throw new Error(`Pull request ${pullRequestId} not found`);
@@ -250,15 +254,14 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 
 				if (worktreeAccessible) {
 					const workspaceId = await deps.addWorkspace(pullRequest.repoPath);
-					const result = await deps.startTaskSession(
-						pullRequest.repoPath,
-						pullRequest.id,
-						pullRequest.prompt,
-						pullRequest.worktreePath,
-					);
 					pullRequests[pullRequestId] = { ...pullRequest, status: "in_progress", updatedAt: Date.now() };
 					await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
-					return { started: result.started, workspacePath: pullRequest.repoPath, workspaceId };
+					return {
+						started: true,
+						workspacePath: pullRequest.repoPath,
+						workspaceId,
+						worktreePath: pullRequest.worktreePath,
+					};
 				}
 			}
 
@@ -288,15 +291,14 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 						await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
 
 						const workspaceId = await deps.addWorkspace(updatedPr.repoPath);
-						const result = await deps.startTaskSession(
-							updatedPr.repoPath,
-							updatedPr.id,
-							updatedPr.prompt,
-							resolvedWorktreePath,
-						);
 						pullRequests[pullRequestId] = { ...updatedPr, status: "in_progress", updatedAt: Date.now() };
 						await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
-						return { started: result.started, workspacePath: updatedPr.repoPath, workspaceId };
+						return {
+							started: true,
+							workspacePath: updatedPr.repoPath,
+							workspaceId,
+							worktreePath: resolvedWorktreePath,
+						};
 					} catch {
 						// auto-create failed; fall through to openUrl / error below
 					}

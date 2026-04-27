@@ -1,6 +1,6 @@
 import "@xterm/xterm/css/xterm.css";
 
-import { Command, Maximize2, MessageSquare, Minimize2, X } from "lucide-react";
+import { MessageSquare, X } from "lucide-react";
 import type { MutableRefObject, ReactElement } from "react";
 import { useMemo } from "react";
 
@@ -10,7 +10,6 @@ import { Tooltip } from "@/components/ui/tooltip";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
 import { useTaskWorkspaceSnapshotValue } from "@/stores/workspace-metadata-store";
 import { usePersistentTerminalSession } from "@/terminal/use-persistent-terminal-session";
-import { isMacPlatform } from "@/utils/platform";
 
 interface AgentTerminalSessionControls {
 	clearTerminal: () => void;
@@ -49,8 +48,6 @@ export interface AgentTerminalPanelProps {
 	onConnectionReady?: (taskId: string) => void;
 	agentCommand?: string | null;
 	onSendAgentCommand?: () => void;
-	isExpanded?: boolean;
-	onToggleExpand?: () => void;
 }
 
 function describeState(summary: RuntimeTaskSessionSummary | null): string {
@@ -169,8 +166,6 @@ function AgentTerminalPanelLayout({
 	onConnectionReady: _onConnectionReady,
 	agentCommand,
 	onSendAgentCommand,
-	isExpanded = false,
-	onToggleExpand,
 	sessionControls,
 }: AgentTerminalPanelProps & { sessionControls: AgentTerminalSessionControls }): ReactElement {
 	const { containerRef, lastError, isStopping, clearTerminal, stopTerminal } = sessionControls;
@@ -265,31 +260,6 @@ function AgentTerminalPanelLayout({
 									size="sm"
 									onClick={onSendAgentCommand}
 									aria-label={`Run ${agentLabel}`}
-								/>
-							</Tooltip>
-						) : null}
-						{onToggleExpand ? (
-							<Tooltip
-								side="top"
-								content={
-									<span style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
-										<span>{isExpanded ? "Collapse" : "Expand"}</span>
-										<span
-											style={{ display: "inline-flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }}
-										>
-											<span>(</span>
-											{isMacPlatform ? <Command size={11} /> : <span style={{ fontSize: 11 }}>Ctrl</span>}
-											<span>+ M)</span>
-										</span>
-									</span>
-								}
-							>
-								<Button
-									icon={isExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-									variant="ghost"
-									size="sm"
-									onClick={onToggleExpand}
-									aria-label={isExpanded ? "Collapse terminal" : "Expand terminal"}
 								/>
 							</Tooltip>
 						) : null}

@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-27T13:42:20.240Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-27T22:32:16.839Z
 > Files: 642 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
@@ -671,7 +671,7 @@
 
 - `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. (~6483 tok)
 - `hooks-api.ts` — Exports CreateHooksApiDependencies, createHooksApi (~1298 tok)
-- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~4653 tok)
+- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~4604 tok)
 - `projects-api.ts` — Exports CreateProjectsApiDependencies, createProjectsApi (~3949 tok)
 - `runtime-api.ts` — Coordinates the runtime-side TRPC handlers used by the browser. (~3797 tok)
 - `workspace-api.ts` — Exports CreateWorkspaceApiDependencies, createWorkspaceApi (~3436 tok)
@@ -836,7 +836,7 @@
 - `jira-board.tsx` — COLUMNS (~1808 tok)
 - `jira-card-detail-view.test.tsx` — mockScanPRs (~3024 tok)
 - `jira-card-detail-view.tsx` — PULL_REQUEST_STATUS_COLORS (~1635 tok)
-- `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1762 tok)
+- `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1147 tok)
 - `kanban-board.test.tsx` — dndMock — uses useEffect (~1704 tok)
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
 - `markdown-text.tsx` — MarkdownText (~489 tok)
@@ -972,7 +972,7 @@
 - `use-task-start-actions.test.ts` — createCard: createBoard (~616 tok)
 - `use-task-start-actions.ts` — Exports UseTaskStartActionsResult, getStartableBacklogTaskIds, useTaskStartActions (~1488 tok)
 - `use-terminal-panels.test.tsx` — startShellSessionMutateMock — uses useEffect (~3403 tok)
-- `use-terminal-panels.ts` — Exports getDetailTerminalTaskId, UseTerminalPanelsResult, useTerminalPanels (~5108 tok)
+- `use-terminal-panels.ts` — Exports getDetailTerminalTaskId, UseTerminalPanelsResult, useTerminalPanels (~4697 tok)
 - `use-theme.ts` — Primary accent color shown in the theme swatch. (~2822 tok)
 - `use-workspace-sync.test.tsx` — fetchWorkspaceStateMock — uses useState, useEffect (~2779 tok)
 - `use-workspace-sync.ts` — Exports useWorkspaceSync (~2023 tok)

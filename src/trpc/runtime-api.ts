@@ -340,14 +340,16 @@ export function createRuntimeApi(deps: CreateRuntimeApiDependencies): RuntimeTrp
 				const body = parseShellSessionStartRequest(input);
 				const terminalManager = await deps.getScopedTerminalManager(workspaceScope);
 				const shell = deps.resolveInteractiveShellCommand();
-				const shellCwd = body.workspaceTaskId
-					? await resolveTaskCwd({
-							cwd: workspaceScope.workspacePath,
-							taskId: body.workspaceTaskId,
-							baseRef: body.baseRef,
-							ensure: true,
-						})
-					: workspaceScope.workspacePath;
+				const shellCwd = body.customCwd
+					? body.customCwd
+					: body.workspaceTaskId
+						? await resolveTaskCwd({
+								cwd: workspaceScope.workspacePath,
+								taskId: body.workspaceTaskId,
+								baseRef: body.baseRef,
+								ensure: true,
+							})
+						: workspaceScope.workspacePath;
 				const summary = await terminalManager.startShellSession({
 					taskId: body.taskId,
 					cwd: shellCwd,

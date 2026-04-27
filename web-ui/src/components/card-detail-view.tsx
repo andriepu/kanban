@@ -134,8 +134,6 @@ function BottomTerminalSection({
 	paneHeight,
 	onPaneHeightChange,
 	onCollapse,
-	isExpanded,
-	onToggleExpand,
 }: {
 	taskId: string;
 	workspaceId: string | null;
@@ -151,8 +149,6 @@ function BottomTerminalSection({
 	paneHeight?: number;
 	onPaneHeightChange?: (height: number) => void;
 	onCollapse?: () => void;
-	isExpanded?: boolean;
-	onToggleExpand?: () => void;
 }): React.ReactElement {
 	return (
 		<ResizableBottomPane
@@ -160,7 +156,6 @@ function BottomTerminalSection({
 			initialHeight={paneHeight}
 			onHeightChange={onPaneHeightChange}
 			onCollapse={onCollapse}
-			isExpanded={isExpanded}
 		>
 			<div className="flex min-w-0 flex-1 px-3">
 				<AgentTerminalPanel
@@ -180,8 +175,6 @@ function BottomTerminalSection({
 					onConnectionReady={onConnectionReady}
 					agentCommand={agentCommand}
 					onSendAgentCommand={onSendAgentCommand}
-					isExpanded={isExpanded}
-					onToggleExpand={onToggleExpand}
 				/>
 			</div>
 		</ResizableBottomPane>
@@ -381,8 +374,6 @@ export function CardDetailView({
 	onBottomTerminalConnectionReady,
 	bottomTerminalAgentCommand,
 	onBottomTerminalSendAgentCommand,
-	isBottomTerminalExpanded,
-	onBottomTerminalToggleExpand,
 	isDocumentVisible = true,
 }: {
 	selection: CardSelection;
@@ -432,8 +423,6 @@ export function CardDetailView({
 	onBottomTerminalConnectionReady?: (taskId: string) => void;
 	bottomTerminalAgentCommand?: string | null;
 	onBottomTerminalSendAgentCommand?: () => void;
-	isBottomTerminalExpanded?: boolean;
-	onBottomTerminalToggleExpand?: () => void;
 	isDocumentVisible?: boolean;
 }): React.ReactElement {
 	const isMobile = useIsMobile();
@@ -739,8 +728,6 @@ export function CardDetailView({
 								paneHeight={bottomTerminalPaneHeight}
 								onPaneHeightChange={onBottomTerminalPaneHeightChange}
 								onCollapse={onBottomTerminalCollapse}
-								isExpanded={isBottomTerminalExpanded}
-								onToggleExpand={onBottomTerminalToggleExpand}
 							/>
 						</div>
 					) : null}
@@ -889,8 +876,6 @@ export function CardDetailView({
 								paneHeight={bottomTerminalPaneHeight}
 								onPaneHeightChange={onBottomTerminalPaneHeightChange}
 								onCollapse={onBottomTerminalCollapse}
-								isExpanded={isBottomTerminalExpanded}
-								onToggleExpand={onBottomTerminalToggleExpand}
 							/>
 						) : null}
 					</>
