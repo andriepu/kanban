@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-23T16:02:00.264Z",
   "lifetime": {
-    "total_tokens_estimated": 4171499,
-    "total_reads": 1267,
-    "total_writes": 1021,
-    "total_sessions": 161,
-    "anatomy_hits": 1134,
-    "anatomy_misses": 124,
-    "repeated_reads_blocked": 936,
-    "estimated_savings_vs_bare_cli": 5733091
+    "total_tokens_estimated": 4305014,
+    "total_reads": 1304,
+    "total_writes": 1066,
+    "total_sessions": 163,
+    "anatomy_hits": 1168,
+    "anatomy_misses": 127,
+    "repeated_reads_blocked": 977,
+    "estimated_savings_vs_bare_cli": 6108765
   },
   "sessions": [
     {
@@ -15400,6 +15400,538 @@
         "writes_count": 1,
         "repeated_reads_blocked": 4,
         "anatomy_lookups": 7
+      }
+    },
+    {
+      "id": "session-2026-04-27-1811",
+      "started": "2026-04-27T11:11:52.370Z",
+      "ended": "2026-04-27T11:16:21.040Z",
+      "reads": [
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/src/core/api-contract.ts",
+          "tokens_estimated": 10968,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/.claude/projects/-Users-andriepu-Workspace--private-kanban/07a1c29c-38eb-45cf-8d98-a73075fce528/tool-results/bln3eqa99.txt",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/detail-panels/agent-terminal-panel.tsx",
+          "tokens_estimated": 3049,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-card-detail-view.tsx",
+          "tokens_estimated": 2120,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/resize/use-card-detail-layout.ts",
+          "tokens_estimated": 1228,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/resize/use-resize-drag.ts",
+          "tokens_estimated": 715,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/storage/local-storage-store.ts",
+          "tokens_estimated": 833,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 11036,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/markdown-text.tsx",
+          "tokens_estimated": 489,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/src/trpc/jira-api.ts",
+          "tokens_estimated": 4064,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/types/jira.ts",
+          "tokens_estimated": 124,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/storage/local-storage-store.ts",
+          "tokens_estimated": 44,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-sidebar.tsx",
+          "tokens_estimated": 895,
+          "action": "create"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-view.tsx",
+          "tokens_estimated": 1312,
+          "action": "create"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-sidebar.tsx",
+          "tokens_estimated": 13,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-sidebar.tsx",
+          "tokens_estimated": 12,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/src/trpc/jira-api.ts",
+          "tokens_estimated": 86,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 42,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 43,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 35,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 71,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 34502,
+        "output_tokens_estimated": 2677,
+        "reads_count": 10,
+        "writes_count": 11,
+        "repeated_reads_blocked": 12,
+        "anatomy_lookups": 9
+      }
+    },
+    {
+      "id": "session-2026-04-27-1811",
+      "started": "2026-04-27T11:11:52.370Z",
+      "ended": "2026-04-27T11:17:30.862Z",
+      "reads": [
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/src/core/api-contract.ts",
+          "tokens_estimated": 10968,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/.claude/projects/-Users-andriepu-Workspace--private-kanban/07a1c29c-38eb-45cf-8d98-a73075fce528/tool-results/bln3eqa99.txt",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/detail-panels/agent-terminal-panel.tsx",
+          "tokens_estimated": 3049,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-card-detail-view.tsx",
+          "tokens_estimated": 2120,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/resize/use-card-detail-layout.ts",
+          "tokens_estimated": 1228,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/resize/use-resize-drag.ts",
+          "tokens_estimated": 715,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/storage/local-storage-store.ts",
+          "tokens_estimated": 833,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 11036,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/markdown-text.tsx",
+          "tokens_estimated": 489,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/src/trpc/jira-api.ts",
+          "tokens_estimated": 4064,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/types/jira.ts",
+          "tokens_estimated": 124,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/storage/local-storage-store.ts",
+          "tokens_estimated": 44,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-sidebar.tsx",
+          "tokens_estimated": 895,
+          "action": "create"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-view.tsx",
+          "tokens_estimated": 1312,
+          "action": "create"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-sidebar.tsx",
+          "tokens_estimated": 13,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-sidebar.tsx",
+          "tokens_estimated": 12,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/src/trpc/jira-api.ts",
+          "tokens_estimated": 86,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 42,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 43,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 35,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 71,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 34502,
+        "output_tokens_estimated": 2677,
+        "reads_count": 10,
+        "writes_count": 11,
+        "repeated_reads_blocked": 12,
+        "anatomy_lookups": 9
+      }
+    },
+    {
+      "id": "session-2026-04-27-1811",
+      "started": "2026-04-27T11:11:52.370Z",
+      "ended": "2026-04-27T11:18:33.020Z",
+      "reads": [
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/src/core/api-contract.ts",
+          "tokens_estimated": 10968,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/.claude/projects/-Users-andriepu-Workspace--private-kanban/07a1c29c-38eb-45cf-8d98-a73075fce528/tool-results/bln3eqa99.txt",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/detail-panels/agent-terminal-panel.tsx",
+          "tokens_estimated": 3049,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-card-detail-view.tsx",
+          "tokens_estimated": 2120,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/resize/use-card-detail-layout.ts",
+          "tokens_estimated": 1228,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/resize/use-resize-drag.ts",
+          "tokens_estimated": 715,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/storage/local-storage-store.ts",
+          "tokens_estimated": 833,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 11036,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/markdown-text.tsx",
+          "tokens_estimated": 489,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/src/trpc/jira-api.ts",
+          "tokens_estimated": 4064,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/types/jira.ts",
+          "tokens_estimated": 124,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/storage/local-storage-store.ts",
+          "tokens_estimated": 44,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-sidebar.tsx",
+          "tokens_estimated": 895,
+          "action": "create"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-view.tsx",
+          "tokens_estimated": 1312,
+          "action": "create"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-sidebar.tsx",
+          "tokens_estimated": 13,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-sidebar.tsx",
+          "tokens_estimated": 12,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/src/trpc/jira-api.ts",
+          "tokens_estimated": 86,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 42,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 43,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 35,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 71,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 34502,
+        "output_tokens_estimated": 2677,
+        "reads_count": 10,
+        "writes_count": 11,
+        "repeated_reads_blocked": 12,
+        "anatomy_lookups": 9
+      }
+    },
+    {
+      "id": "session-2026-04-27-1827",
+      "started": "2026-04-27T11:27:55.987Z",
+      "ended": "2026-04-27T11:32:17.767Z",
+      "reads": [
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/src/trpc/jira-api.ts",
+          "tokens_estimated": 4588,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 11079,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/types/jira.ts",
+          "tokens_estimated": 315,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/storage/local-storage-store.ts",
+          "tokens_estimated": 894,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-sidebar.tsx",
+          "tokens_estimated": 898,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-subtask-detail-view.tsx",
+          "tokens_estimated": 1312,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/src/trpc/jira-api.ts",
+          "tokens_estimated": 111,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 68,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 62,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 38,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 58,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/types/jira.ts",
+          "tokens_estimated": 112,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/storage/local-storage-store.ts",
+          "tokens_estimated": 25,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-pull-request-detail-sidebar.tsx",
+          "tokens_estimated": 911,
+          "action": "create"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/components/jira-pull-request-detail-view.tsx",
+          "tokens_estimated": 1335,
+          "action": "create"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 30,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.worktrees/pr-detail-modal/web-ui/src/App.tsx",
+          "tokens_estimated": 3,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 19086,
+        "output_tokens_estimated": 2753,
+        "reads_count": 6,
+        "writes_count": 11,
+        "repeated_reads_blocked": 5,
+        "anatomy_lookups": 6
+      }
+    },
+    {
+      "id": "session-2026-04-27-1832",
+      "started": "2026-04-27T11:32:53.130Z",
+      "ended": "2026-04-27T11:33:39.116Z",
+      "reads": [
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.gitignore",
+          "tokens_estimated": 70,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/Users/andriepu/Workspace/_private/kanban/.gitignore",
+          "tokens_estimated": 69,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 70,
+        "output_tokens_estimated": 69,
+        "reads_count": 1,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
       }
     }
   ],

@@ -17,3 +17,14 @@ packages/desktop/*.tgz
 docs/superpowers/
 .superpowers
 .playwright-mcp
+
+# OpenWolf session files
+.wolf/memory.md
+.wolf/buglog.json
+.wolf/token-ledger.json
+.wolf/hooks/_session.json
+.wolf/daemon.log
+.wolf/cron-state.json
+.wolf/designqc-captures/
+.wolf/designqc-report.json
+.wolf/suggestions.json

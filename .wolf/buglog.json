@@ -4655,6 +4655,118 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-27T11:13:47.072Z"
+    },
+    {
+      "id": "bug-289",
+      "timestamp": "2026-04-27T11:16:09.815Z",
+      "error_message": "Significant refactor of ",
+      "file": ".worktrees/pr-detail-modal/web-ui/src/App.tsx",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 13→6 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-27T11:16:09.815Z"
+    },
+    {
+      "id": "bug-290",
+      "timestamp": "2026-04-27T11:20:35.925Z",
+      "error_message": "Significant refactor of ",
+      "file": ".worktrees/pr-detail-modal/src/trpc/jira-api.ts",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 6→3 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-27T11:20:35.925Z"
+    },
+    {
+      "id": "bug-291",
+      "timestamp": "2026-04-27T11:23:06.512Z",
+      "error_message": "Significant refactor of ",
+      "file": ".worktrees/pr-detail-modal/test/runtime/jira/jira-pr-scan.test.ts",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 15→6 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-27T11:23:06.512Z"
+    },
+    {
+      "id": "bug-292",
+      "timestamp": "2026-04-27T11:24:32.908Z",
+      "error_message": "Significant refactor of ",
+      "file": ".worktrees/pr-detail-modal/src/trpc/app-router.ts",
+      "root_cause": "16 lines replaced/restructured",
+      "fix": "Rewrote 18→4 lines (16 removed) | Also: <<<<<<< HEAD; ||||||| parent of 2cb7241 (feat(jira): add fetchSu",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-27T11:24:49.368Z"
+    },
+    {
+      "id": "bug-293",
+      "timestamp": "2026-04-27T11:28:33.377Z",
+      "error_message": "Significant refactor of ",
+      "file": ".worktrees/pr-detail-modal/src/trpc/jira-api.ts",
+      "root_cause": "13 lines replaced/restructured",
+      "fix": "Rewrote 23→7 lines (13 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-27T11:28:33.377Z"
+    },
+    {
+      "id": "bug-294",
+      "timestamp": "2026-04-27T11:29:07.956Z",
+      "error_message": "Significant refactor of ",
+      "file": ".worktrees/pr-detail-modal/web-ui/src/App.tsx",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 11→3 lines (9 removed) | Also: <<<<<<< HEAD; ||||||| parent of c0b99f7 (feat(jira): PR detail m | Also: <<<<<<< HEAD; const handlePullRequestClick = useCallback(",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-04-27T11:29:18.259Z"
+    },
+    {
+      "id": "bug-295",
+      "timestamp": "2026-04-27T11:29:41.346Z",
+      "error_message": "Incorrect value in code",
+      "file": ".worktrees/pr-detail-modal/web-ui/src/storage/local-storage-store.ts",
+      "root_cause": "Had \"kanban.jira-subtask-detail-sidebar-ratio\"",
+      "fix": "Changed to \"kanban.jira-pull-request-detail-sidebar-ratio\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-27T11:29:41.346Z"
     }
   ]
 }

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-27T11:16:05.876Z
-> Files: 633 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-27T11:33:35.448Z
+> Files: 635 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
 
@@ -43,7 +43,7 @@
 
 ## ./
 
-- `.gitignore` — Git ignore rules (~70 tok)
+- `.gitignore` — Git ignore rules (~130 tok)
 - `.npmrc` (~0 tok)
 - `AGENTS.md` — Declares definitions (~2033 tok)
 - `biome.json` — Biome linter/formatter configuration (~665 tok)
@@ -290,7 +290,7 @@
 
 ## .worktrees/pr-detail-modal/src/core/
 
-- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceCha (~10968 tok)
+- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceCha (~11096 tok)
 
 ## .worktrees/pr-detail-modal/src/jira/
 
@@ -298,37 +298,39 @@
 
 ## .worktrees/pr-detail-modal/src/server/
 
-- `runtime-server.ts` — API routes: GET (1 endpoints) (~4181 tok)
+- `runtime-server.ts` — API routes: GET (1 endpoints) (~4231 tok)
 
 ## .worktrees/pr-detail-modal/src/trpc/
 
-- `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. (~6446 tok)
-- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~4090 tok)
+- `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. (~6555 tok)
+- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~4588 tok)
 
 ## .worktrees/pr-detail-modal/test/runtime/jira/
 
-- `jira-pr-scan.test.ts` — childProcessMocks: graphqlResponse, prDetailResponse (~2584 tok)
+- `jira-pr-scan.test.ts` — childProcessMocks: graphqlResponse, prDetailResponse (~3154 tok)
 
 ## .worktrees/pr-detail-modal/test/runtime/trpc/
 
-- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~7504 tok)
+- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~9674 tok)
 
 ## .worktrees/pr-detail-modal/web-ui/src/
 
-- `App.tsx` — Main React composition root for the browser app. (~10902 tok)
+- `App.tsx` — Main React composition root for the browser app. (~10972 tok)
 
 ## .worktrees/pr-detail-modal/web-ui/src/components/
 
+- `jira-pull-request-detail-sidebar.tsx` — ThreadCard (~911 tok)
+- `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1335 tok)
 - `jira-subtask-detail-sidebar.tsx` — ThreadCard (~898 tok)
 - `jira-subtask-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1312 tok)
 
 ## .worktrees/pr-detail-modal/web-ui/src/storage/
 
-- `local-storage-store.ts` — Exports LocalStorageKey, LAYOUT_CUSTOMIZATION_LOCAL_STORAGE_KEYS, readLocalStorageItem, writeLocalSt (~894 tok)
+- `local-storage-store.ts` — Exports LocalStorageKey, LAYOUT_CUSTOMIZATION_LOCAL_STORAGE_KEYS, readLocalStorageItem, writeLocalSt (~968 tok)
 
 ## .worktrees/pr-detail-modal/web-ui/src/types/
 
-- `jira.ts` — Exports JiraCardStatus, JiraSubtaskStatus, JiraCard, JiraBoard + 5 more (~315 tok)
+- `jira.ts` — Exports JiraCardStatus, JiraPullRequestStatus, JiraCard, JiraBoard + 5 more (~331 tok)
 
 ## .worktrees/rename-project-subtask/.wolf/
 

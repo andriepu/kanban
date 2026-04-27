@@ -2044,3 +2044,45 @@
 | 18:15 | Edited .worktrees/pr-detail-modal/src/trpc/jira-api.ts | added 1 condition(s) | ~86 |
 | 18:16 | Edited .worktrees/pr-detail-modal/web-ui/src/App.tsx | added 1 import(s) | ~42 |
 | 18:16 | Edited .worktrees/pr-detail-modal/web-ui/src/App.tsx | 1→2 lines | ~43 |
+| 18:16 | Edited .worktrees/pr-detail-modal/web-ui/src/App.tsx | reduced (-7 lines) | ~35 |
+| 18:16 | Edited .worktrees/pr-detail-modal/web-ui/src/App.tsx | expanded (+6 lines) | ~71 |
+| 18:16 | Session end: 11 writes across 6 files (jira.ts, local-storage-store.ts, jira-subtask-detail-sidebar.tsx, jira-subtask-detail-view.tsx, jira-api.ts) | 10 reads | ~37179 tok |
+| 18:17 | Session end: 11 writes across 6 files (jira.ts, local-storage-store.ts, jira-subtask-detail-sidebar.tsx, jira-subtask-detail-view.tsx, jira-api.ts) | 10 reads | ~37179 tok |
+| 18:18 | Session end: 11 writes across 6 files (jira.ts, local-storage-store.ts, jira-subtask-detail-sidebar.tsx, jira-subtask-detail-view.tsx, jira-api.ts) | 10 reads | ~37179 tok |
+| 18:20 | Edited .worktrees/pr-detail-modal/src/trpc/jira-api.ts | 6→3 lines | ~26 |
+| 18:20 | Edited .worktrees/pr-detail-modal/web-ui/src/App.tsx | 6→3 lines | ~32 |
+| 18:23 | Edited .worktrees/pr-detail-modal/test/runtime/jira/jira-pr-scan.test.ts | reduced (-9 lines) | ~75 |
+| 18:23 | Edited .worktrees/pr-detail-modal/src/core/api-contract.ts | 35→31 lines | ~294 |
+| 18:23 | Edited .worktrees/pr-detail-modal/src/trpc/jira-api.ts | reduced (-6 lines) | ~56 |
+| 18:24 | Edited .worktrees/pr-detail-modal/src/trpc/jira-api.ts | added 1 condition(s) | ~313 |
+| 18:24 | Edited .worktrees/pr-detail-modal/src/trpc/jira-api.ts | modified if() | ~437 |
+| 18:24 | Edited .worktrees/pr-detail-modal/src/trpc/app-router.ts | removed 18 lines | ~40 |
+| 18:24 | Edited .worktrees/pr-detail-modal/src/trpc/app-router.ts | reduced (-22 lines) | ~229 |
+| 18:25 | Edited .worktrees/pr-detail-modal/src/server/runtime-server.ts | reduced (-6 lines) | ~30 |
+| 18:25 | Edited .worktrees/pr-detail-modal/src/server/runtime-server.ts | removed 8 lines | ~20 |
+| 18:25 | Edited .worktrees/pr-detail-modal/test/runtime/trpc/jira-api.test.ts | reduced (-6 lines) | ~46 |
+| 18:26 | Edited .worktrees/pr-detail-modal/test/runtime/trpc/jira-api.test.ts | 214→209 lines | ~2047 |
+
+## Session: 2026-04-27 18:27
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:28 | Edited .worktrees/pr-detail-modal/src/trpc/jira-api.ts | reduced (-16 lines) | ~111 |
+| 18:29 | Edited .worktrees/pr-detail-modal/web-ui/src/App.tsx | reduced (-8 lines) | ~68 |
+| 18:29 | Edited .worktrees/pr-detail-modal/web-ui/src/App.tsx | reduced (-8 lines) | ~62 |
+| 18:29 | Edited .worktrees/pr-detail-modal/web-ui/src/App.tsx | removed 33 lines | ~38 |
+| 18:29 | Edited .worktrees/pr-detail-modal/web-ui/src/App.tsx | setSelectedSubtaskModal() → setSelectedPullRequestModal() | ~58 |
+| 18:29 | Edited .worktrees/pr-detail-modal/web-ui/src/types/jira.ts | 18→18 lines | ~112 |
+| 18:29 | Edited .worktrees/pr-detail-modal/web-ui/src/storage/local-storage-store.ts | "kanban.jira-subtask-detai" → "kanban.jira-pull-request-" | ~25 |
+| 18:30 | Created .worktrees/pr-detail-modal/web-ui/src/components/jira-pull-request-detail-sidebar.tsx | — | ~911 |
+| 18:30 | Created .worktrees/pr-detail-modal/web-ui/src/components/jira-pull-request-detail-view.tsx | — | ~1335 |
+| 18:30 | Edited .worktrees/pr-detail-modal/web-ui/src/App.tsx | 2→1 lines | ~30 |
+| 18:30 | Edited .worktrees/pr-detail-modal/web-ui/src/App.tsx | removed 8 lines | ~3 |
+| 18:32 | Session end: 11 writes across 6 files (jira-api.ts, App.tsx, jira.ts, local-storage-store.ts, jira-pull-request-detail-sidebar.tsx) | 6 reads | ~21839 tok |
+
+## Session: 2026-04-27 18:32
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:33 | Edited .gitignore | expanded (+11 lines) | ~64 |
+| 18:33 | Session end: 1 writes across 1 files (.gitignore) | 1 reads | ~139 tok |
