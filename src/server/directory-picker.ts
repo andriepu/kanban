@@ -22,7 +22,7 @@ const WINDOWS_DIRECTORY_PICKER_SCRIPT = [
 	"$ErrorActionPreference = 'Stop'",
 	"Add-Type -AssemblyName System.Windows.Forms",
 	"$dialog = New-Object System.Windows.Forms.FolderBrowserDialog",
-	"$dialog.Description = 'Select a project folder'",
+	"$dialog.Description = 'Select a repo folder'",
 	"$dialog.ShowNewFolderButton = $false",
 	"if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($dialog.SelectedPath) }",
 ].join("; ");
@@ -93,7 +93,7 @@ export function pickDirectoryPathFromSystemDialog(
 		const result = runDirectoryPickerCommand(
 			{
 				command: "osascript",
-				args: ["-e", 'POSIX path of (choose folder with prompt "Select a project folder")'],
+				args: ["-e", 'POSIX path of (choose folder with prompt "Select a repo folder")'],
 			},
 			runCommand,
 		);

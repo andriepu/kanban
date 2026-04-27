@@ -4,13 +4,13 @@ import { fetchRuntimeConfig } from "@/runtime/runtime-config-query";
 import type { RuntimeConfigResponse } from "@/runtime/types";
 import { useTrpcQuery } from "@/runtime/use-trpc-query";
 
-export interface UseRuntimeProjectConfigResult {
+export interface UseRuntimeRepoConfigResult {
 	config: RuntimeConfigResponse | null;
 	isLoading: boolean;
 	refresh: () => void;
 }
 
-export function useRuntimeProjectConfig(workspaceId: string | null): UseRuntimeProjectConfigResult {
+export function useRuntimeRepoConfig(workspaceId: string | null): UseRuntimeRepoConfigResult {
 	const previousWorkspaceIdRef = useRef<string | null>(null);
 	const queryFn = useCallback(async () => await fetchRuntimeConfig(workspaceId), [workspaceId]);
 	const configQuery = useTrpcQuery<RuntimeConfigResponse>({

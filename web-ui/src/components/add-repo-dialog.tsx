@@ -10,25 +10,25 @@ import { Spinner } from "@/components/ui/spinner";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import { toServerAbsolute } from "@/utils/server-path";
 
-type AddProjectTab = "path" | "clone";
+type AddRepoTab = "path" | "clone";
 
-export interface AddProjectDialogProps {
+export interface AddRepoDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onProjectAdded: (projectId: string) => void;
-	currentProjectId: string | null;
+	onRepoAdded: (projectId: string) => void;
+	currentRepoId: string | null;
 	/** When set, the dialog opens directly to the git-init confirmation for this absolute path. */
 	initialGitInitPath?: string | null;
 }
 
-export function AddProjectDialog({
+export function AddRepoDialog({
 	open,
 	onOpenChange,
-	onProjectAdded,
-	currentProjectId,
+	onRepoAdded,
+	currentRepoId,
 	initialGitInitPath,
-}: AddProjectDialogProps): ReactElement {
-	const [activeTab, setActiveTab] = useState<AddProjectTab>("path");
+}: AddRepoDialogProps): ReactElement {
+	const [activeTab, setActiveTab] = useState<AddRepoTab>("path");
 	const [pathInput, setPathInput] = useState("");
 	const [isAddingByPath, setIsAddingByPath] = useState(false);
 	const [pendingGitInitPath, setPendingGitInitPath] = useState<string | null>(null);
@@ -58,8 +58,8 @@ export function AddProjectDialog({
 		// Fetch the server root path to display at the top of the dialog
 		const fetchRoot = async () => {
 			try {
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
-				const response = await trpcClient.projects.listDirectoryContents.query({});
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
+				const response = await trpcClient.repos.listDirectoryContents.query({});
 				if (response.ok && response.rootPath) {
 					setServerRootPath(response.rootPath);
 				}
@@ -68,7 +68,7 @@ export function AddProjectDialog({
 			}
 		};
 		void fetchRoot();
-	}, [open, currentProjectId, initialGitInitPath]);
+	}, [open, currentRepoId, initialGitInitPath]);
 
 	// Focus the git URL input when switching to the clone tab (since it
 	// doesn't have a dropdown that would pop open). We intentionally do NOT
@@ -111,17 +111,17 @@ export function AddProjectDialog({
 				setIsAddingByPath(true);
 			}
 			try {
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
-				const added = await trpcClient.projects.add.mutate({ path: trimmed, initializeGit });
-				if (!added.ok || !added.project) {
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
+				const added = await trpcClient.repos.add.mutate({ path: trimmed, initializeGit });
+				if (!added.ok || !added.repo) {
 					if (added.requiresGitInitialization) {
 						setPendingGitInitPath(trimmed);
 						return;
 					}
-					throw new Error(added.error ?? "Could not add project.");
+					throw new Error(added.error ?? "Could not add repo.");
 				}
 				setPendingGitInitPath(null);
-				onProjectAdded(added.project.id);
+				onRepoAdded(added.repo.id);
 				onOpenChange(false);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
@@ -131,7 +131,7 @@ export function AddProjectDialog({
 				setIsInitializingGit(false);
 			}
 		},
-		[currentProjectId, onOpenChange, onProjectAdded, resolveToAbsolutePath],
+		[currentRepoId, onOpenChange, onRepoAdded, resolveToAbsolutePath],
 	);
 
 	// Initialize git and add a project using an already-absolute path.
@@ -142,13 +142,13 @@ export function AddProjectDialog({
 		async (absolutePath: string) => {
 			setIsInitializingGit(true);
 			try {
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
-				const added = await trpcClient.projects.add.mutate({ path: absolutePath, initializeGit: true });
-				if (!added.ok || !added.project) {
-					throw new Error(added.error ?? "Could not add project.");
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
+				const added = await trpcClient.repos.add.mutate({ path: absolutePath, initializeGit: true });
+				if (!added.ok || !added.repo) {
+					throw new Error(added.error ?? "Could not add repo.");
 				}
 				setPendingGitInitPath(null);
-				onProjectAdded(added.project.id);
+				onRepoAdded(added.repo.id);
 				onOpenChange(false);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
@@ -157,7 +157,7 @@ export function AddProjectDialog({
 				setIsInitializingGit(false);
 			}
 		},
-		[currentProjectId, onOpenChange, onProjectAdded],
+		[currentRepoId, onOpenChange, onRepoAdded],
 	);
 
 	const handleClone = useCallback(async () => {
@@ -167,7 +167,7 @@ export function AddProjectDialog({
 		}
 		setIsCloning(true);
 		try {
-			const trpcClient = getRuntimeTrpcClient(currentProjectId);
+			const trpcClient = getRuntimeTrpcClient(currentRepoId);
 			const mutationInput: { gitUrl: string; path?: string } = { gitUrl: trimmedUrl };
 			const trimmedDest = cloneDestInput.trim();
 			const trimmedFolder = cloneFolderName.trim();
@@ -180,12 +180,12 @@ export function AddProjectDialog({
 				// Custom folder name with default destination (server root)
 				mutationInput.path = serverRootPath ? toServerAbsolute(serverRootPath, trimmedFolder) : trimmedFolder;
 			}
-			const added = await trpcClient.projects.add.mutate(mutationInput);
-			if (!added.ok || !added.project) {
+			const added = await trpcClient.repos.add.mutate(mutationInput);
+			if (!added.ok || !added.repo) {
 				throw new Error(added.error ?? "Clone failed.");
 			}
 			showAppToast({ intent: "success", message: "Repository cloned and added successfully.", timeout: 4000 });
-			onProjectAdded(added.project.id);
+			onRepoAdded(added.repo.id);
 			onOpenChange(false);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
@@ -196,10 +196,10 @@ export function AddProjectDialog({
 	}, [
 		cloneDestInput,
 		cloneFolderName,
-		currentProjectId,
+		currentRepoId,
 		gitUrlInput,
 		onOpenChange,
-		onProjectAdded,
+		onRepoAdded,
 		resolveToAbsolutePath,
 		serverRootPath,
 	]);
@@ -232,10 +232,10 @@ export function AddProjectDialog({
 					onOpenChange(isOpen);
 				}}
 				contentClassName="max-w-lg"
-				contentAriaDescribedBy="add-project-dialog-description"
+				contentAriaDescribedBy="add-repo-dialog-description"
 				onEscapeKeyDown={handleDialogEscapeKeyDown}
 			>
-				<DialogHeader title="Add Project" icon={<FolderOpen size={16} />} />
+				<DialogHeader title="Add Repo" icon={<FolderOpen size={16} />} />
 				{/* Plain div instead of DialogBody so the autocomplete dropdown
 				    isn't clipped by DialogBody's default overflow-y-auto */}
 				<div className="flex flex-col gap-4 p-4 bg-surface-1">
@@ -296,7 +296,7 @@ export function AddProjectDialog({
 							onSubmitGitInit={() => {
 								if (pendingGitInitPath) void handleInitializeGit(pendingGitInitPath);
 							}}
-							currentProjectId={currentProjectId}
+							currentRepoId={currentRepoId}
 						/>
 					) : (
 						<CloneTabContent
@@ -309,7 +309,7 @@ export function AddProjectDialog({
 							gitUrlInputRef={gitUrlInputRef}
 							isCloning={isCloning}
 							onSubmitClone={() => void handleClone()}
-							currentProjectId={currentProjectId}
+							currentRepoId={currentRepoId}
 						/>
 					)}
 				</div>
@@ -330,7 +330,7 @@ export function AddProjectDialog({
 										Adding...
 									</>
 								) : (
-									"Add Project"
+									"Add Repo"
 								)}
 							</Button>
 						) : (
@@ -382,7 +382,7 @@ function PathTabContent({
 	pendingGitInitPath,
 	onSubmitPath,
 	onSubmitGitInit,
-	currentProjectId,
+	currentRepoId,
 }: {
 	pathInput: string;
 	setPathInput: (value: string) => void;
@@ -392,7 +392,7 @@ function PathTabContent({
 	pendingGitInitPath: string | null;
 	onSubmitPath: () => void;
 	onSubmitGitInit: () => void;
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 }): ReactElement {
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -413,9 +413,9 @@ function PathTabContent({
 					onChange={setPathInput}
 					placeholder="Search directories…"
 					disabled={isAddingByPath || isInitializingGit}
-					id="add-project-path-input"
+					id="add-repo-path-input"
 					ariaLabel="Server path input"
-					workspaceId={currentProjectId}
+					workspaceId={currentRepoId}
 				/>
 			</div>
 			{pendingGitInitPath !== null ? (
@@ -436,8 +436,8 @@ function PathTabContent({
 					</Button>
 				</div>
 			) : null}
-			<p id="add-project-dialog-description" className="sr-only">
-				Add a project by entering a server path, browsing the remote filesystem, or cloning a git repository.
+			<p id="add-repo-dialog-description" className="sr-only">
+				Add a repo by entering a server path, browsing the remote filesystem, or cloning a git repository.
 			</p>
 		</form>
 	);
@@ -466,7 +466,7 @@ function CloneTabContent({
 	gitUrlInputRef,
 	isCloning,
 	onSubmitClone,
-	currentProjectId,
+	currentRepoId,
 }: {
 	gitUrlInput: string;
 	setGitUrlInput: (value: string) => void;
@@ -477,7 +477,7 @@ function CloneTabContent({
 	gitUrlInputRef: React.RefObject<HTMLInputElement>;
 	isCloning: boolean;
 	onSubmitClone: () => void;
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 }): ReactElement {
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -489,13 +489,13 @@ function CloneTabContent({
 	return (
 		<form onSubmit={handleSubmit} className="flex flex-col gap-3">
 			<div>
-				<label htmlFor="add-project-git-url-input" className="block text-[12px] text-text-secondary mb-1.5">
+				<label htmlFor="add-repo-git-url-input" className="block text-[12px] text-text-secondary mb-1.5">
 					Git repository URL
 				</label>
 				<input
 					ref={gitUrlInputRef}
 					type="text"
-					id="add-project-git-url-input"
+					id="add-repo-git-url-input"
 					value={gitUrlInput}
 					onChange={(e) => setGitUrlInput(e.target.value)}
 					placeholder="e.g. https://github.com/user/repo.git"
@@ -512,18 +512,18 @@ function CloneTabContent({
 						onChange={setCloneDestInput}
 						placeholder="Search directories…"
 						disabled={isCloning}
-						id="add-project-clone-dest-input"
+						id="add-repo-clone-dest-input"
 						ariaLabel="Clone destination path"
-						workspaceId={currentProjectId}
+						workspaceId={currentRepoId}
 					/>
 				</div>
 				<div>
-					<label htmlFor="add-project-folder-name-input" className="block text-[12px] text-text-secondary mb-1.5">
+					<label htmlFor="add-repo-folder-name-input" className="block text-[12px] text-text-secondary mb-1.5">
 						Folder name
 					</label>
 					<input
 						type="text"
-						id="add-project-folder-name-input"
+						id="add-repo-folder-name-input"
 						value={cloneFolderName}
 						onChange={(e) => setCloneFolderName(e.target.value.replace(/[\\/]/g, ""))}
 						placeholder={derivedName || "repo-name"}

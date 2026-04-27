@@ -19,9 +19,9 @@ import type {
 import { useTerminalThemeColors } from "@/terminal/theme-colors";
 
 interface UseHomeSidebarAgentPanelInput {
-	currentProjectId: string | null;
-	hasNoProjects: boolean;
-	runtimeProjectConfig: RuntimeConfigResponse | null;
+	currentRepoId: string | null;
+	hasNoRepos: boolean;
+	runtimeRepoConfig: RuntimeConfigResponse | null;
 	taskSessions: Record<string, RuntimeTaskSessionSummary>;
 	workspaceGit: RuntimeGitRepositoryInfo | null;
 	latestTaskChatMessage: RuntimeStateStreamTaskChatMessage | null;
@@ -29,9 +29,9 @@ interface UseHomeSidebarAgentPanelInput {
 }
 
 export function useHomeSidebarAgentPanel({
-	currentProjectId,
-	hasNoProjects,
-	runtimeProjectConfig,
+	currentRepoId,
+	hasNoRepos,
+	runtimeRepoConfig,
 	taskSessions,
 	workspaceGit,
 	latestTaskChatMessage: _latestTaskChatMessage,
@@ -64,8 +64,8 @@ export function useHomeSidebarAgentPanel({
 		return mergedSessionSummaries;
 	}, [sessionSummaries, taskSessions]);
 	const { panelMode, taskId } = useHomeAgentSession({
-		currentProjectId,
-		runtimeProjectConfig,
+		currentRepoId,
+		runtimeRepoConfig,
 		workspaceGit,
 		sessionSummaries: effectiveSessionSummaries,
 		setSessionSummaries,
@@ -73,11 +73,11 @@ export function useHomeSidebarAgentPanel({
 	});
 	const homeAgentPanelSummary = taskId ? (effectiveSessionSummaries[taskId] ?? null) : null;
 
-	if (hasNoProjects || !currentProjectId) {
+	if (hasNoRepos || !currentRepoId) {
 		return null;
 	}
 
-	if (!runtimeProjectConfig) {
+	if (!runtimeRepoConfig) {
 		return (
 			<div className="flex w-full items-center justify-center rounded-md border border-border bg-surface-2 px-3 py-6">
 				<Spinner size={20} />
@@ -90,7 +90,7 @@ export function useHomeSidebarAgentPanel({
 			<AgentTerminalPanel
 				key={taskId}
 				taskId={taskId}
-				workspaceId={currentProjectId}
+				workspaceId={currentRepoId}
 				summary={homeAgentPanelSummary}
 				onSummary={upsertSessionSummary}
 				showSessionToolbar={false}

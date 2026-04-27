@@ -114,7 +114,7 @@ export function StartupOnboardingDialog({
 							Worktrees Root
 						</label>
 						<p className="text-xs text-text-tertiary m-0">
-							Directory where git worktrees are created for subtasks.
+							Directory where git worktrees are created for pull requests.
 						</p>
 						<div className="flex gap-2">
 							<input

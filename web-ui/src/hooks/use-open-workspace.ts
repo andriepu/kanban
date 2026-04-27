@@ -15,7 +15,7 @@ import {
 import { useRawLocalStorageValue } from "@/utils/react-use";
 
 interface UseOpenWorkspaceParams {
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	workspacePath?: string;
 }
 
@@ -37,7 +37,7 @@ function getFirstOutputLine(output: string): string | null {
 	);
 }
 
-export function useOpenWorkspace({ currentProjectId, workspacePath }: UseOpenWorkspaceParams): UseOpenWorkspaceResult {
+export function useOpenWorkspace({ currentRepoId, workspacePath }: UseOpenWorkspaceParams): UseOpenWorkspaceResult {
 	const openTargetPlatform = resolveOpenTargetPlatform();
 	const openTargetOptions = useMemo(() => getOpenTargetOptions(openTargetPlatform), [openTargetPlatform]);
 	const fallbackTargetId = openTargetOptions[0]?.id ?? "vscode";
@@ -51,7 +51,7 @@ export function useOpenWorkspace({ currentProjectId, workspacePath }: UseOpenWor
 		() => getOpenTargetOption(preferredOpenTargetId, openTargetPlatform),
 		[openTargetPlatform, preferredOpenTargetId],
 	);
-	const canOpenWorkspace = Boolean(currentProjectId && workspacePath);
+	const canOpenWorkspace = Boolean(currentRepoId && workspacePath);
 
 	const onSelectOpenTarget = useCallback(
 		(targetId: OpenTargetId) => {
@@ -79,14 +79,14 @@ export function useOpenWorkspace({ currentProjectId, workspacePath }: UseOpenWor
 	);
 
 	const onOpenWorkspace = useCallback(() => {
-		if (isOpeningWorkspace || !currentProjectId || !workspacePath) {
+		if (isOpeningWorkspace || !currentRepoId || !workspacePath) {
 			return;
 		}
 
 		void (async () => {
 			setIsOpeningWorkspace(true);
 			try {
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
 				const payload = await trpcClient.runtime.runCommand.mutate({
 					command: buildOpenCommand(selectedOpenTarget.id, workspacePath, openTargetPlatform),
 				});
@@ -102,7 +102,7 @@ export function useOpenWorkspace({ currentProjectId, workspacePath }: UseOpenWor
 			}
 		})();
 	}, [
-		currentProjectId,
+		currentRepoId,
 		isOpeningWorkspace,
 		openTargetPlatform,
 		selectedOpenTarget.id,

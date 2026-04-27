@@ -1,111 +1,105 @@
 import { GitPullRequest, Plus } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AgentTerminalPanel } from "@/components/detail-panels/agent-terminal-panel";
 import { MarkdownText } from "@/components/markdown-text";
-import { SubtaskCreateDialog } from "@/components/subtask-create-dialog";
+import { PullRequestCreateDialog } from "@/components/pull-request-create-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Spinner } from "@/components/ui/spinner";
+import type { IssueData } from "@/hooks/use-jira-board";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
-import type { JiraBoard, JiraSubtask } from "@/types/jira";
-
-interface IssueData {
-	jiraKey: string;
-	summary: string;
-	description: string | null;
-}
+import type { JiraBoard, JiraPullRequest } from "@/types/jira";
 
 interface JiraCardDetailViewProps {
 	jiraKey: string;
 	board: JiraBoard;
-	subtasks: Record<string, JiraSubtask>;
-	onSubtaskCreated: () => void;
+	pullRequests: Record<string, JiraPullRequest>;
+	details: Record<string, IssueData>;
+	prScanning: boolean;
+	fetchDetail: (jiraKey: string) => void;
+	scanPRs: () => Promise<void>;
+	onPullRequestCreated: () => void;
 }
 
-const SUBTASK_STATUS_COLORS: Record<JiraSubtask["status"], string> = {
+const PULL_REQUEST_STATUS_COLORS: Record<JiraPullRequest["status"], string> = {
 	backlog: "text-text-tertiary",
 	in_progress: "text-status-blue",
 	review: "text-status-orange",
 	done: "text-status-green",
 };
 
+const PR_STATE_COLORS: Record<NonNullable<JiraPullRequest["prState"]>, string> = {
+	open: "text-status-green",
+	draft: "text-text-secondary",
+	merged: "text-status-purple",
+};
+
 export function JiraCardDetailView({
 	jiraKey,
 	board,
-	subtasks,
-	onSubtaskCreated,
+	pullRequests,
+	details,
+	prScanning,
+	fetchDetail,
+	scanPRs,
+	onPullRequestCreated,
 }: JiraCardDetailViewProps): React.ReactElement {
 	const trpc = getRuntimeTrpcClient(null);
 
 	const [createDialogOpen, setCreateDialogOpen] = useState(false);
-	const [selectedSubtaskId, setSelectedSubtaskId] = useState<string | null>(null);
-	const [activeSession, setActiveSession] = useState<{ subtaskId: string; workspaceId: string } | null>(null);
+	const [selectedPullRequestId, setSelectedPullRequestId] = useState<string | null>(null);
+	const [activeSession, setActiveSession] = useState<{ pullRequestId: string; workspaceId: string } | null>(null);
 	const [sessionSummary, setSessionSummary] = useState<RuntimeTaskSessionSummary | null>(null);
-	const [issueData, setIssueData] = useState<IssueData | null>(null);
-	const [isLoadingIssue, setIsLoadingIssue] = useState(false);
 	const [isStartingSession, setIsStartingSession] = useState(false);
 	const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-	const [isDescriptionTruncated, setIsDescriptionTruncated] = useState(false);
-	const descriptionRef = useRef<HTMLDivElement>(null);
 
 	const card = board.cards.find((c) => c.jiraKey === jiraKey);
-	const cardSubtasks = (card?.subtaskIds ?? []).map((id) => subtasks[id]).filter((s): s is JiraSubtask => Boolean(s));
+	const cardPullRequests = (card?.pullRequestIds ?? [])
+		.map((id) => pullRequests[id])
+		.filter((s): s is JiraPullRequest => Boolean(s));
+	const issueData = details[jiraKey];
+	const isLoadingIssue = issueData === undefined;
 
-	const fetchIssue = useCallback(async () => {
-		setIsLoadingIssue(true);
-		try {
-			const data = await trpc.jira.fetchIssue.query({ jiraKey });
-			setIssueData(data);
-		} finally {
-			setIsLoadingIssue(false);
-		}
-	}, [trpc, jiraKey]);
-
+	// Revalidate detail + trigger PR scan on every card open
 	useEffect(() => {
 		if (jiraKey) {
-			void fetchIssue();
+			fetchDetail(jiraKey);
+			void scanPRs();
 		}
-	}, [fetchIssue, jiraKey]);
+	}, [jiraKey, fetchDetail, scanPRs]);
 
+	// Reset local state when switching cards
 	useEffect(() => {
-		setSelectedSubtaskId(null);
+		setSelectedPullRequestId(null);
 		setActiveSession(null);
 		setSessionSummary(null);
-		setIssueData(null);
 		setIsDescriptionExpanded(false);
-		setIsDescriptionTruncated(false);
 	}, [jiraKey]);
 
-	useLayoutEffect(() => {
-		const el = descriptionRef.current;
-		if (!el) return;
-		setIsDescriptionTruncated(el.scrollHeight > el.clientHeight + 1);
-	}, [issueData?.description]);
-
-	const handleSubtaskClick = useCallback(
-		async (subtask: JiraSubtask) => {
-			if (selectedSubtaskId === subtask.id) {
-				setSelectedSubtaskId(null);
+	const handlePullRequestClick = useCallback(
+		async (pullRequest: JiraPullRequest) => {
+			if (selectedPullRequestId === pullRequest.id) {
+				setSelectedPullRequestId(null);
 				setActiveSession(null);
 				setSessionSummary(null);
 				return;
 			}
-			setSelectedSubtaskId(subtask.id);
+			setSelectedPullRequestId(pullRequest.id);
 			setIsStartingSession(true);
 			try {
-				const result = await trpc.jira.startSubtaskSession.mutate({ subtaskId: subtask.id });
+				const result = await trpc.jira.startPullRequestSession.mutate({ pullRequestId: pullRequest.id });
 				if (result.openUrl) {
 					window.open(result.openUrl, "_blank", "noopener,noreferrer");
-					setSelectedSubtaskId(null);
+					setSelectedPullRequestId(null);
 				} else {
-					setActiveSession({ subtaskId: subtask.id, workspaceId: result.workspaceId });
+					setActiveSession({ pullRequestId: pullRequest.id, workspaceId: result.workspaceId });
 				}
 			} finally {
 				setIsStartingSession(false);
 			}
 		},
-		[selectedSubtaskId, trpc],
+		[selectedPullRequestId, trpc],
 	);
 
 	return (
@@ -126,27 +120,18 @@ export function JiraCardDetailView({
 							</h2>
 							{issueData?.description && (
 								<div className="mt-2">
-									<div
-										ref={descriptionRef}
-										className="overflow-hidden"
-										style={{
-											maxHeight: isDescriptionExpanded
-												? `${descriptionRef.current?.scrollHeight ?? 9999}px`
-												: "4.5rem",
-											transition: "max-height 0.3s ease",
-										}}
-									>
+									<div className={cn("overflow-hidden", !isDescriptionExpanded && "line-clamp-3")}>
 										<MarkdownText>{issueData.description}</MarkdownText>
 									</div>
-									{(isDescriptionTruncated || isDescriptionExpanded) && (
+									{!isDescriptionExpanded && (
 										<button
 											type="button"
-											onClick={() => setIsDescriptionExpanded((v) => !v)}
-											aria-expanded={isDescriptionExpanded}
-											aria-label={isDescriptionExpanded ? "Collapse description" : "Expand description"}
+											onClick={() => setIsDescriptionExpanded(true)}
+											aria-expanded={false}
+											aria-label="Expand description"
 											className="mt-1 text-xs text-text-tertiary hover:text-text-secondary"
 										>
-											{isDescriptionExpanded ? "Show less" : "Show more"}
+											Show more
 										</button>
 									)}
 								</div>
@@ -157,33 +142,58 @@ export function JiraCardDetailView({
 
 				<div className="flex flex-col gap-1 p-3">
 					<div className="mb-1 flex items-center justify-between">
-						<span className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">Subtasks</span>
+						<span className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+							Pull Requests
+						</span>
 					</div>
-					{cardSubtasks.length === 0 && (
-						<p className="text-xs text-text-tertiary">No subtasks yet. Add one below.</p>
-					)}
-					{cardSubtasks.map((subtask) => (
+					{cardPullRequests.length === 0 &&
+						(prScanning ? (
+							<p className="flex items-center gap-1.5 text-xs text-text-tertiary">
+								<Spinner size={12} />
+								Scanning for PRs…
+							</p>
+						) : (
+							<p className="text-xs text-text-tertiary">No pull requests yet. Add one below.</p>
+						))}
+					{cardPullRequests.map((pullRequest) => (
 						<button
-							key={subtask.id}
+							key={pullRequest.id}
 							type="button"
 							disabled={isStartingSession}
-							onClick={() => void handleSubtaskClick(subtask)}
+							onClick={() => void handlePullRequestClick(pullRequest)}
 							className={cn(
 								"flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-60",
-								selectedSubtaskId === subtask.id && "bg-surface-2",
+								selectedPullRequestId === pullRequest.id && "bg-surface-2",
 							)}
 						>
-							{subtask.prUrl ? (
-								<GitPullRequest size={14} className={cn("shrink-0", SUBTASK_STATUS_COLORS[subtask.status])} />
-							) : (
-								<span className={cn("shrink-0 text-xs font-medium", SUBTASK_STATUS_COLORS[subtask.status])}>
-									{subtask.status}
+							{!pullRequest.prUrl && (
+								<span
+									className={cn(
+										"shrink-0 text-xs font-medium",
+										PULL_REQUEST_STATUS_COLORS[pullRequest.status],
+									)}
+								>
+									{pullRequest.status}
 								</span>
 							)}
-							<span className="flex-1 truncate text-sm text-text-primary">
-								{subtask.title || subtask.repoId}
-							</span>
-							<span className="truncate font-mono text-xs text-text-tertiary">{subtask.branchName}</span>
+							<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+								{pullRequest.prUrl ? (
+									<div className="flex items-center gap-1.5">
+										<GitPullRequest
+											size={14}
+											className={cn("shrink-0", PR_STATE_COLORS[pullRequest.prState ?? "open"])}
+										/>
+										<span className="truncate text-sm text-text-primary">
+											{pullRequest.title || pullRequest.repoId}
+										</span>
+									</div>
+								) : (
+									<span className="truncate text-sm text-text-primary">
+										{pullRequest.title || pullRequest.repoId}
+									</span>
+								)}
+								<span className="truncate font-mono text-xs text-text-tertiary">{pullRequest.branchName}</span>
+							</div>
 						</button>
 					))}
 					<Button
@@ -193,7 +203,7 @@ export function JiraCardDetailView({
 						className="mt-2 w-full justify-start"
 						onClick={() => setCreateDialogOpen(true)}
 					>
-						Add Subtask
+						Add Pull Request
 					</Button>
 				</div>
 			</div>
@@ -201,7 +211,7 @@ export function JiraCardDetailView({
 			{activeSession && (
 				<div className="flex-1 overflow-hidden border-t border-border">
 					<AgentTerminalPanel
-						taskId={activeSession.subtaskId}
+						taskId={activeSession.pullRequestId}
 						workspaceId={activeSession.workspaceId}
 						summary={sessionSummary}
 						onSummary={setSessionSummary}
@@ -211,12 +221,12 @@ export function JiraCardDetailView({
 				</div>
 			)}
 
-			<SubtaskCreateDialog
+			<PullRequestCreateDialog
 				jiraKey={jiraKey}
 				open={createDialogOpen}
 				onClose={() => setCreateDialogOpen(false)}
 				onCreated={() => {
-					onSubtaskCreated();
+					onPullRequestCreated();
 					setCreateDialogOpen(false);
 				}}
 			/>

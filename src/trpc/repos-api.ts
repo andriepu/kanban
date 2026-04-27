@@ -3,11 +3,11 @@ import { dirname, isAbsolute, resolve } from "node:path";
 import type {
 	RuntimeBoardData,
 	RuntimeDirectoryListResponse,
-	RuntimeProjectAddResponse,
-	RuntimeProjectSummary,
-	RuntimeProjectTaskCounts,
+	RuntimeRepoAddResponse,
+	RuntimeRepoSummary,
+	RuntimeRepoTaskCounts,
 } from "../core/api-contract";
-import { parseDirectoryListRequest, parseProjectAddRequest, parseProjectRemoveRequest } from "../core/api-validation";
+import { parseDirectoryListRequest, parseRepoAddRequest, parseRepoRemoveRequest } from "../core/api-validation";
 import type { RepoInfo } from "../jira/jira-worktree";
 import {
 	listWorkspaceIndexEntries,
@@ -28,32 +28,33 @@ interface DisposeWorkspaceOptions {
 	stopTerminalSessions?: boolean;
 }
 
-export interface CreateProjectsApiDependencies {
+export interface CreateReposApiDependencies {
 	getActiveWorkspacePath: () => string | null;
 	getActiveWorkspaceId: () => string | null;
 	rememberWorkspace: (workspaceId: string, repoPath: string) => void;
 	setActiveWorkspace: (workspaceId: string, repoPath: string) => Promise<void>;
 	clearActiveWorkspace: () => void;
-	resolveProjectInputPath: (inputPath: string, cwd: string) => string;
+	resolveRepoInputPath: (inputPath: string, cwd: string) => string;
 	assertPathIsDirectory: (path: string) => Promise<void>;
 	hasGitRepository: (path: string) => boolean;
-	summarizeProjectTaskCounts: (workspaceId: string, repoPath: string) => Promise<RuntimeProjectTaskCounts>;
-	createProjectSummary: (project: {
+	summarizeRepoTaskCounts: (workspaceId: string, repoPath: string) => Promise<RuntimeRepoTaskCounts>;
+	createRepoSummary: (project: {
 		workspaceId: string;
 		repoPath: string;
-		taskCounts: RuntimeProjectTaskCounts;
-	}) => RuntimeProjectSummary;
-	broadcastRuntimeProjectsUpdated: (preferredCurrentProjectId: string | null) => Promise<void> | void;
+		taskCounts: RuntimeRepoTaskCounts;
+		pullRequestCount: number;
+	}) => RuntimeRepoSummary;
+	broadcastRuntimeReposUpdated: (preferredCurrentRepoId: string | null) => Promise<void> | void;
 	getTerminalManagerForWorkspace: (workspaceId: string) => TerminalSessionManager | null;
 	disposeWorkspace: (
 		workspaceId: string,
 		options?: DisposeWorkspaceOptions,
 	) => { terminalManager: TerminalSessionManager | null; workspacePath: string | null };
-	collectProjectWorktreeTaskIdsForRemoval: (board: RuntimeBoardData) => Set<string>;
+	collectRepoWorktreeTaskIdsForRemoval: (board: RuntimeBoardData) => Set<string>;
 	warn: (message: string) => void;
-	buildProjectsPayload: (preferredCurrentProjectId: string | null) => Promise<{
-		currentProjectId: string | null;
-		projects: RuntimeProjectSummary[];
+	buildReposPayload: (preferredCurrentRepoId: string | null) => Promise<{
+		currentRepoId: string | null;
+		repos: RuntimeRepoSummary[];
 	}>;
 	pickDirectoryPathFromSystemDialog: () => string | null;
 	serverCwd: string;
@@ -61,140 +62,141 @@ export interface CreateProjectsApiDependencies {
 	scanReposInRoot: (reposRoot: string) => Promise<RepoInfo[]>;
 }
 
-export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeTrpcContext["projectsApi"] {
+export function createReposApi(deps: CreateReposApiDependencies): RuntimeTrpcContext["reposApi"] {
 	const filesystemRoot = resolve(deps.serverCwd, "/");
 
 	return {
-		listProjects: async (preferredWorkspaceId) => {
-			const payload = await deps.buildProjectsPayload(preferredWorkspaceId);
+		listRepos: async (preferredWorkspaceId) => {
+			const payload = await deps.buildReposPayload(preferredWorkspaceId);
 			return {
-				currentProjectId: payload.currentProjectId,
-				projects: payload.projects,
+				currentRepoId: payload.currentRepoId,
+				repos: payload.repos,
 			};
 		},
-		addProject: async (preferredWorkspaceId, input) => {
-			const body = parseProjectAddRequest(input);
+		addRepo: async (preferredWorkspaceId, input) => {
+			const body = parseRepoAddRequest(input);
 			const preferredWorkspaceContext = preferredWorkspaceId
 				? await loadWorkspaceContextById(preferredWorkspaceId)
 				: null;
 			const resolveBasePath = preferredWorkspaceContext?.repoPath ?? deps.getActiveWorkspacePath() ?? process.cwd();
 			try {
-				let projectPath: string;
+				let repoPath: string;
 				if (body.gitUrl) {
 					// Clone from Git URL. If a custom path is provided alongside
 					// gitUrl, use it as the clone destination. Otherwise derive
 					// a destination from the URL.
 					// Resolve relative to serverCwd (the default clone base), not the
-					// active project — the clone target belongs under the kanban
-					// working directory, not inside another project.
-					const customDest = body.path ? deps.resolveProjectInputPath(body.path, deps.serverCwd) : undefined;
+					// active repo — the clone target belongs under the kanban
+					// working directory, not inside another repo.
+					const customDest = body.path ? deps.resolveRepoInputPath(body.path, deps.serverCwd) : undefined;
 					const cloneResult = await cloneGitRepository(body.gitUrl, deps.serverCwd, customDest, filesystemRoot);
 					if (!cloneResult.ok) {
 						return {
 							ok: false,
-							project: null,
+							repo: null,
 							error: cloneResult.error ?? "Git clone failed.",
-						} satisfies RuntimeProjectAddResponse;
+						} satisfies RuntimeRepoAddResponse;
 					}
-					projectPath = cloneResult.clonedPath;
+					repoPath = cloneResult.clonedPath;
 				} else {
 					// path is guaranteed to exist here by the schema refine and the gitUrl branch above.
-					projectPath = deps.resolveProjectInputPath(body.path as string, resolveBasePath);
+					repoPath = deps.resolveRepoInputPath(body.path as string, resolveBasePath);
 				}
-				await deps.assertPathIsDirectory(projectPath);
-				if (!deps.hasGitRepository(projectPath)) {
+				await deps.assertPathIsDirectory(repoPath);
+				if (!deps.hasGitRepository(repoPath)) {
 					if (!body.initializeGit) {
 						return {
 							ok: false,
-							project: null,
+							repo: null,
 							requiresGitInitialization: true,
 							error: "This folder is not a git repository. Kanban requires git to manage worktrees. Initialize git to continue.",
-						} satisfies RuntimeProjectAddResponse;
+						} satisfies RuntimeRepoAddResponse;
 					}
-					const initResult = await initializeGitRepository(projectPath);
+					const initResult = await initializeGitRepository(repoPath);
 					if (!initResult.ok) {
 						return {
 							ok: false,
-							project: null,
+							repo: null,
 							error: initResult.error ?? "Failed to initialize git repository.",
-						} satisfies RuntimeProjectAddResponse;
+						} satisfies RuntimeRepoAddResponse;
 					}
 				} else {
-					const commitResult = await ensureInitialCommit(projectPath);
+					const commitResult = await ensureInitialCommit(repoPath);
 					if (!commitResult.ok) {
 						return {
 							ok: false,
-							project: null,
+							repo: null,
 							error: commitResult.error ?? "Failed to ensure initial commit.",
-						} satisfies RuntimeProjectAddResponse;
+						} satisfies RuntimeRepoAddResponse;
 					}
 				}
-				const context = await loadWorkspaceContext(projectPath);
+				const context = await loadWorkspaceContext(repoPath);
 				deps.rememberWorkspace(context.workspaceId, context.repoPath);
-				const projectsAfterAdd = await listWorkspaceIndexEntries();
+				const reposAfterAdd = await listWorkspaceIndexEntries();
 				const activeWorkspaceId = deps.getActiveWorkspaceId();
 				const hasActiveWorkspace = activeWorkspaceId
-					? projectsAfterAdd.some((project) => project.workspaceId === activeWorkspaceId)
+					? reposAfterAdd.some((project) => project.workspaceId === activeWorkspaceId)
 					: false;
 				if (!hasActiveWorkspace) {
 					await deps.setActiveWorkspace(context.workspaceId, context.repoPath);
 				}
-				const taskCounts = await deps.summarizeProjectTaskCounts(context.workspaceId, context.repoPath);
-				void deps.broadcastRuntimeProjectsUpdated(context.workspaceId);
+				const taskCounts = await deps.summarizeRepoTaskCounts(context.workspaceId, context.repoPath);
+				void deps.broadcastRuntimeReposUpdated(context.workspaceId);
 				return {
 					ok: true,
-					project: deps.createProjectSummary({
+					repo: deps.createRepoSummary({
 						workspaceId: context.workspaceId,
 						repoPath: context.repoPath,
 						taskCounts,
+						pullRequestCount: 0,
 					}),
-				} satisfies RuntimeProjectAddResponse;
+				} satisfies RuntimeRepoAddResponse;
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				return {
 					ok: false,
-					project: null,
+					repo: null,
 					error: message,
-				} satisfies RuntimeProjectAddResponse;
+				} satisfies RuntimeRepoAddResponse;
 			}
 		},
-		removeProject: async (_preferredWorkspaceId, input) => {
+		removeRepo: async (_preferredWorkspaceId, input) => {
 			try {
-				const body = parseProjectRemoveRequest(input);
-				const projectsBeforeRemoval = await listWorkspaceIndexEntries();
-				const projectToRemove = projectsBeforeRemoval.find((project) => project.workspaceId === body.projectId);
-				if (!projectToRemove) {
+				const body = parseRepoRemoveRequest(input);
+				const reposBeforeRemoval = await listWorkspaceIndexEntries();
+				const repoToRemove = reposBeforeRemoval.find((project) => project.workspaceId === body.repoId);
+				if (!repoToRemove) {
 					return {
 						ok: false,
-						error: `Unknown project ID: ${body.projectId}`,
+						error: `Unknown repo ID: ${body.repoId}`,
 					};
 				}
 
 				const taskIdsToCleanup = new Set<string>();
 				try {
-					const workspaceState = await loadWorkspaceState(projectToRemove.repoPath);
-					for (const taskId of deps.collectProjectWorktreeTaskIdsForRemoval(workspaceState.board)) {
+					const workspaceState = await loadWorkspaceState(repoToRemove.repoPath);
+					for (const taskId of deps.collectRepoWorktreeTaskIdsForRemoval(workspaceState.board)) {
 						taskIdsToCleanup.add(taskId);
 					}
 				} catch {
 					// Best effort: if board state cannot be read, skip worktree cleanup IDs.
 				}
 
-				const removedTerminalManager = deps.getTerminalManagerForWorkspace(body.projectId);
+				const removedTerminalManager = deps.getTerminalManagerForWorkspace(body.repoId);
 				if (removedTerminalManager) {
 					removedTerminalManager.markInterruptedAndStopAll();
 				}
 
-				const removed = await removeWorkspaceIndexEntry(body.projectId);
+				const removed = await removeWorkspaceIndexEntry(body.repoId);
 				if (!removed) {
-					throw new Error(`Could not remove project index entry for "${body.projectId}".`);
+					throw new Error(`Could not remove repo index entry for "${body.repoId}".`);
 				}
-				await removeWorkspaceStateFiles(body.projectId);
-				deps.disposeWorkspace(body.projectId, {
+				await removeWorkspaceStateFiles(body.repoId);
+				deps.disposeWorkspace(body.repoId, {
 					stopTerminalSessions: false,
 				});
 
-				if (deps.getActiveWorkspaceId() === body.projectId) {
+				if (deps.getActiveWorkspaceId() === body.repoId) {
 					const remaining = await listWorkspaceIndexEntries();
 					const fallbackWorkspace = remaining[0];
 					if (fallbackWorkspace) {
@@ -203,7 +205,7 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 						deps.clearActiveWorkspace();
 					}
 				}
-				void deps.broadcastRuntimeProjectsUpdated(deps.getActiveWorkspaceId());
+				void deps.broadcastRuntimeReposUpdated(deps.getActiveWorkspaceId());
 				if (taskIdsToCleanup.size > 0) {
 					const cleanupTaskIds = Array.from(taskIdsToCleanup);
 					void (async () => {
@@ -211,7 +213,7 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 							cleanupTaskIds.map(async (taskId) => ({
 								taskId,
 								deleted: await deleteTaskWorktree({
-									repoPath: projectToRemove.repoPath,
+									repoPath: repoToRemove.repoPath,
 									taskId,
 								}),
 							})),
@@ -236,7 +238,7 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 				};
 			}
 		},
-		pickProjectDirectory: async () => {
+		pickRepoDirectory: async () => {
 			try {
 				const selectedPath = deps.pickDirectoryPathFromSystemDialog();
 				if (!selectedPath) {
@@ -387,7 +389,7 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 					added += 1;
 				}),
 			);
-			await deps.broadcastRuntimeProjectsUpdated(null);
+			await deps.broadcastRuntimeReposUpdated(null);
 			return { added, skipped };
 		},
 	};

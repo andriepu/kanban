@@ -58,7 +58,7 @@ interface StartDetailTerminalOptions {
 }
 
 interface UseTerminalPanelsInput {
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	selectedCard: CardSelection | null;
 	workspaceGit: RuntimeGitRepositoryInfo | null;
 	agentCommand: string | null;
@@ -121,14 +121,14 @@ export interface UseTerminalPanelsResult {
 }
 
 export function useTerminalPanels({
-	currentProjectId,
+	currentRepoId,
 	selectedCard,
 	workspaceGit,
 	agentCommand,
 	upsertSession,
 	sendTaskSessionInput,
 }: UseTerminalPanelsInput): UseTerminalPanelsResult {
-	const homeTerminalProjectIdRef = useRef<string | null>(null);
+	const homeTerminalRepoIdRef = useRef<string | null>(null);
 	const detailTerminalSelectionKeyRef = useRef<string | null>(null);
 	const [isHomeTerminalOpen, setIsHomeTerminalOpen] = useState(false);
 	const [isHomeTerminalStarting, setIsHomeTerminalStarting] = useState(false);
@@ -198,7 +198,7 @@ export function useTerminalPanels({
 	const closeHomeTerminal = useCallback(() => {
 		setIsHomeTerminalOpen(false);
 		setIsHomeTerminalExpanded(false);
-		homeTerminalProjectIdRef.current = null;
+		homeTerminalRepoIdRef.current = null;
 	}, []);
 
 	const closeDetailTerminal = useCallback(() => {
@@ -253,13 +253,13 @@ export function useTerminalPanels({
 	}, [detailTerminalTaskId, updateDetailTerminalPanelState]);
 
 	const startHomeTerminalSession = useCallback(async (): Promise<boolean> => {
-		if (!currentProjectId) {
+		if (!currentRepoId) {
 			return false;
 		}
 		setIsHomeTerminalStarting(true);
 		try {
 			const geometry = await resolveShellTerminalGeometry(HOME_TERMINAL_TASK_ID);
-			const trpcClient = getRuntimeTrpcClient(currentProjectId);
+			const trpcClient = getRuntimeTrpcClient(currentRepoId);
 			const payload = await trpcClient.runtime.startShellSession.mutate({
 				taskId: HOME_TERMINAL_TASK_ID,
 				cols: geometry.cols,
@@ -281,24 +281,24 @@ export function useTerminalPanels({
 		} finally {
 			setIsHomeTerminalStarting(false);
 		}
-	}, [currentProjectId, upsertSession, workspaceGit?.currentBranch, workspaceGit?.defaultBranch]);
+	}, [currentRepoId, upsertSession, workspaceGit?.currentBranch, workspaceGit?.defaultBranch]);
 
 	const handleToggleHomeTerminal = useCallback(() => {
 		if (isHomeTerminalOpen) {
 			closeHomeTerminal();
 			return;
 		}
-		if (!currentProjectId) {
+		if (!currentRepoId) {
 			return;
 		}
-		homeTerminalProjectIdRef.current = currentProjectId;
+		homeTerminalRepoIdRef.current = currentRepoId;
 		setIsHomeTerminalOpen(true);
 		void startHomeTerminalSession();
-	}, [closeHomeTerminal, currentProjectId, isHomeTerminalOpen, startHomeTerminalSession]);
+	}, [closeHomeTerminal, currentRepoId, isHomeTerminalOpen, startHomeTerminalSession]);
 
 	const startDetailTerminalForCard = useCallback(
 		async (card: BoardCard, options?: StartDetailTerminalOptions): Promise<boolean> => {
-			if (!currentProjectId) {
+			if (!currentRepoId) {
 				return false;
 			}
 			const showLoading = options?.showLoading ?? false;
@@ -308,7 +308,7 @@ export function useTerminalPanels({
 			try {
 				const targetTaskId = getDetailTerminalTaskId(card.id);
 				const geometry = await resolveShellTerminalGeometry(targetTaskId);
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
 				const payload = await trpcClient.runtime.startShellSession.mutate({
 					taskId: targetTaskId,
 					cols: geometry.cols,
@@ -331,7 +331,7 @@ export function useTerminalPanels({
 				}
 			}
 		},
-		[currentProjectId, upsertSession],
+		[currentRepoId, upsertSession],
 	);
 
 	const handleToggleDetailTerminal = useCallback(() => {
@@ -378,20 +378,20 @@ export function useTerminalPanels({
 
 	useEffect(() => {
 		if (!isHomeTerminalOpen) {
-			homeTerminalProjectIdRef.current = null;
+			homeTerminalRepoIdRef.current = null;
 			return;
 		}
-		if (!currentProjectId || homeTerminalProjectIdRef.current === currentProjectId) {
+		if (!currentRepoId || homeTerminalRepoIdRef.current === currentRepoId) {
 			return;
 		}
-		homeTerminalProjectIdRef.current = currentProjectId;
+		homeTerminalRepoIdRef.current = currentRepoId;
 		void (async () => {
 			const started = await startHomeTerminalSession();
 			if (!started) {
 				closeHomeTerminal();
 			}
 		})();
-	}, [closeHomeTerminal, currentProjectId, isHomeTerminalOpen, startHomeTerminalSession]);
+	}, [closeHomeTerminal, currentRepoId, isHomeTerminalOpen, startHomeTerminalSession]);
 
 	const handleSendAgentCommandToHomeTerminal = useCallback(() => {
 		if (!agentCommand) {
@@ -441,14 +441,13 @@ export function useTerminalPanels({
 					} satisfies PrepareTerminalForShortcutResult;
 				}
 			} else {
-				const homeWasAlreadyOpenForProject =
-					isHomeTerminalOpen && homeTerminalProjectIdRef.current === currentProjectId;
-				hadExistingOpenTerminal = homeWasAlreadyOpenForProject;
-				shouldWaitForConnection = !homeWasAlreadyOpenForProject;
+				const homeWasAlreadyOpenForRepo = isHomeTerminalOpen && homeTerminalRepoIdRef.current === currentRepoId;
+				hadExistingOpenTerminal = homeWasAlreadyOpenForRepo;
+				shouldWaitForConnection = !homeWasAlreadyOpenForRepo;
 				if (shouldWaitForConnection) {
 					waitForTerminalConnectionReady = prepareWaitForTerminalConnectionReady(HOME_TERMINAL_TASK_ID);
 				}
-				homeTerminalProjectIdRef.current = currentProjectId;
+				homeTerminalRepoIdRef.current = currentRepoId;
 				setIsHomeTerminalOpen(true);
 				const started = await startHomeTerminalSession();
 				if (!started) {
@@ -472,7 +471,7 @@ export function useTerminalPanels({
 		},
 		[
 			closeHomeTerminal,
-			currentProjectId,
+			currentRepoId,
 			isDetailTerminalOpen,
 			isHomeTerminalOpen,
 			selectedCard,

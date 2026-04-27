@@ -29,17 +29,17 @@ function getDefaultExpandedSidebarWidth(): number {
 }
 
 const SIDEBAR_WIDTH_PREFERENCE: ResizeNumberPreference = {
-	key: LocalStorageKey.ProjectNavigationPanelWidth,
+	key: LocalStorageKey.RepoNavigationPanelWidth,
 	defaultValue: getDefaultExpandedSidebarWidth,
 	normalize: (value) => clampBetween(value, SIDEBAR_MIN_EXPANDED_WIDTH, SIDEBAR_MAX_EXPANDED_WIDTH),
 };
 
 const SIDEBAR_COLLAPSED_PREFERENCE: ResizeBooleanPreference = {
-	key: LocalStorageKey.ProjectNavigationPanelCollapsed,
+	key: LocalStorageKey.RepoNavigationPanelCollapsed,
 	defaultValue: false,
 };
 
-export function useProjectNavigationLayout(): {
+export function useRepoNavigationLayout(): {
 	isCollapsed: boolean;
 	setExpandedSidebarWidth: (width: number) => void;
 	setSidebarCollapsed: (collapsed: boolean, persist?: boolean) => void;

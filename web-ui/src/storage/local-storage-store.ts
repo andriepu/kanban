@@ -8,9 +8,8 @@ export enum LocalStorageKey {
 	DetailTaskCardsPanelRatio = "kanban.detail-task-cards-panel-ratio",
 	DetailDiffFileTreePanelRatio = "kanban.detail-diff-file-tree-panel-ratio",
 	DetailExpandedDiffFileTreePanelRatio = "kanban.detail-expanded-diff-file-tree-panel-ratio",
-	ProjectNavigationPanelWidth = "kb-sidebar-width",
-	ProjectNavigationPanelCollapsed = "kanban.project-navigation-panel-collapsed",
-	ProjectNavigationAgentPanelHeight = "kanban.project-navigation-agent-panel-height",
+	RepoNavigationPanelWidth = "kb-sidebar-width",
+	RepoNavigationPanelCollapsed = "kanban.repo-navigation-panel-collapsed",
 	GitHistoryRefsPanelWidth = "kanban.git-history-refs-panel-width",
 	GitHistoryCommitsPanelWidth = "kanban.git-history-commits-panel-width",
 	GitDiffFileTreePanelRatio = "kanban.git-diff-file-tree-panel-ratio",
@@ -29,9 +28,8 @@ export const LAYOUT_CUSTOMIZATION_LOCAL_STORAGE_KEYS = [
 	LocalStorageKey.DetailTaskCardsPanelRatio,
 	LocalStorageKey.DetailDiffFileTreePanelRatio,
 	LocalStorageKey.DetailExpandedDiffFileTreePanelRatio,
-	LocalStorageKey.ProjectNavigationPanelWidth,
-	LocalStorageKey.ProjectNavigationPanelCollapsed,
-	LocalStorageKey.ProjectNavigationAgentPanelHeight,
+	LocalStorageKey.RepoNavigationPanelWidth,
+	LocalStorageKey.RepoNavigationPanelCollapsed,
 	LocalStorageKey.GitHistoryRefsPanelWidth,
 	LocalStorageKey.GitHistoryCommitsPanelWidth,
 	LocalStorageKey.GitDiffFileTreePanelRatio,
@@ -83,5 +81,15 @@ export function removeLocalStorageItem(key: LocalStorageKey): void {
 export function resetLayoutCustomizationLocalStorageItems(): void {
 	for (const key of LAYOUT_CUSTOMIZATION_LOCAL_STORAGE_KEYS) {
 		removeLocalStorageItem(key);
+	}
+}
+
+export function migrateLegacyLocalStorageKeys(): void {
+	const oldCollapsed = "kanban.project-navigation-panel-collapsed";
+	const newCollapsed = "kanban.repo-navigation-panel-collapsed";
+	const oldVal = localStorage.getItem(oldCollapsed);
+	if (oldVal !== null && localStorage.getItem(newCollapsed) === null) {
+		localStorage.setItem(newCollapsed, oldVal);
+		localStorage.removeItem(oldCollapsed);
 	}
 }

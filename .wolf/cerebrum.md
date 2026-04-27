@@ -34,6 +34,8 @@
 - [2026-04-25] In React hook tests, after `if (snapshot === null) throw new Error(...)`, TypeScript still narrows `snapshot` to `never` for let bindings. After EACH null guard, assign to a typed const: `const snap: MyType = snapshot;` and use that for subsequent assertions. Do NOT use `snapshot!` — it still yields `never`. This applies to every null guard, including secondary ones after `await act(...)` calls.
 - [2026-04-24] The plan for Task 9 referenced React Query-style hooks (`.useQuery()`, `.useMutation()`) for the TRPC client — this is WRONG. The project uses `createTRPCProxyClient` (proxy pattern). All TRPC calls must use `.query()` and `.mutate()` from within `useEffect`/`useCallback`, not React Query hooks. Never use `.useQuery()` or `.useMutation()` in this project. `npx vitest` resolves the root-level vitest which cannot find jsdom (it's in web-ui/node_modules, not root/node_modules). The correct command: `cd web-ui && ./node_modules/.bin/vitest run <file>`.
 
+- [2026-04-25] When adding a field to `JiraSubtask` (disk type), also update `jiraSubtaskSchema` in `src/core/api-contract.ts`. tRPC routes with `.output(schema)` use zod's default `.strip()` mode — unknown keys are silently dropped. Missing the schema update causes the field to survive `loadBoard` (no output validator) but get stripped by `scanAndAttachPRs` (`.output(jiraScanAndAttachPrsResponseSchema)`). This caused `prState: "merged"` to be correct on first load but dropped on auto-scan, making merged PRs render green after ~1 second.
+
 ## Decision Log
 
 <!-- Significant technical decisions with rationale. Why X was chosen over Y. -->

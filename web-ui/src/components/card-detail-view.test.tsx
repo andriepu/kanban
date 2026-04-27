@@ -194,7 +194,7 @@ describe("CardDetailView", () => {
 			root.render(
 				<CardDetailView
 					selection={createSelection()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					sessionSummary={null}
 					taskSessions={{}}
 					onSessionSummary={() => {}}
@@ -239,7 +239,7 @@ describe("CardDetailView", () => {
 			root.render(
 				<CardDetailView
 					selection={createSelection()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					sessionSummary={null}
 					taskSessions={{}}
 					onSessionSummary={() => {}}
@@ -277,7 +277,7 @@ describe("CardDetailView", () => {
 			root.render(
 				<CardDetailView
 					selection={createSelection()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					sessionSummary={null}
 					taskSessions={{}}
 					onSessionSummary={() => {}}
@@ -332,7 +332,7 @@ describe("CardDetailView", () => {
 			root.render(
 				<CardDetailView
 					selection={createSelection()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					sessionSummary={null}
 					taskSessions={{}}
 					onSessionSummary={() => {}}
@@ -368,7 +368,7 @@ describe("CardDetailView", () => {
 			root.render(
 				<CardDetailView
 					selection={selection}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					selectedAgentId="claude"
 					sessionSummary={null}
 					taskSessions={{}}
@@ -392,7 +392,7 @@ describe("CardDetailView", () => {
 			root.render(
 				<CardDetailView
 					selection={createSelection()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					selectedAgentId="claude"
 					sessionSummary={{
 						taskId: "task-1",
@@ -431,7 +431,7 @@ describe("CardDetailView", () => {
 			root.render(
 				<CardDetailView
 					selection={createSelection()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					selectedAgentId="claude"
 					sessionSummary={null}
 					taskSessions={{}}
@@ -461,7 +461,7 @@ describe("CardDetailView", () => {
 			root.render(
 				<CardDetailView
 					selection={createSelection()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					sessionSummary={null}
 					taskSessions={{}}
 					onSessionSummary={() => {}}
@@ -484,7 +484,7 @@ describe("CardDetailView", () => {
 			root.render(
 				<CardDetailView
 					selection={createSelection()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					sessionSummary={null}
 					taskSessions={{}}
 					onSessionSummary={() => {}}
@@ -528,7 +528,7 @@ describe("CardDetailView", () => {
 				root.render(
 					<CardDetailView
 						selection={createSelection()}
-						currentProjectId="workspace-1"
+						currentRepoId="workspace-1"
 						sessionSummary={null}
 						taskSessions={{}}
 						onSessionSummary={() => {}}
@@ -581,7 +581,7 @@ describe("CardDetailView", () => {
 			root.render(
 				<CardDetailView
 					selection={createSelection()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					sessionSummary={null}
 					taskSessions={{}}
 					onSessionSummary={() => {}}

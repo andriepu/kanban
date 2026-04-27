@@ -132,9 +132,9 @@ function HookHarness({
 	const [sessions, setSessions] = useState<Record<string, RuntimeTaskSessionSummary>>({});
 	const [canPersistWorkspaceState, setCanPersistWorkspaceState] = useState(false);
 	const { refreshWorkspaceState, resetWorkspaceSyncState } = useWorkspaceSync({
-		currentProjectId: "project-a",
+		currentRepoId: "repo-a",
 		streamedWorkspaceState,
-		hasNoProjects: false,
+		hasNoRepos: false,
 		hasReceivedSnapshot,
 		isDocumentVisible,
 		setBoard,

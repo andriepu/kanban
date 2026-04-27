@@ -36,22 +36,22 @@ function HookHarness({
 	onSnapshot,
 	prepareTerminalForShortcut,
 	sendTaskSessionInput,
-	currentProjectId = "project-1",
+	currentRepoId = "project-1",
 	selectedShortcutLabel = "Ship",
 	shortcuts = [{ label: "Ship", command: "npm run ship" }],
 }: {
 	onSnapshot: (snapshot: HookSnapshot) => void;
 	prepareTerminalForShortcut: Parameters<typeof useShortcutActions>[0]["prepareTerminalForShortcut"];
 	sendTaskSessionInput: Parameters<typeof useShortcutActions>[0]["sendTaskSessionInput"];
-	currentProjectId?: string | null;
+	currentRepoId?: string | null;
 	selectedShortcutLabel?: string | null | undefined;
 	shortcuts?: Parameters<typeof useShortcutActions>[0]["shortcuts"];
 }): null {
 	const shortcutActions = useShortcutActions({
-		currentProjectId,
+		currentRepoId,
 		selectedShortcutLabel,
 		shortcuts,
-		refreshRuntimeProjectConfig: () => {},
+		refreshRuntimeRepoConfig: () => {},
 		prepareTerminalForShortcut,
 		prepareWaitForTerminalConnectionReady: () => async () => {},
 		sendTaskSessionInput,
@@ -183,7 +183,7 @@ describe("useShortcutActions", () => {
 				<HookHarness
 					prepareTerminalForShortcut={prepareTerminalForShortcut}
 					sendTaskSessionInput={sendTaskSessionInput}
-					currentProjectId="project-1"
+					currentRepoId="project-1"
 					selectedShortcutLabel={null}
 					shortcuts={[]}
 					onSnapshot={(snapshot) => {

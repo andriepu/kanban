@@ -18,12 +18,12 @@ export interface ResolveAppendSystemPromptCommandPrefixOptions {
 	execPath?: string;
 	cwd?: string;
 	resolveRealPath?: (path: string) => string;
-	registeredProjects?: Array<{ name: string; path: string }>;
+	registeredRepos?: Array<{ name: string; path: string }>;
 }
 
 export interface RenderAppendSystemPromptOptions {
 	agentId?: RuntimeAgentId | null;
-	availableProjects?: Array<{ name: string; path: string }>;
+	availableRepos?: Array<{ name: string; path: string }>;
 }
 
 const APPEND_PROMPT_AGENT_IDS: readonly RuntimeAgentId[] = ["claude"];
@@ -283,17 +283,17 @@ Parameters:
 - Prefer \`task list\` first when task IDs or dependency IDs are needed.
 - To create multiple linked tasks, create tasks first, then call \`task link\` for each dependency edge.
 `;
-	const projects = options.availableProjects;
-	if (!projects || projects.length === 0) {
+	const repos = options.availableRepos;
+	if (!repos || repos.length === 0) {
 		return prompt;
 	}
-	const projectLines = projects.map((p) => `- ${p.name}: ${p.path}`).join("\n");
+	const repoLines = repos.map((p) => `- ${p.name}: ${p.path}`).join("\n");
 	return `${prompt}
 # Available Projects
 
 The following projects are registered in Kanban. Use \`--project-path <path>\` to target a specific project:
 
-${projectLines}
+${repoLines}
 `;
 }
 
@@ -306,6 +306,6 @@ export function resolveHomeAgentAppendSystemPrompt(
 	}
 	return renderAppendSystemPrompt(resolveAppendSystemPromptCommandPrefix(options), {
 		agentId: resolveHomeAgentId(taskId),
-		availableProjects: options.registeredProjects,
+		availableRepos: options.registeredRepos,
 	});
 }

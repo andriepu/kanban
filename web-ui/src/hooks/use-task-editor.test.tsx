@@ -79,7 +79,7 @@ function HookHarness({
 	const editor = useTaskEditor({
 		board,
 		setBoard,
-		currentProjectId: "project-1",
+		currentRepoId: "repo-1",
 		createTaskBranchOptions: [{ value: "main", label: "main" }],
 		defaultTaskBranchRef: "main",
 		setSelectedTaskId,

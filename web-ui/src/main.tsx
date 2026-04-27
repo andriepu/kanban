@@ -5,7 +5,11 @@ import App from "@/App";
 import { AppErrorBoundary } from "@/components/app-error-boundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { isThemeId } from "@/hooks/use-theme";
+import { migrateLegacyLocalStorageKeys } from "@/storage/local-storage-store";
 import "@/styles/globals.css";
+
+// Migrate legacy localStorage keys from old naming conventions.
+migrateLegacyLocalStorageKeys();
 
 // Apply the persisted theme synchronously before first paint to prevent a flash.
 try {

@@ -4,7 +4,7 @@ import * as RadixPopover from "@radix-ui/react-popover";
 import * as RadixSelect from "@radix-ui/react-select";
 import * as RadixSwitch from "@radix-ui/react-switch";
 import { getRuntimeAgentCatalogEntry, getRuntimeLaunchSupportedAgentCatalog } from "@runtime-agent-catalog";
-import { areRuntimeProjectShortcutsEqual } from "@runtime-shortcuts";
+import { areRuntimeRepoShortcutsEqual } from "@runtime-shortcuts";
 import {
 	Bell,
 	Check,
@@ -44,7 +44,7 @@ import {
 	setJiraApiToken as saveJiraApiTokenRequest,
 	syncReposRoot,
 } from "@/runtime/runtime-config-query";
-import type { RuntimeAgentId, RuntimeConfigResponse, RuntimeProjectShortcut } from "@/runtime/types";
+import type { RuntimeAgentId, RuntimeConfigResponse, RuntimeRepoShortcut } from "@/runtime/types";
 import { useRuntimeConfig } from "@/runtime/use-runtime-config";
 import {
 	type BrowserNotificationPermission,
@@ -87,7 +87,7 @@ export type RuntimeSettingsSection = "shortcuts";
 
 const SETTINGS_AGENT_ORDER: readonly RuntimeAgentId[] = ["claude"];
 
-type SettingsNavId = "general" | "git-prompts" | "notifications" | "appearance" | "project" | "jira-repos";
+type SettingsNavId = "general" | "git-prompts" | "notifications" | "appearance" | "repo" | "jira-repos";
 
 const SETTINGS_NAV_ITEMS: ReadonlyArray<{
 	id: SettingsNavId;
@@ -98,7 +98,7 @@ const SETTINGS_NAV_ITEMS: ReadonlyArray<{
 	{ id: "git-prompts", label: "Git Prompts", icon: <GitCommit size={16} /> },
 	{ id: "notifications", label: "Notifications", icon: <Bell size={16} /> },
 	{ id: "appearance", label: "Appearance", icon: <Palette size={16} /> },
-	{ id: "project", label: "Project", icon: <FolderOpen size={16} /> },
+	{ id: "repo", label: "Repo", icon: <FolderOpen size={16} /> },
 	{ id: "jira-repos", label: "Jira & Repos", icon: <Network size={16} /> },
 ];
 
@@ -118,7 +118,7 @@ function formatNotificationPermissionStatus(permission: BrowserNotificationPermi
 	return permission;
 }
 
-function getNextShortcutLabel(shortcuts: RuntimeProjectShortcut[], baseLabel: string): string {
+function getNextShortcutLabel(shortcuts: RuntimeRepoShortcut[], baseLabel: string): string {
 	const normalizedTakenLabels = new Set(
 		shortcuts.map((shortcut) => shortcut.label.trim().toLowerCase()).filter((label) => label.length > 0),
 	);
@@ -359,7 +359,7 @@ export function RuntimeSettingsDialog({
 	const [initialThemeId, setInitialThemeId] = useState<ThemeId>(readStoredThemeId);
 	const [draftThemeId, setDraftThemeId] = useState<ThemeId>(readStoredThemeId);
 	const [notificationPermission, setNotificationPermission] = useState<BrowserNotificationPermission>("unsupported");
-	const [shortcuts, setShortcuts] = useState<RuntimeProjectShortcut[]>([]);
+	const [shortcuts, setShortcuts] = useState<RuntimeRepoShortcut[]>([]);
 	const [commitPromptTemplate, setCommitPromptTemplate] = useState("");
 	const [openPrPromptTemplate, setOpenPrPromptTemplate] = useState("");
 	const [selectedPromptVariant, setSelectedPromptVariant] = useState<TaskGitAction>("commit");
@@ -462,7 +462,7 @@ export function RuntimeSettingsDialog({
 		if (draftThemeId !== initialThemeId) {
 			return true;
 		}
-		if (!areRuntimeProjectShortcutsEqual(shortcuts, initialShortcuts)) {
+		if (!areRuntimeRepoShortcutsEqual(shortcuts, initialShortcuts)) {
 			return true;
 		}
 		if (
@@ -1066,26 +1066,26 @@ export function RuntimeSettingsDialog({
 							Reset sidebar, split pane, and terminal resize customizations back to their defaults.
 						</p>
 					</div>
-					<div data-settings-section="project" />
+					<div data-settings-section="repo" />
 					<div className="sticky top-0 -mx-5 px-5 pt-4 pb-2 bg-surface-1 z-10">
 						<h2 className="flex items-center gap-2 text-base font-semibold text-text-primary m-0">
 							<FolderOpen size={16} className="text-text-secondary" />
-							Project
+							Repo
 						</h2>
 					</div>
 					<p
 						className="text-text-secondary font-mono text-xs m-0 mb-3 break-all"
-						style={{ cursor: config?.projectConfigPath ? "pointer" : undefined }}
+						style={{ cursor: config?.repoConfigPath ? "pointer" : undefined }}
 						onClick={() => {
-							if (config?.projectConfigPath) {
-								handleOpenFilePath(config.projectConfigPath);
+							if (config?.repoConfigPath) {
+								handleOpenFilePath(config.repoConfigPath);
 							}
 						}}
 					>
-						{config?.projectConfigPath
-							? formatPathForDisplay(config.projectConfigPath)
-							: "<project>/.kanban/kanban/config.json"}
-						{config?.projectConfigPath ? <ExternalLink size={12} className="inline ml-1.5 align-middle" /> : null}
+						{config?.repoConfigPath
+							? formatPathForDisplay(config.repoConfigPath)
+							: "<repo>/.kanban/kanban/config.json"}
+						{config?.repoConfigPath ? <ExternalLink size={12} className="inline ml-1.5 align-middle" /> : null}
 					</p>
 					<div className="rounded-lg border border-border bg-surface-0 px-4 py-3 mb-4">
 						<div className="flex items-center justify-between mb-2">
@@ -1199,7 +1199,7 @@ export function RuntimeSettingsDialog({
 								Worktrees Root
 							</label>
 							<p className="text-xs text-text-tertiary m-0">
-								Directory where git worktrees are created for subtasks.
+								Directory where git worktrees are created for pull requests.
 							</p>
 							<div className="flex gap-2">
 								<input

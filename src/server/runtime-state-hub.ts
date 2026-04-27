@@ -6,7 +6,7 @@ import { WebSocket, WebSocketServer } from "ws";
 import type {
 	RuntimeStateStreamErrorMessage,
 	RuntimeStateStreamMessage,
-	RuntimeStateStreamProjectsMessage,
+	RuntimeStateStreamReposMessage,
 	RuntimeStateStreamSnapshotMessage,
 	RuntimeStateStreamTaskChatClearedMessage,
 	RuntimeStateStreamTaskReadyForReviewMessage,
@@ -29,7 +29,7 @@ export interface DisposeRuntimeStateWorkspaceOptions {
 export interface CreateRuntimeStateHubDependencies {
 	workspaceRegistry: Pick<
 		WorkspaceRegistry,
-		"resolveWorkspaceForStream" | "buildProjectsPayload" | "buildWorkspaceStateSnapshot"
+		"resolveWorkspaceForStream" | "buildReposPayload" | "buildWorkspaceStateSnapshot"
 	>;
 }
 
@@ -46,7 +46,7 @@ export interface RuntimeStateHub {
 	) => void;
 	disposeWorkspace: (workspaceId: string, options?: DisposeRuntimeStateWorkspaceOptions) => void;
 	broadcastRuntimeWorkspaceStateUpdated: (workspaceId: string, workspacePath: string) => Promise<void>;
-	broadcastRuntimeProjectsUpdated: (preferredCurrentProjectId: string | null) => Promise<void>;
+	broadcastRuntimeReposUpdated: (preferredCurrentRepoId: string | null) => Promise<void>;
 	broadcastTaskReadyForReview: (workspaceId: string, taskId: string) => void;
 	close: () => Promise<void>;
 }
@@ -87,21 +87,21 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 		}
 	};
 
-	const broadcastRuntimeProjectsUpdated = async (preferredCurrentProjectId: string | null): Promise<void> => {
+	const broadcastRuntimeReposUpdated = async (preferredCurrentRepoId: string | null): Promise<void> => {
 		if (runtimeStateClients.size === 0) {
 			return;
 		}
 		try {
-			const payload = await deps.workspaceRegistry.buildProjectsPayload(preferredCurrentProjectId);
+			const payload = await deps.workspaceRegistry.buildReposPayload(preferredCurrentRepoId);
 			for (const client of runtimeStateClients) {
 				sendRuntimeStateMessage(client, {
-					type: "projects_updated",
-					currentProjectId: payload.currentProjectId,
-					projects: payload.projects,
-				} satisfies RuntimeStateStreamProjectsMessage);
+					type: "repos_updated",
+					currentRepoId: payload.currentRepoId,
+					repos: payload.repos,
+				} satisfies RuntimeStateStreamReposMessage);
 			}
 		} catch {
-			// Ignore transient project summary failures; next update will resync.
+			// Ignore transient repo summary failures; next update will resync.
 		}
 	};
 
@@ -123,7 +123,7 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 				sendRuntimeStateMessage(client, payload);
 			}
 		}
-		void broadcastRuntimeProjectsUpdated(workspaceId);
+		void broadcastRuntimeReposUpdated(workspaceId);
 	};
 
 	const queueTaskSessionSummaryBroadcast = (workspaceId: string, summary: RuntimeTaskSessionSummary) => {
@@ -326,16 +326,16 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 			let didConnectWorkspaceMonitor = false;
 
 			try {
-				let projectsPayload: {
-					currentProjectId: string | null;
-					projects: RuntimeStateStreamProjectsMessage["projects"];
+				let reposPayload: {
+					currentRepoId: string | null;
+					repos: RuntimeStateStreamReposMessage["repos"];
 				};
 				let workspaceState: RuntimeStateStreamSnapshotMessage["workspaceState"];
 				let workspaceMetadata: RuntimeStateStreamSnapshotMessage["workspaceMetadata"];
 				if (workspace.workspaceId && workspace.workspacePath) {
 					monitorWorkspaceId = workspace.workspaceId;
-					[projectsPayload, workspaceState] = await Promise.all([
-						deps.workspaceRegistry.buildProjectsPayload(workspace.workspaceId),
+					[reposPayload, workspaceState] = await Promise.all([
+						deps.workspaceRegistry.buildReposPayload(workspace.workspaceId),
 						deps.workspaceRegistry.buildWorkspaceStateSnapshot(workspace.workspaceId, workspace.workspacePath),
 					]);
 					workspaceMetadata = await workspaceMetadataMonitor.connectWorkspace({
@@ -345,7 +345,7 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 					});
 					didConnectWorkspaceMonitor = true;
 				} else {
-					projectsPayload = await deps.workspaceRegistry.buildProjectsPayload(null);
+					reposPayload = await deps.workspaceRegistry.buildReposPayload(null);
 					workspaceState = null;
 					workspaceMetadata = null;
 				}
@@ -358,8 +358,8 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 				}
 				sendRuntimeStateMessage(client, {
 					type: "snapshot",
-					currentProjectId: projectsPayload.currentProjectId,
-					projects: projectsPayload.projects,
+					currentRepoId: reposPayload.currentRepoId,
+					repos: reposPayload.repos,
 					workspaceState,
 					workspaceMetadata,
 				} satisfies RuntimeStateStreamSnapshotMessage);
@@ -380,11 +380,11 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 				if (workspace.removedRequestedWorkspacePath) {
 					sendRuntimeStateMessage(client, {
 						type: "error",
-						message: `Project no longer exists on disk and was removed: ${workspace.removedRequestedWorkspacePath}`,
+						message: `Repo no longer exists on disk and was removed: ${workspace.removedRequestedWorkspacePath}`,
 					} satisfies RuntimeStateStreamErrorMessage);
 				}
-				if (workspace.didPruneProjects) {
-					void broadcastRuntimeProjectsUpdated(workspace.workspaceId);
+				if (workspace.didPruneRepos) {
+					void broadcastRuntimeReposUpdated(workspace.workspaceId);
 				}
 			} catch (error) {
 				if (didConnectWorkspaceMonitor && monitorWorkspaceId) {
@@ -424,7 +424,7 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 		},
 		disposeWorkspace,
 		broadcastRuntimeWorkspaceStateUpdated,
-		broadcastRuntimeProjectsUpdated,
+		broadcastRuntimeReposUpdated,
 		broadcastTaskReadyForReview,
 		close: async () => {
 			for (const timer of taskSessionBroadcastTimersByWorkspaceId.values()) {

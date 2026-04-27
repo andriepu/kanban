@@ -11,7 +11,7 @@ function makeConfig(overrides: Partial<RuntimeConfigResponse> = {}): RuntimeConf
 		agentAutonomousModeEnabled: true,
 		effectiveCommand: "claude",
 		globalConfigPath: "/home/user/.kanban/kanban/config.json",
-		projectConfigPath: null,
+		repoConfigPath: null,
 		readyForReviewNotificationsEnabled: true,
 		detectedCommands: ["claude"],
 		agents: [],

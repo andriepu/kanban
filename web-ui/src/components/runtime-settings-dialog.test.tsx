@@ -86,7 +86,7 @@ vi.mock("@runtime-agent-catalog", () => ({
 }));
 
 vi.mock("@runtime-shortcuts", () => ({
-	areRuntimeProjectShortcutsEqual: vi.fn(() => true),
+	areRuntimeRepoShortcutsEqual: vi.fn(() => true),
 }));
 
 vi.mock("@/resize/layout-customizations", () => ({
@@ -139,7 +139,7 @@ const savedConfig = {
 	commitPromptTemplateDefault: "",
 	openPrPromptTemplateDefault: "",
 	globalConfigPath: null,
-	projectConfigPath: null,
+	repoConfigPath: null,
 	agents: [
 		{
 			id: "claude",

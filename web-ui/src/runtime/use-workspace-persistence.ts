@@ -12,7 +12,7 @@ const WORKSPACE_STATE_PERSIST_DEBOUNCE_MS = 120;
 export interface UseWorkspacePersistenceParams {
 	board: BoardData;
 	sessions: Record<string, RuntimeTaskSessionSummary>;
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	workspaceRevision: number | null;
 	hydrationNonce: number;
 	canPersistWorkspaceState: boolean;
@@ -30,7 +30,7 @@ export interface UseWorkspacePersistenceParams {
 export function useWorkspacePersistence({
 	board,
 	sessions,
-	currentProjectId,
+	currentRepoId,
 	workspaceRevision,
 	hydrationNonce,
 	canPersistWorkspaceState,
@@ -47,18 +47,18 @@ export function useWorkspacePersistence({
 	const latestPersistRequestIdRef = useRef(0);
 	const persistInFlightRef = useRef(false);
 	const persistQueuedRef = useRef(false);
-	const currentProjectIdRef = useRef<string | null>(currentProjectId);
+	const currentRepoIdRef = useRef<string | null>(currentRepoId);
 	const sessionsRef = useRef(sessions);
 	const lastPersistedBoardRef = useRef<BoardData | null>(null);
 	const lastPersistedWorkspaceIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
-		currentProjectIdRef.current = currentProjectId;
-		if (lastPersistedWorkspaceIdRef.current !== currentProjectId) {
-			lastPersistedWorkspaceIdRef.current = currentProjectId;
+		currentRepoIdRef.current = currentRepoId;
+		if (lastPersistedWorkspaceIdRef.current !== currentRepoId) {
+			lastPersistedWorkspaceIdRef.current = currentRepoId;
 			lastPersistedBoardRef.current = null;
 		}
-	}, [currentProjectId]);
+	}, [currentRepoId]);
 
 	useEffect(() => {
 		sessionsRef.current = sessions;
@@ -70,9 +70,9 @@ export function useWorkspacePersistence({
 		}
 		latestHydrationNonceRef.current = hydrationNonce;
 		skipNextPersistRef.current = true;
-		lastPersistedWorkspaceIdRef.current = currentProjectId;
+		lastPersistedWorkspaceIdRef.current = currentRepoId;
 		lastPersistedBoardRef.current = board;
-	}, [board, currentProjectId, hydrationNonce]);
+	}, [board, currentRepoId, hydrationNonce]);
 
 	useEffect(() => {
 		if (!canPersistWorkspaceState || !isDocumentVisible || isWorkspaceStateRefreshing || workspaceRevision == null) {
@@ -87,8 +87,8 @@ export function useWorkspacePersistence({
 			return;
 		}
 		if (
-			currentProjectId != null &&
-			lastPersistedWorkspaceIdRef.current === currentProjectId &&
+			currentRepoId != null &&
+			lastPersistedWorkspaceIdRef.current === currentRepoId &&
 			lastPersistedBoardRef.current === board
 		) {
 			return;
@@ -96,7 +96,7 @@ export function useWorkspacePersistence({
 		const timeoutId = window.setTimeout(() => {
 			const requestId = latestPersistRequestIdRef.current + 1;
 			latestPersistRequestIdRef.current = requestId;
-			const persistWorkspaceId = currentProjectId;
+			const persistWorkspaceId = currentRepoId;
 			if (!persistWorkspaceId) {
 				return;
 			}
@@ -112,10 +112,7 @@ export function useWorkspacePersistence({
 						workspaceId: persistWorkspaceId,
 						payload,
 					});
-					if (
-						requestId !== latestPersistRequestIdRef.current ||
-						currentProjectIdRef.current !== persistWorkspaceId
-					) {
+					if (requestId !== latestPersistRequestIdRef.current || currentRepoIdRef.current !== persistWorkspaceId) {
 						return;
 					}
 					lastPersistedWorkspaceIdRef.current = persistWorkspaceId;
@@ -125,7 +122,7 @@ export function useWorkspacePersistence({
 					if (error instanceof WorkspaceStateConflictError) {
 						if (
 							requestId === latestPersistRequestIdRef.current &&
-							currentProjectIdRef.current === persistWorkspaceId
+							currentRepoIdRef.current === persistWorkspaceId
 						) {
 							onWorkspaceRevisionChange(error.currentRevision);
 							onWorkspaceStateConflict?.({
@@ -133,7 +130,7 @@ export function useWorkspacePersistence({
 								currentRevision: error.currentRevision,
 							});
 						}
-						if (currentProjectIdRef.current !== persistWorkspaceId) {
+						if (currentRepoIdRef.current !== persistWorkspaceId) {
 							return;
 						}
 						await refetchWorkspaceState();
@@ -155,7 +152,7 @@ export function useWorkspacePersistence({
 	}, [
 		board,
 		canPersistWorkspaceState,
-		currentProjectId,
+		currentRepoId,
 		isDocumentVisible,
 		isWorkspaceStateRefreshing,
 		onWorkspaceRevisionChange,

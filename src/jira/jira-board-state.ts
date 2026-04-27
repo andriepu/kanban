@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { type LockRequest, lockedFileSystem } from "../fs/locked-file-system.js";
@@ -8,7 +8,7 @@ export interface JiraCard {
 	jiraKey: string; // e.g. "POL-1234"
 	summary: string; // fetched from Jira
 	status: "todo" | "in_progress" | "done";
-	subtaskIds: string[]; // ordered list of subtask IDs
+	pullRequestIds: string[]; // ordered list of pull request IDs
 	createdAt: number;
 	updatedAt: number;
 }
@@ -17,7 +17,14 @@ export interface JiraBoard {
 	cards: JiraCard[];
 }
 
-export interface JiraSubtask {
+export interface JiraDetail {
+	jiraKey: string;
+	summary: string;
+	description: string | null;
+	fetchedAt: number;
+}
+
+export interface JiraPullRequest {
 	id: string;
 	jiraKey: string; // parent card key
 	repoId: string; // repo directory name
@@ -30,7 +37,7 @@ export interface JiraSubtask {
 	status: "backlog" | "in_progress" | "review" | "done";
 	prUrl?: string; // GitHub PR URL
 	prNumber?: number; // GitHub PR number
-	isDraft?: boolean; // true if PR is a draft
+	prState?: "open" | "draft" | "merged";
 	createdAt: number;
 	updatedAt: number;
 }
@@ -43,16 +50,28 @@ function getBoardFilePath(): string {
 	return join(getKanbanDataDir(), "jira-board.json");
 }
 
-function getSubtasksFilePath(): string {
+function getPullRequestsFilePath(): string {
+	return join(getKanbanDataDir(), "jira-pull-requests.json");
+}
+
+function getOldSubtasksFilePath(): string {
 	return join(getKanbanDataDir(), "jira-subtasks.json");
+}
+
+function getDetailsFilePath(): string {
+	return join(getKanbanDataDir(), "jira-details.json");
 }
 
 function getBoardLockRequest(): LockRequest {
 	return { path: getBoardFilePath(), type: "file" };
 }
 
-function getSubtasksLockRequest(): LockRequest {
-	return { path: getSubtasksFilePath(), type: "file" };
+function getPullRequestsLockRequest(): LockRequest {
+	return { path: getPullRequestsFilePath(), type: "file" };
+}
+
+function getDetailsLockRequest(): LockRequest {
+	return { path: getDetailsFilePath(), type: "file" };
 }
 
 async function readJsonFile<T>(filePath: string): Promise<T | null> {
@@ -73,7 +92,12 @@ export async function loadJiraBoard(): Promise<JiraBoard> {
 	if (data === null || !Array.isArray(data.cards)) {
 		return { cards: [] };
 	}
-	return data;
+	// Migration: cards created before pullRequestIds was added may lack the field
+	const cards = data.cards.map((card) => ({
+		...card,
+		pullRequestIds: card.pullRequestIds ?? [],
+	}));
+	return { cards };
 }
 
 export async function saveJiraBoard(board: JiraBoard): Promise<void> {
@@ -82,54 +106,80 @@ export async function saveJiraBoard(board: JiraBoard): Promise<void> {
 	});
 }
 
-export async function loadJiraSubtasks(): Promise<Record<string, JiraSubtask>> {
-	const data = await readJsonFile<Record<string, JiraSubtask>>(getSubtasksFilePath());
+export async function loadJiraPullRequests(): Promise<Record<string, JiraPullRequest>> {
+	// Migration: if old jira-subtasks.json exists, migrate to jira-pull-requests.json
+	const oldPath = getOldSubtasksFilePath();
+	const oldData = await readJsonFile<Record<string, JiraPullRequest>>(oldPath);
+	if (oldData !== null) {
+		// Write to new path
+		await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), oldData);
+		// Delete old file (best-effort)
+		try {
+			await unlink(oldPath);
+		} catch {
+			// Ignore deletion errors — the new file is authoritative
+		}
+		// Fix up prState if missing
+		for (const pr of Object.values(oldData)) {
+			if (pr.prUrl !== undefined && pr.prState === undefined) {
+				pr.prState = "open";
+			}
+		}
+		return oldData;
+	}
+
+	const data = await readJsonFile<Record<string, JiraPullRequest>>(getPullRequestsFilePath());
 	if (data === null || typeof data !== "object") {
 		return {};
+	}
+	for (const pr of Object.values(data)) {
+		if (pr.prUrl !== undefined && pr.prState === undefined) {
+			pr.prState = "open";
+		}
 	}
 	return data;
 }
 
-export async function createJiraSubtask(
-	input: Omit<JiraSubtask, "id" | "createdAt" | "updatedAt">,
-): Promise<JiraSubtask> {
+export async function createJiraPullRequest(
+	input: Omit<JiraPullRequest, "id" | "createdAt" | "updatedAt">,
+): Promise<JiraPullRequest> {
 	const id = randomUUID();
 	const now = Date.now();
-	const subtask: JiraSubtask = {
+	const pullRequest: JiraPullRequest = {
 		...input,
 		id,
 		createdAt: now,
 		updatedAt: now,
 	};
 
-	await lockedFileSystem.withLocks([getBoardLockRequest(), getSubtasksLockRequest()], async () => {
+	await lockedFileSystem.withLocks([getBoardLockRequest(), getPullRequestsLockRequest()], async () => {
 		// Read current state inside the lock
-		const [board, subtasks] = await Promise.all([
+		const [board, pullRequests] = await Promise.all([
 			readJsonFile<JiraBoard>(getBoardFilePath()),
-			readJsonFile<Record<string, JiraSubtask>>(getSubtasksFilePath()),
+			readJsonFile<Record<string, JiraPullRequest>>(getPullRequestsFilePath()),
 		]);
 
 		const currentBoard: JiraBoard = board !== null && Array.isArray(board.cards) ? board : { cards: [] };
-		const currentSubtasks: Record<string, JiraSubtask> =
-			subtasks !== null && typeof subtasks === "object" ? subtasks : {};
+		const currentPullRequests: Record<string, JiraPullRequest> =
+			pullRequests !== null && typeof pullRequests === "object" ? pullRequests : {};
 
 		const matchingCard = currentBoard.cards.find((card) => card.jiraKey === input.jiraKey);
 		if (matchingCard === undefined) {
-			throw new Error(`Cannot create subtask: Jira card "${input.jiraKey}" not found in board`);
+			throw new Error(`Cannot create pull request: Jira card "${input.jiraKey}" not found in board`);
 		}
 
-		// Add subtask to map
-		const updatedSubtasks: Record<string, JiraSubtask> = {
-			...currentSubtasks,
-			[id]: subtask,
+		// Add pull request to map
+		const updatedPullRequests: Record<string, JiraPullRequest> = {
+			...currentPullRequests,
+			[id]: pullRequest,
 		};
 
-		// Update parent card's subtaskIds
+		// Update parent card's pullRequestIds
 		const updatedCards = currentBoard.cards.map((card) => {
 			if (card.jiraKey === matchingCard.jiraKey) {
 				return {
 					...card,
-					subtaskIds: [...card.subtaskIds, id],
+					pullRequestIds: [...card.pullRequestIds, id],
 					updatedAt: now,
 				};
 			}
@@ -139,35 +189,51 @@ export async function createJiraSubtask(
 
 		// Write both files atomically within the lock (lock: null skips re-locking)
 		await lockedFileSystem.writeJsonFileAtomic(getBoardFilePath(), updatedBoard, { lock: null });
-		await lockedFileSystem.writeJsonFileAtomic(getSubtasksFilePath(), updatedSubtasks, { lock: null });
+		await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), updatedPullRequests, { lock: null });
 	});
 
-	return subtask;
+	return pullRequest;
 }
 
-export async function deleteJiraSubtask(subtaskId: string): Promise<void> {
-	await lockedFileSystem.withLocks([getBoardLockRequest(), getSubtasksLockRequest()], async () => {
-		const [board, subtasks] = await Promise.all([
+export async function loadJiraDetails(): Promise<Record<string, JiraDetail>> {
+	const data = await readJsonFile<Record<string, JiraDetail>>(getDetailsFilePath());
+	if (data === null || typeof data !== "object") {
+		return {};
+	}
+	return data;
+}
+
+export async function saveJiraDetail(detail: JiraDetail): Promise<void> {
+	await lockedFileSystem.withLocks([getDetailsLockRequest()], async () => {
+		const current = (await readJsonFile<Record<string, JiraDetail>>(getDetailsFilePath())) ?? {};
+		const updated = { ...current, [detail.jiraKey]: detail };
+		await lockedFileSystem.writeJsonFileAtomic(getDetailsFilePath(), updated, { lock: null });
+	});
+}
+
+export async function deleteJiraPullRequest(pullRequestId: string): Promise<void> {
+	await lockedFileSystem.withLocks([getBoardLockRequest(), getPullRequestsLockRequest()], async () => {
+		const [board, pullRequests] = await Promise.all([
 			readJsonFile<JiraBoard>(getBoardFilePath()),
-			readJsonFile<Record<string, JiraSubtask>>(getSubtasksFilePath()),
+			readJsonFile<Record<string, JiraPullRequest>>(getPullRequestsFilePath()),
 		]);
 
 		const currentBoard: JiraBoard = board !== null && Array.isArray(board.cards) ? board : { cards: [] };
-		const currentSubtasks: Record<string, JiraSubtask> =
-			subtasks !== null && typeof subtasks === "object" ? subtasks : {};
+		const currentPullRequests: Record<string, JiraPullRequest> =
+			pullRequests !== null && typeof pullRequests === "object" ? pullRequests : {};
 
-		// Find parent jiraKey for the subtask being deleted
-		const subtaskToDelete = currentSubtasks[subtaskId];
+		// Find parent jiraKey for the pull request being deleted
+		const pullRequestToDelete = currentPullRequests[pullRequestId];
 
-		// Remove subtask from map
-		const { [subtaskId]: _removed, ...updatedSubtasks } = currentSubtasks;
+		// Remove pull request from map
+		const { [pullRequestId]: _removed, ...updatedPullRequests } = currentPullRequests;
 
-		// Remove subtask ID from parent card's subtaskIds
+		// Remove pull request ID from parent card's pullRequestIds
 		const updatedCards = currentBoard.cards.map((card) => {
-			if (subtaskToDelete !== undefined && card.jiraKey === subtaskToDelete.jiraKey) {
+			if (pullRequestToDelete !== undefined && card.jiraKey === pullRequestToDelete.jiraKey) {
 				return {
 					...card,
-					subtaskIds: card.subtaskIds.filter((sid) => sid !== subtaskId),
+					pullRequestIds: card.pullRequestIds.filter((pid) => pid !== pullRequestId),
 					updatedAt: Date.now(),
 				};
 			}
@@ -176,6 +242,6 @@ export async function deleteJiraSubtask(subtaskId: string): Promise<void> {
 		const updatedBoard: JiraBoard = { cards: updatedCards };
 
 		await lockedFileSystem.writeJsonFileAtomic(getBoardFilePath(), updatedBoard, { lock: null });
-		await lockedFileSystem.writeJsonFileAtomic(getSubtasksFilePath(), updatedSubtasks, { lock: null });
+		await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), updatedPullRequests, { lock: null });
 	});
 }

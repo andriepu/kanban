@@ -12,10 +12,10 @@ vi.mock("../../../src/state/workspace-state", async (importOriginal) => {
 	};
 });
 
-import type { RuntimeProjectTaskCounts } from "../../../src/core/api-contract";
+import type { RuntimeRepoTaskCounts } from "../../../src/core/api-contract";
 import { listWorkspaceIndexEntries, loadWorkspaceContext } from "../../../src/state/workspace-state";
 import type { TerminalSessionManager } from "../../../src/terminal/session-manager";
-import { type CreateProjectsApiDependencies, createProjectsApi } from "../../../src/trpc/projects-api";
+import { type CreateReposApiDependencies, createReposApi } from "../../../src/trpc/repos-api";
 
 function createTestCwd(): string {
 	const base = join(tmpdir(), `kanban-test-dir-list-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
@@ -23,39 +23,40 @@ function createTestCwd(): string {
 	return base;
 }
 
-function createDefaultDeps(serverCwd: string): CreateProjectsApiDependencies {
+function createDefaultDeps(serverCwd: string): CreateReposApiDependencies {
 	return {
 		getActiveWorkspacePath: vi.fn(() => null),
 		getActiveWorkspaceId: vi.fn(() => null),
 		rememberWorkspace: vi.fn(),
 		setActiveWorkspace: vi.fn(async () => {}),
 		clearActiveWorkspace: vi.fn(),
-		resolveProjectInputPath: vi.fn((inputPath: string, cwd: string) => resolve(cwd, inputPath)),
+		resolveRepoInputPath: vi.fn((inputPath: string, cwd: string) => resolve(cwd, inputPath)),
 		assertPathIsDirectory: vi.fn(async () => {}),
 		hasGitRepository: vi.fn(() => false),
-		summarizeProjectTaskCounts: vi.fn(
-			async (): Promise<RuntimeProjectTaskCounts> => ({
+		summarizeRepoTaskCounts: vi.fn(
+			async (): Promise<RuntimeRepoTaskCounts> => ({
 				backlog: 0,
 				in_progress: 0,
 				review: 0,
 				trash: 0,
 			}),
 		),
-		createProjectSummary: vi.fn(() => ({
+		createRepoSummary: vi.fn(() => ({
 			id: "test",
 			path: "/test",
 			name: "test",
 			taskCounts: { backlog: 0, in_progress: 0, review: 0, trash: 0 },
+			pullRequestCount: 0,
 		})),
-		broadcastRuntimeProjectsUpdated: vi.fn(),
+		broadcastRuntimeReposUpdated: vi.fn(),
 		getTerminalManagerForWorkspace: vi.fn(() => null),
 		disposeWorkspace: vi.fn(() => ({
 			terminalManager: null as TerminalSessionManager | null,
 			workspacePath: null as string | null,
 		})),
-		collectProjectWorktreeTaskIdsForRemoval: vi.fn(() => new Set<string>()),
+		collectRepoWorktreeTaskIdsForRemoval: vi.fn(() => new Set<string>()),
 		warn: vi.fn(),
-		buildProjectsPayload: vi.fn(async () => ({ currentProjectId: null, projects: [] })),
+		buildReposPayload: vi.fn(async () => ({ currentRepoId: null, repos: [] })),
 		pickDirectoryPathFromSystemDialog: vi.fn(() => null),
 		serverCwd,
 		// New deps for syncFromReposRoot:
@@ -78,7 +79,7 @@ describe("listDirectoryContents", () => {
 	});
 
 	it("returns filesystem root when path is empty", async () => {
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, {});
 		expect(result.ok).toBe(true);
 		expect(result.currentPath).toBe(filesystemRoot);
@@ -87,7 +88,7 @@ describe("listDirectoryContents", () => {
 	});
 
 	it("returns filesystem root when path is undefined (no path key)", async () => {
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: undefined });
 		expect(result.ok).toBe(true);
 		expect(result.currentPath).toBe(filesystemRoot);
@@ -100,7 +101,7 @@ describe("listDirectoryContents", () => {
 		mkdirSync(join(subdir, "child-a"));
 		mkdirSync(join(subdir, "child-b"));
 		writeFileSync(join(subdir, "file.txt"), "content");
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: subdir });
 		expect(result.ok).toBe(true);
 		expect(result.currentPath).toBe(subdir);
@@ -113,7 +114,7 @@ describe("listDirectoryContents", () => {
 		const siblingDir = join(dirname(testCwd), `kanban-sibling-${Date.now()}`);
 		mkdirSync(siblingDir, { recursive: true });
 		mkdirSync(join(siblingDir, "inside"));
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: siblingDir });
 		expect(result.ok).toBe(true);
 		expect(result.currentPath).toBe(siblingDir);
@@ -125,7 +126,7 @@ describe("listDirectoryContents", () => {
 		const subdir = join(testCwd, "abs-sub");
 		mkdirSync(subdir);
 		mkdirSync(join(subdir, "inside"));
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: subdir });
 		expect(result.ok).toBe(true);
 		expect(result.currentPath).toBe(subdir);
@@ -136,7 +137,7 @@ describe("listDirectoryContents", () => {
 	it("detects git repositories via .git directory", async () => {
 		mkdirSync(join(testCwd, "my-repo", ".git"), { recursive: true });
 		mkdirSync(join(testCwd, "not-a-repo"));
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: testCwd });
 		expect(result.ok).toBe(true);
 		const repoEntry = result.entries.find((e) => e.name === "my-repo");
@@ -148,7 +149,7 @@ describe("listDirectoryContents", () => {
 	it("excludes hidden directories (starting with .)", async () => {
 		mkdirSync(join(testCwd, ".hidden"));
 		mkdirSync(join(testCwd, "visible"));
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: testCwd });
 		expect(result.ok).toBe(true);
 		expect(result.entries).toHaveLength(1);
@@ -159,7 +160,7 @@ describe("listDirectoryContents", () => {
 		mkdirSync(join(testCwd, "zebra"));
 		mkdirSync(join(testCwd, "apple"));
 		mkdirSync(join(testCwd, "mango"));
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: testCwd });
 		expect(result.ok).toBe(true);
 		expect(result.entries.map((e) => e.name)).toEqual(["apple", "mango", "zebra"]);
@@ -167,7 +168,7 @@ describe("listDirectoryContents", () => {
 
 	it("returns empty entries for a directory with no subdirectories", async () => {
 		writeFileSync(join(testCwd, "file1.txt"), "data");
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: testCwd });
 		expect(result.ok).toBe(true);
 		expect(result.entries).toEqual([]);
@@ -177,7 +178,7 @@ describe("listDirectoryContents", () => {
 		const subdir = join(testCwd, "abs-allowed");
 		mkdirSync(subdir);
 		mkdirSync(join(subdir, "nested"));
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: subdir });
 		expect(result.ok).toBe(true);
 		expect(result.currentPath).toBe(subdir);
@@ -186,14 +187,14 @@ describe("listDirectoryContents", () => {
 	});
 
 	it("allows absolute path equal to rootPath", async () => {
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: filesystemRoot });
 		expect(result.ok).toBe(true);
 		expect(result.currentPath).toBe(filesystemRoot);
 	});
 
 	it("keeps traversal bounded at filesystem root", async () => {
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, {
 			path: "../../../../../../../../..",
 		});
@@ -202,7 +203,7 @@ describe("listDirectoryContents", () => {
 	});
 
 	it("parentPath is null when at filesystem root", async () => {
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, {});
 		expect(result.ok).toBe(true);
 		expect(result.parentPath).toBeNull();
@@ -210,7 +211,7 @@ describe("listDirectoryContents", () => {
 
 	it("parentPath points to launch directory when one level deep under it", async () => {
 		mkdirSync(join(testCwd, "level1"));
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: join(testCwd, "level1") });
 		expect(result.ok).toBe(true);
 		expect(result.parentPath).toBe(testCwd);
@@ -218,7 +219,7 @@ describe("listDirectoryContents", () => {
 
 	it("parentPath correctly chains when deeply nested", async () => {
 		mkdirSync(join(testCwd, "a", "b", "c"), { recursive: true });
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: join(testCwd, "a", "b", "c") });
 		expect(result.ok).toBe(true);
 		expect(result.parentPath).toBe(join(testCwd, "a", "b"));
@@ -227,7 +228,7 @@ describe("listDirectoryContents", () => {
 	// ── Error handling ──────────────────────────────────────
 
 	it("returns error for non-existent directory", async () => {
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: join(testCwd, "does-not-exist") });
 		expect(result.ok).toBe(false);
 		expect(result.error).toBe("Directory not found.");
@@ -236,7 +237,7 @@ describe("listDirectoryContents", () => {
 
 	it("returns error when path points to a file", async () => {
 		writeFileSync(join(testCwd, "a-file.txt"), "hello");
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: join(testCwd, "a-file.txt") });
 		expect(result.ok).toBe(false);
 		expect(result.error).toBe("The specified path is not a directory.");
@@ -247,14 +248,14 @@ describe("listDirectoryContents", () => {
 	it("success response validates against the schema", async () => {
 		const { runtimeDirectoryListResponseSchema } = await import("../../../src/core/api-contract");
 		mkdirSync(join(testCwd, "valid-dir"));
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: testCwd });
 		expect(runtimeDirectoryListResponseSchema.safeParse(result).success).toBe(true);
 	});
 
 	it("error response validates against the schema", async () => {
 		const { runtimeDirectoryListResponseSchema } = await import("../../../src/core/api-contract");
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: join(testCwd, "does-not-exist") });
 		expect(runtimeDirectoryListResponseSchema.safeParse(result).success).toBe(true);
 	});
@@ -263,7 +264,7 @@ describe("listDirectoryContents", () => {
 
 	it("includes rootPath in every response", async () => {
 		mkdirSync(join(testCwd, "sub"));
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		expect((await api.listDirectoryContents(null, {})).rootPath).toBe(filesystemRoot);
 		expect((await api.listDirectoryContents(null, { path: testCwd })).rootPath).toBe(filesystemRoot);
 		expect((await api.listDirectoryContents(null, { path: join(testCwd, "sub") })).rootPath).toBe(filesystemRoot);
@@ -271,14 +272,14 @@ describe("listDirectoryContents", () => {
 
 	it("entry paths are absolute", async () => {
 		mkdirSync(join(testCwd, "my-project"));
-		const api = createProjectsApi(createDefaultDeps(testCwd));
+		const api = createReposApi(createDefaultDeps(testCwd));
 		const result = await api.listDirectoryContents(null, { path: testCwd });
 		expect(result.ok).toBe(true);
 		expect(result.entries[0]?.path).toBe(join(testCwd, "my-project"));
 	});
 });
 
-describe("addProject", () => {
+describe("addRepo", () => {
 	let testCwd: string;
 
 	beforeEach(() => {
@@ -292,8 +293,8 @@ describe("addProject", () => {
 	it("backward compat: accepts a path-only request", async () => {
 		const deps = createDefaultDeps(testCwd);
 		(deps.hasGitRepository as ReturnType<typeof vi.fn>).mockReturnValue(true);
-		const api = createProjectsApi(deps);
-		const result = await api.addProject(null, { path: testCwd });
+		const api = createReposApi(deps);
+		const result = await api.addRepo(null, { path: testCwd });
 		// The existing flow runs; we're verifying it doesn't throw on path-only input.
 		// Since loadWorkspaceContext is a real call that needs a git repo, the catch
 		// block will handle it. The important thing is no schema-level crash.
@@ -302,8 +303,8 @@ describe("addProject", () => {
 
 	it("rejects request with neither path nor gitUrl", async () => {
 		const deps = createDefaultDeps(testCwd);
-		const api = createProjectsApi(deps);
-		await expect(api.addProject(null, {})).rejects.toThrow();
+		const api = createReposApi(deps);
+		await expect(api.addRepo(null, {})).rejects.toThrow();
 	});
 
 	it("resolves clone destination relative to serverCwd, not the active project", async () => {
@@ -311,11 +312,11 @@ describe("addProject", () => {
 		mkdirSync(activeProjectPath);
 		const deps = createDefaultDeps(testCwd);
 		(deps.getActiveWorkspacePath as ReturnType<typeof vi.fn>).mockReturnValue(activeProjectPath);
-		const api = createProjectsApi(deps);
+		const api = createReposApi(deps);
 		// The clone itself will fail (no real git server), but we can verify
-		// that resolveProjectInputPath was called with serverCwd as the base.
-		await api.addProject(null, { gitUrl: "https://example.com/repo.git", path: "my-new-proj" });
-		const resolveSpy = deps.resolveProjectInputPath as ReturnType<typeof vi.fn>;
+		// that resolveRepoInputPath was called with serverCwd as the base.
+		await api.addRepo(null, { gitUrl: "https://example.com/repo.git", path: "my-new-proj" });
+		const resolveSpy = deps.resolveRepoInputPath as ReturnType<typeof vi.fn>;
 		expect(resolveSpy).toHaveBeenCalledWith("my-new-proj", testCwd);
 		// Crucially, it must NOT have been called with the active project path:
 		expect(resolveSpy).not.toHaveBeenCalledWith("my-new-proj", activeProjectPath);
@@ -336,17 +337,17 @@ describe("syncFromReposRoot", () => {
 	it("returns { added: 0, skipped: 0 } when getReposRoot returns null", async () => {
 		const deps = createDefaultDeps(testCwd);
 		(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue(null);
-		const api = createProjectsApi(deps);
+		const api = createReposApi(deps);
 		const result = await api.syncFromReposRoot();
 		expect(result).toEqual({ added: 0, skipped: 0 });
 		expect(deps.scanReposInRoot).not.toHaveBeenCalled();
-		expect(deps.broadcastRuntimeProjectsUpdated).not.toHaveBeenCalled();
+		expect(deps.broadcastRuntimeReposUpdated).not.toHaveBeenCalled();
 	});
 
 	it("returns { added: 0, skipped: 0 } when getReposRoot returns whitespace", async () => {
 		const deps = createDefaultDeps(testCwd);
 		(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue("   ");
-		const api = createProjectsApi(deps);
+		const api = createReposApi(deps);
 		const result = await api.syncFromReposRoot();
 		expect(result).toEqual({ added: 0, skipped: 0 });
 		expect(deps.scanReposInRoot).not.toHaveBeenCalled();
@@ -359,23 +360,23 @@ describe("syncFromReposRoot", () => {
 		vi.mocked(listWorkspaceIndexEntries).mockResolvedValueOnce([
 			{ workspaceId: "ws-existing", repoPath: "/repos/alpha" },
 		]);
-		const api = createProjectsApi(deps);
+		const api = createReposApi(deps);
 		const result = await api.syncFromReposRoot();
 		expect(result.skipped).toBe(1);
 		expect(result.added).toBe(0);
 		expect(deps.rememberWorkspace).not.toHaveBeenCalled();
-		expect(deps.broadcastRuntimeProjectsUpdated).toHaveBeenCalledWith(null);
+		expect(deps.broadcastRuntimeReposUpdated).toHaveBeenCalledWith(null);
 	});
 
-	it("calls broadcastRuntimeProjectsUpdated even when all repos skipped", async () => {
+	it("calls broadcastRuntimeReposUpdated even when all repos skipped", async () => {
 		const deps = createDefaultDeps(testCwd);
 		(deps.getReposRoot as ReturnType<typeof vi.fn>).mockReturnValue("/repos");
 		(deps.scanReposInRoot as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 		vi.mocked(listWorkspaceIndexEntries).mockResolvedValueOnce([]);
-		const api = createProjectsApi(deps);
+		const api = createReposApi(deps);
 		const result = await api.syncFromReposRoot();
 		expect(result).toEqual({ added: 0, skipped: 0 });
-		expect(deps.broadcastRuntimeProjectsUpdated).toHaveBeenCalledWith(null);
+		expect(deps.broadcastRuntimeReposUpdated).toHaveBeenCalledWith(null);
 	});
 
 	it("adds a new repo not already in the workspace index", async () => {
@@ -391,11 +392,11 @@ describe("syncFromReposRoot", () => {
 			git: { currentBranch: "main", defaultBranch: "main", branches: ["main"] },
 		});
 
-		const api = createProjectsApi(deps);
+		const api = createReposApi(deps);
 		const result = await api.syncFromReposRoot();
 		expect(result.added).toBe(1);
 		expect(result.skipped).toBe(0);
 		expect(deps.rememberWorkspace).toHaveBeenCalledOnce();
-		expect(deps.broadcastRuntimeProjectsUpdated).toHaveBeenCalledWith(null);
+		expect(deps.broadcastRuntimeReposUpdated).toHaveBeenCalledWith(null);
 	});
 });

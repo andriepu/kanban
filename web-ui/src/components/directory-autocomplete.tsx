@@ -88,7 +88,7 @@ export function DirectoryAutocomplete({
 		const fetchSuggestions = async () => {
 			try {
 				const trpcClient = getRuntimeTrpcClient(workspaceId);
-				const response: RuntimeDirectoryListResponse = await trpcClient.projects.listDirectoryContents.query(
+				const response: RuntimeDirectoryListResponse = await trpcClient.repos.listDirectoryContents.query(
 					parentDir ? { path: parentDir } : {},
 				);
 				if (fetchId !== fetchIdRef.current) {

@@ -97,7 +97,7 @@ describe("createWorkspaceApi loadChanges", () => {
 		const api = createWorkspaceApi({
 			ensureTerminalManagerForWorkspace: vi.fn(async () => terminalManager as never),
 			broadcastRuntimeWorkspaceStateUpdated: vi.fn(),
-			broadcastRuntimeProjectsUpdated: vi.fn(),
+			broadcastRuntimeReposUpdated: vi.fn(),
 			buildWorkspaceStateSnapshot: vi.fn(),
 		});
 
@@ -145,7 +145,7 @@ describe("createWorkspaceApi loadChanges", () => {
 		const api = createWorkspaceApi({
 			ensureTerminalManagerForWorkspace: vi.fn(async () => terminalManager as never),
 			broadcastRuntimeWorkspaceStateUpdated: vi.fn(),
-			broadcastRuntimeProjectsUpdated: vi.fn(),
+			broadcastRuntimeReposUpdated: vi.fn(),
 			buildWorkspaceStateSnapshot: vi.fn(),
 		});
 
@@ -179,7 +179,7 @@ describe("createWorkspaceApi loadChanges", () => {
 		const api = createWorkspaceApi({
 			ensureTerminalManagerForWorkspace: vi.fn(),
 			broadcastRuntimeWorkspaceStateUpdated: vi.fn(),
-			broadcastRuntimeProjectsUpdated: vi.fn(),
+			broadcastRuntimeReposUpdated: vi.fn(),
 			buildWorkspaceStateSnapshot: vi.fn(),
 		});
 

@@ -52,7 +52,7 @@ interface UseBoardInteractionsInput {
 	setSessions: Dispatch<SetStateAction<Record<string, RuntimeTaskSessionSummary>>>;
 	selectedCard: SelectedBoardCard | null;
 	selectedTaskId: string | null;
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	setSelectedTaskId: Dispatch<SetStateAction<string | null>>;
 	setIsClearTrashDialogOpen: Dispatch<SetStateAction<boolean>>;
 	setIsGitHistoryOpen: Dispatch<SetStateAction<boolean>>;
@@ -100,7 +100,7 @@ export function useBoardInteractions({
 	setSessions,
 	selectedCard,
 	selectedTaskId,
-	currentProjectId,
+	currentRepoId,
 	setSelectedTaskId,
 	setIsClearTrashDialogOpen,
 	setIsGitHistoryOpen,
@@ -528,7 +528,7 @@ export function useBoardInteractions({
 		taskGitActionLoadingByTaskId,
 		runAutoReviewGitAction,
 		requestMoveTaskToTrash: requestMoveTaskToTrashWithAnimation,
-		resetKey: currentProjectId,
+		resetKey: currentRepoId,
 	});
 
 	const resumeTaskFromTrash = useCallback(
@@ -878,7 +878,7 @@ export function useBoardInteractions({
 
 	useEffect(() => {
 		resetBoardInteractionsState();
-	}, [currentProjectId, resetBoardInteractionsState]);
+	}, [currentRepoId, resetBoardInteractionsState]);
 
 	return {
 		handleProgrammaticCardMoveReady,

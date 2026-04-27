@@ -292,11 +292,11 @@ export class TerminalSessionManager implements TerminalSessionService {
 			},
 		});
 
-		let registeredProjects: Array<{ name: string; path: string }> | undefined;
+		let registeredRepos: Array<{ name: string; path: string }> | undefined;
 		if (isHomeAgentSessionId(request.taskId)) {
 			try {
 				const entries = await listWorkspaceIndexEntries();
-				registeredProjects = entries.map((e) => ({
+				registeredRepos = entries.map((e) => ({
 					name: basename(e.repoPath),
 					path: e.repoPath,
 				}));
@@ -318,7 +318,7 @@ export class TerminalSessionManager implements TerminalSessionService {
 			resumeFromTrash: request.resumeFromTrash,
 			env: request.env,
 			workspaceId: request.workspaceId,
-			registeredProjects,
+			registeredRepos,
 		});
 
 		const env = buildTerminalEnvironment(request.env, launch.env);

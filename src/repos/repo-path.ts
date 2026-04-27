@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 
-export function resolveProjectInputPath(inputPath: string, cwd: string): string {
+export function resolveRepoInputPath(inputPath: string, cwd: string): string {
 	if (inputPath === "~") {
 		return homedir();
 	}

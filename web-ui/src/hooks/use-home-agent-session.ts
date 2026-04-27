@@ -21,8 +21,8 @@ interface HomeAgentDescriptor {
 }
 
 interface UseHomeAgentSessionInput {
-	currentProjectId: string | null;
-	runtimeProjectConfig: RuntimeConfigResponse | null;
+	currentRepoId: string | null;
+	runtimeRepoConfig: RuntimeConfigResponse | null;
 	workspaceGit: RuntimeGitRepositoryInfo | null;
 	sessionSummaries: Record<string, RuntimeTaskSessionSummary>;
 	setSessionSummaries: Dispatch<SetStateAction<Record<string, RuntimeTaskSessionSummary>>>;
@@ -95,8 +95,8 @@ async function stopHomeAgentSession(session: HomeAgentSessionIdentity | null): P
 }
 
 export function useHomeAgentSession({
-	currentProjectId,
-	runtimeProjectConfig,
+	currentRepoId,
+	runtimeRepoConfig,
 	workspaceGit,
 	sessionSummaries,
 	setSessionSummaries,
@@ -115,17 +115,17 @@ export function useHomeAgentSession({
 	}, [workspaceGit?.currentBranch, workspaceGit?.defaultBranch]);
 
 	const descriptor = useMemo<HomeAgentDescriptor | null>(() => {
-		if (!currentProjectId || !runtimeProjectConfig) {
+		if (!currentRepoId || !runtimeRepoConfig) {
 			return null;
 		}
 
 		const panelMode: HomeAgentPanelMode = "terminal";
-		if (!runtimeProjectConfig.effectiveCommand) {
+		if (!runtimeRepoConfig.effectiveCommand) {
 			return null;
 		}
-		const descriptorKey = buildTerminalDescriptor(runtimeProjectConfig);
+		const descriptorKey = buildTerminalDescriptor(runtimeRepoConfig);
 
-		const existingDescriptor = homeDescriptorByWorkspaceRef.current.get(currentProjectId);
+		const existingDescriptor = homeDescriptorByWorkspaceRef.current.get(currentRepoId);
 		if (
 			existingDescriptor &&
 			existingDescriptor.descriptorKey === descriptorKey &&
@@ -138,8 +138,8 @@ export function useHomeAgentSession({
 			};
 		}
 
-		const taskId = createHomeAgentSessionId(currentProjectId, runtimeProjectConfig.selectedAgentId);
-		homeDescriptorByWorkspaceRef.current.set(currentProjectId, {
+		const taskId = createHomeAgentSessionId(currentRepoId, runtimeRepoConfig.selectedAgentId);
+		homeDescriptorByWorkspaceRef.current.set(currentRepoId, {
 			descriptorKey,
 			panelMode,
 			taskId,
@@ -149,34 +149,34 @@ export function useHomeAgentSession({
 			descriptorKey,
 			taskId,
 		};
-	}, [currentProjectId, runtimeProjectConfig?.effectiveCommand, runtimeProjectConfig?.selectedAgentId]);
+	}, [currentRepoId, runtimeRepoConfig?.effectiveCommand, runtimeRepoConfig?.selectedAgentId]);
 
 	const descriptorTaskId = descriptor?.taskId ?? null;
-	const hasLoadedRuntimeProjectConfig = runtimeProjectConfig !== null;
+	const hasLoadedRuntimeRepoConfig = runtimeRepoConfig !== null;
 
 	useEffect(() => {
-		if (!currentProjectId || !hasLoadedRuntimeProjectConfig) {
+		if (!currentRepoId || !hasLoadedRuntimeRepoConfig) {
 			return;
 		}
 
-		const previousTaskId = desiredTaskIdByWorkspaceRef.current.get(currentProjectId) ?? null;
+		const previousTaskId = desiredTaskIdByWorkspaceRef.current.get(currentRepoId) ?? null;
 
 		if (!descriptorTaskId) {
 			if (!previousTaskId) {
 				return;
 			}
 
-			homeDescriptorByWorkspaceRef.current.delete(currentProjectId);
-			desiredTaskIdByWorkspaceRef.current.delete(currentProjectId);
+			homeDescriptorByWorkspaceRef.current.delete(currentRepoId);
+			desiredTaskIdByWorkspaceRef.current.delete(currentRepoId);
 			startedSessionKeysRef.current.delete(
 				buildHomeAgentSessionKey({
-					workspaceId: currentProjectId,
+					workspaceId: currentRepoId,
 					taskId: previousTaskId,
 				}),
 			);
-			pruneWorkspaceHomeAgentSessions(setSessionSummaries, currentProjectId, null);
+			pruneWorkspaceHomeAgentSessions(setSessionSummaries, currentRepoId, null);
 			void stopHomeAgentSession({
-				workspaceId: currentProjectId,
+				workspaceId: currentRepoId,
 				taskId: previousTaskId,
 			});
 			return;
@@ -186,8 +186,8 @@ export function useHomeAgentSession({
 			return;
 		}
 
-		desiredTaskIdByWorkspaceRef.current.set(currentProjectId, descriptorTaskId);
-		pruneWorkspaceHomeAgentSessions(setSessionSummaries, currentProjectId, descriptorTaskId);
+		desiredTaskIdByWorkspaceRef.current.set(currentRepoId, descriptorTaskId);
+		pruneWorkspaceHomeAgentSessions(setSessionSummaries, currentRepoId, descriptorTaskId);
 
 		if (!previousTaskId) {
 			return;
@@ -195,23 +195,23 @@ export function useHomeAgentSession({
 
 		startedSessionKeysRef.current.delete(
 			buildHomeAgentSessionKey({
-				workspaceId: currentProjectId,
+				workspaceId: currentRepoId,
 				taskId: previousTaskId,
 			}),
 		);
 		void stopHomeAgentSession({
-			workspaceId: currentProjectId,
+			workspaceId: currentRepoId,
 			taskId: previousTaskId,
 		});
-	}, [currentProjectId, descriptorTaskId, hasLoadedRuntimeProjectConfig, setSessionSummaries]);
+	}, [currentRepoId, descriptorTaskId, hasLoadedRuntimeRepoConfig, setSessionSummaries]);
 
 	useEffect(() => {
-		if (!currentProjectId || !descriptor || descriptor.panelMode !== "terminal") {
+		if (!currentRepoId || !descriptor || descriptor.panelMode !== "terminal") {
 			return;
 		}
 
 		const session = {
-			workspaceId: currentProjectId,
+			workspaceId: currentRepoId,
 			taskId: descriptor.taskId,
 		} satisfies HomeAgentSessionIdentity;
 		const sessionKey = buildHomeAgentSessionKey(session);
@@ -279,7 +279,7 @@ export function useHomeAgentSession({
 				notifyError(message);
 			}
 		})();
-	}, [currentProjectId, descriptor, sessionSummaries, upsertSessionSummary]);
+	}, [currentRepoId, descriptor, sessionSummaries, upsertSessionSummary]);
 
 	useEffect(() => {
 		return () => {

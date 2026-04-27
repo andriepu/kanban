@@ -20,7 +20,7 @@ type ReaddirWithFileTypes = (
  * The slug is lowercased, non-alphanumeric chars replaced with `-`,
  * and leading/trailing hyphens stripped.
  */
-export function deriveSubtaskBranchName(jiraKey: string, title: string): string {
+export function derivePullRequestBranchName(jiraKey: string, title: string): string {
 	const slug = title
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
@@ -32,7 +32,7 @@ export function deriveSubtaskBranchName(jiraKey: string, title: string): string 
 /**
  * Build the worktree path: "{worktreesRoot}/{jiraKey}/{repoId}__{branchName}"
  */
-export function buildSubtaskWorktreePath(
+export function buildPullRequestWorktreePath(
 	worktreesRoot: string,
 	jiraKey: string,
 	repoId: string,
@@ -88,12 +88,12 @@ export async function scanReposInRoot(reposRoot: string, options?: ScanReposOpti
 }
 
 /**
- * Create a git worktree for a Jira subtask.
+ * Create a git worktree for a Jira pull request.
  * - Fetches from origin (non-fatal if it fails)
  * - Creates the worktree on a new branch from baseRef
  * - Symlinks .env from the repo root if it exists
  */
-export async function createSubtaskWorktree(options: {
+export async function createPullRequestWorktree(options: {
 	repoPath: string;
 	worktreePath: string;
 	branchName: string;
@@ -129,10 +129,10 @@ export async function createSubtaskWorktree(options: {
 }
 
 /**
- * Remove a git worktree for a Jira subtask.
+ * Remove a git worktree for a Jira pull request.
  * Uses --force and swallows all errors (worktree may already be gone).
  */
-export async function removeSubtaskWorktree(options: { repoPath: string; worktreePath: string }): Promise<void> {
+export async function removePullRequestWorktree(options: { repoPath: string; worktreePath: string }): Promise<void> {
 	const { repoPath, worktreePath } = options;
 	try {
 		await execFile("git", ["-C", repoPath, "worktree", "remove", "--force", worktreePath]);

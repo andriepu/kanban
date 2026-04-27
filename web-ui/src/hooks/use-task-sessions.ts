@@ -22,7 +22,7 @@ import type { SendTerminalInputOptions } from "@/terminal/terminal-input";
 import type { BoardCard } from "@/types";
 
 interface UseTaskSessionsInput {
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	setSessions: Dispatch<SetStateAction<Record<string, RuntimeTaskSessionSummary>>>;
 }
 
@@ -73,7 +73,7 @@ export interface UseTaskSessionsResult {
 	fetchTaskWorkspaceInfo: (task: BoardCard) => Promise<RuntimeTaskWorkspaceInfoResponse | null>;
 }
 
-export function useTaskSessions({ currentProjectId, setSessions }: UseTaskSessionsInput): UseTaskSessionsResult {
+export function useTaskSessions({ currentRepoId, setSessions }: UseTaskSessionsInput): UseTaskSessionsResult {
 	/*
 		This merge needs to stay monotonic.
 
@@ -137,11 +137,11 @@ export function useTaskSessions({ currentProjectId, setSessions }: UseTaskSessio
 
 	const ensureTaskWorkspace = useCallback(
 		async (task: BoardCard): Promise<EnsureTaskWorkspaceResult> => {
-			if (!currentProjectId) {
-				return { ok: false, message: "No project selected." };
+			if (!currentRepoId) {
+				return { ok: false, message: "No repo selected." };
 			}
 			try {
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
 				const payload = await trpcClient.workspace.ensureWorktree.mutate({
 					taskId: task.id,
 					baseRef: task.baseRef,
@@ -158,17 +158,17 @@ export function useTaskSessions({ currentProjectId, setSessions }: UseTaskSessio
 				return { ok: false, message };
 			}
 		},
-		[currentProjectId],
+		[currentRepoId],
 	);
 
 	const startTaskSession = useCallback(
 		async (task: BoardCard, options?: StartTaskSessionOptions): Promise<StartTaskSessionResult> => {
-			if (!currentProjectId) {
-				return { ok: false, message: "No project selected." };
+			if (!currentRepoId) {
+				return { ok: false, message: "No repo selected." };
 			}
 			try {
 				const kickoffPrompt = options?.resumeFromTrash ? "" : task.prompt.trim();
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
 				const geometry =
 					getTerminalGeometry(task.id) ?? estimateTaskSessionGeometry(window.innerWidth, window.innerHeight);
 				const payload = await trpcClient.runtime.startTaskSession.mutate({
@@ -196,22 +196,22 @@ export function useTaskSessions({ currentProjectId, setSessions }: UseTaskSessio
 				return { ok: false, message };
 			}
 		},
-		[currentProjectId, upsertSession],
+		[currentRepoId, upsertSession],
 	);
 
 	const stopTaskSession = useCallback(
 		async (taskId: string): Promise<void> => {
-			if (!currentProjectId) {
+			if (!currentRepoId) {
 				return;
 			}
 			try {
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
 				await trpcClient.runtime.stopTaskSession.mutate({ taskId });
 			} catch {
 				// Ignore stop errors during cleanup.
 			}
 		},
-		[currentProjectId],
+		[currentRepoId],
 	);
 
 	const sendTaskSessionInput = useCallback(
@@ -227,11 +227,11 @@ export function useTaskSessions({ currentProjectId, setSessions }: UseTaskSessio
 					return { ok: true };
 				}
 			}
-			if (!currentProjectId) {
-				return { ok: false, message: "No project selected." };
+			if (!currentRepoId) {
+				return { ok: false, message: "No repo selected." };
 			}
 			try {
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
 				const payload = await trpcClient.runtime.sendTaskSessionInput.mutate({
 					taskId,
 					text,
@@ -250,16 +250,16 @@ export function useTaskSessions({ currentProjectId, setSessions }: UseTaskSessio
 				return { ok: false, message };
 			}
 		},
-		[currentProjectId, upsertSession],
+		[currentRepoId, upsertSession],
 	);
 
 	const cleanupTaskWorkspace = useCallback(
 		async (taskId: string): Promise<RuntimeWorktreeDeleteResponse | null> => {
-			if (!currentProjectId) {
+			if (!currentRepoId) {
 				return null;
 			}
 			try {
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
 				const payload = await trpcClient.workspace.deleteWorktree.mutate({ taskId });
 				if (!payload.ok) {
 					const message = payload.error ?? "Could not clean up task workspace.";
@@ -273,16 +273,16 @@ export function useTaskSessions({ currentProjectId, setSessions }: UseTaskSessio
 				return null;
 			}
 		},
-		[currentProjectId],
+		[currentRepoId],
 	);
 
 	const fetchTaskWorkspaceInfo = useCallback(
 		async (task: BoardCard): Promise<RuntimeTaskWorkspaceInfoResponse | null> => {
-			if (!currentProjectId) {
+			if (!currentRepoId) {
 				return null;
 			}
 			try {
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
 				return await trpcClient.workspace.getTaskContext.query({
 					taskId: task.id,
 					baseRef: task.baseRef,
@@ -293,7 +293,7 @@ export function useTaskSessions({ currentProjectId, setSessions }: UseTaskSessio
 				return null;
 			}
 		},
-		[currentProjectId],
+		[currentRepoId],
 	);
 
 	return {

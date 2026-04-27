@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RuntimeConfigResponse } from "@/runtime/types";
-import { type UseRuntimeProjectConfigResult, useRuntimeProjectConfig } from "@/runtime/use-runtime-project-config";
+import { type UseRuntimeRepoConfigResult, useRuntimeRepoConfig } from "@/runtime/use-runtime-repo-config";
 
 const fetchRuntimeConfigMock = vi.hoisted(() => vi.fn());
 
@@ -31,7 +31,7 @@ function createRuntimeConfigResponse(
 		agentAutonomousModeEnabled: true,
 		effectiveCommand: selectedAgentId,
 		globalConfigPath: "/tmp/global-config.json",
-		projectConfigPath: "/tmp/project/.cline/kanban/config.json",
+		repoConfigPath: "/tmp/project/.cline/kanban/config.json",
 		readyForReviewNotificationsEnabled: true,
 		detectedCommands: [selectedAgentId],
 		agents: [
@@ -60,7 +60,7 @@ function createRuntimeConfigResponse(
 	};
 }
 
-type HookSnapshot = UseRuntimeProjectConfigResult;
+type HookSnapshot = UseRuntimeRepoConfigResult;
 
 function findLatestLoadedSnapshot(snapshots: HookSnapshot[]): HookSnapshot | null {
 	for (let index = snapshots.length - 1; index >= 0; index -= 1) {
@@ -79,7 +79,7 @@ function HookHarness({
 	workspaceId: string | null;
 	onSnapshot: (snapshot: HookSnapshot) => void;
 }): null {
-	const snapshot = useRuntimeProjectConfig(workspaceId);
+	const snapshot = useRuntimeRepoConfig(workspaceId);
 
 	useEffect(() => {
 		onSnapshot(snapshot);
@@ -88,7 +88,7 @@ function HookHarness({
 	return null;
 }
 
-describe("useRuntimeProjectConfig", () => {
+describe("useRuntimeRepoConfig", () => {
 	let container: HTMLDivElement;
 	let root: Root;
 	let previousActEnvironment: boolean | undefined;
@@ -116,7 +116,7 @@ describe("useRuntimeProjectConfig", () => {
 		}
 	});
 
-	it("clears the previous project config immediately when switching workspaces", async () => {
+	it("clears the previous repo config immediately when switching workspaces", async () => {
 		const projectAConfig = createRuntimeConfigResponse("claude", [
 			{ label: "Ship it", command: "npm run ship", icon: "rocket" },
 		]);
@@ -164,7 +164,7 @@ describe("useRuntimeProjectConfig", () => {
 		expect(snapshots.at(-1)?.config?.shortcuts).toEqual([]);
 	});
 
-	it("loads runtime config without a selected project", async () => {
+	it("loads runtime config without a selected repo", async () => {
 		const startupConfig = createRuntimeConfigResponse("claude", []);
 		fetchRuntimeConfigMock.mockResolvedValue(startupConfig);
 		let latestSnapshot: HookSnapshot | null = null;
@@ -183,7 +183,7 @@ describe("useRuntimeProjectConfig", () => {
 
 		expect(fetchRuntimeConfigMock).toHaveBeenCalledWith(null);
 		if (latestSnapshot === null) {
-			throw new Error("Expected a runtime project config snapshot.");
+			throw new Error("Expected a runtime repo config snapshot.");
 		}
 		const snapshot = latestSnapshot as HookSnapshot;
 		expect(snapshot.config?.selectedAgentId).toBe("claude");

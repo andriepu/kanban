@@ -227,7 +227,7 @@ async function canReachKanbanServer(workspaceId: string | null): Promise<boolean
 			headers["x-kanban-workspace-id"] = workspaceId;
 		}
 		const runtimeFetch = await getRuntimeFetch();
-		const response = await runtimeFetch(buildKanbanRuntimeUrl("/api/trpc/projects.list"), {
+		const response = await runtimeFetch(buildKanbanRuntimeUrl("/api/trpc/repos.list"), {
 			method: "GET",
 			headers,
 			signal: AbortSignal.timeout(1_500),
@@ -256,14 +256,14 @@ async function tryOpenExistingServer(options: { noOpen: boolean; shouldAutoOpenB
 	if (!running) {
 		return false;
 	}
-	const projectUrl = workspaceId
+	const repoUrl = workspaceId
 		? buildKanbanRuntimeUrl(`/${encodeURIComponent(workspaceId)}`)
 		: getKanbanRuntimeOrigin();
 	console.log(`Kanban already running at ${getKanbanRuntimeOrigin()}`);
 	if (!options.noOpen && options.shouldAutoOpenBrowser) {
 		try {
 			const { openInBrowser } = await import("./server/browser.js");
-			openInBrowser(projectUrl, {
+			openInBrowser(repoUrl, {
 				warn: (message) => {
 					console.warn(message);
 				},
@@ -273,7 +273,7 @@ async function tryOpenExistingServer(options: { noOpen: boolean; shouldAutoOpenB
 			console.warn(`Could not open browser automatically: ${message}`);
 		}
 	}
-	console.log(`Project URL: ${projectUrl}`);
+	console.log(`Repo URL: ${repoUrl}`);
 	return true;
 }
 
@@ -353,15 +353,15 @@ async function startServer(): Promise<{
 		lightweight path and only load the server stack when we actually start Kanban.
 	*/
 	const [
-		{ resolveProjectInputPath },
+		{ resolveRepoInputPath },
 		{ pickDirectoryPathFromSystemDialog },
 		{ createRuntimeServer },
 		{ createRuntimeStateHub },
 		{ resolveInteractiveShellCommand },
 		{ shutdownRuntimeServer },
-		{ collectProjectWorktreeTaskIdsForRemoval, createWorkspaceRegistry },
+		{ collectRepoWorktreeTaskIdsForRemoval, createWorkspaceRegistry },
 	] = await Promise.all([
-		import("./projects/project-path.js"),
+		import("./repos/repo-path.js"),
 		import("./server/directory-picker.js"),
 		import("./server/runtime-server.js"),
 		import("./server/runtime-state-hub.js"),
@@ -410,11 +410,11 @@ async function startServer(): Promise<{
 		ensureTerminalManagerForWorkspace: workspaceRegistry.ensureTerminalManagerForWorkspace,
 		resolveInteractiveShellCommand,
 		runCommand: runScopedCommand,
-		resolveProjectInputPath,
+		resolveRepoInputPath,
 		assertPathIsDirectory,
 		hasGitRepository,
 		disposeWorkspace: disposeTrackedWorkspace,
-		collectProjectWorktreeTaskIdsForRemoval,
+		collectRepoWorktreeTaskIdsForRemoval,
 		pickDirectoryPathFromSystemDialog,
 	});
 

@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
-import type { JiraBoard, JiraCard, JiraCardStatus, JiraSubtask } from "@/types/jira";
+import type { JiraBoard, JiraCard, JiraCardStatus, JiraPullRequest } from "@/types/jira";
 import { useInterval, useUnmount } from "@/utils/react-use";
+
+export interface IssueData {
+	jiraKey: string;
+	summary: string;
+	description: string | null;
+}
 
 export interface UseJiraBoardOptions {
 	isActive: boolean;
@@ -11,25 +17,29 @@ export interface UseJiraBoardOptions {
 
 export interface UseJiraBoardResult {
 	board: JiraBoard;
-	subtasks: Record<string, JiraSubtask>;
+	pullRequests: Record<string, JiraPullRequest>;
+	details: Record<string, IssueData>;
 	isLoading: boolean;
 	isImporting: boolean;
 	moveCard: (jiraKey: string, newStatus: JiraCardStatus) => Promise<void>;
 	deleteCard: (jiraKey: string) => void;
 	refetch: () => void;
+	importFromJira: () => Promise<void>;
 	scanPRs: () => Promise<void>;
 	prScanning: boolean;
+	fetchDetail: (jiraKey: string) => void;
 }
 
 export function useJiraBoard(
-	currentProjectId: string | null = null,
+	currentRepoId: string | null = null,
 	options: UseJiraBoardOptions = { isActive: false, syncIntervalMs: 60 * 60 * 1000 },
 ): UseJiraBoardResult {
 	const { isActive, syncIntervalMs } = options;
-	const trpc = getRuntimeTrpcClient(currentProjectId);
+	const trpc = getRuntimeTrpcClient(currentRepoId);
 
 	const [board, setBoard] = useState<JiraBoard>({ cards: [] });
-	const [subtasks, setSubtasks] = useState<Record<string, JiraSubtask>>({});
+	const [pullRequests, setPullRequests] = useState<Record<string, JiraPullRequest>>({});
+	const [details, setDetails] = useState<Record<string, IssueData>>({});
 	const [isLoading, setIsLoading] = useState(false);
 	const [isImporting, setIsImporting] = useState(false);
 	const [prScanning, setPrScanning] = useState(false);
@@ -41,6 +51,7 @@ export function useJiraBoard(
 	const deleteTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 	const prScannedOnceRef = useRef(false);
 	const scanPRsRef = useRef<() => Promise<void>>(async () => {});
+	const inFlightDetailsRef = useRef<Set<string>>(new Set());
 
 	function applyBoard(b: JiraBoard): void {
 		boardRef.current = b;
@@ -54,6 +65,40 @@ export function useJiraBoard(
 		}
 	});
 
+	const fetchDetail = useCallback(
+		(jiraKey: string): void => {
+			if (inFlightDetailsRef.current.has(jiraKey)) return;
+			inFlightDetailsRef.current.add(jiraKey);
+			trpc.jira.fetchIssue
+				.query({ jiraKey })
+				.then((data) => {
+					if (isMountedRef.current) {
+						setDetails((prev) => ({ ...prev, [data.jiraKey]: data }));
+					}
+				})
+				.catch(() => {
+					// silently ignore background prefetch failures
+				})
+				.finally(() => {
+					inFlightDetailsRef.current.delete(jiraKey);
+				});
+		},
+		[trpc],
+	);
+
+	// Load persisted details once on mount
+	useEffect(() => {
+		trpc.jira.loadDetails
+			.query()
+			.then((result) => {
+				if (isMountedRef.current) {
+					setDetails((prev) => ({ ...result.details, ...prev }));
+				}
+			})
+			.catch(() => {});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
 	const fetchBoard = useCallback(async (): Promise<void> => {
 		const requestId = requestIdRef.current + 1;
 		requestIdRef.current = requestId;
@@ -65,7 +110,7 @@ export function useJiraBoard(
 			const cleanBoard =
 				doneOnLoad.length > 0 ? { cards: data.board.cards.filter((c) => c.status !== "done") } : data.board;
 			applyBoard(cleanBoard);
-			setSubtasks(data.subtasks);
+			setPullRequests(data.pullRequests);
 			if (doneOnLoad.length > 0) {
 				void trpc.jira.saveBoard.mutate({ board: cleanBoard });
 			}
@@ -76,9 +121,13 @@ export function useJiraBoard(
 					prScannedOnceRef.current = true;
 					void scanPRsRef.current();
 				}
+				// Background-prefetch details for all visible cards
+				for (const card of boardRef.current.cards) {
+					fetchDetail(card.jiraKey);
+				}
 			}
 		}
-	}, [trpc]);
+	}, [trpc, fetchDetail]);
 
 	useEffect(() => {
 		void fetchBoard();
@@ -119,11 +168,13 @@ export function useJiraBoard(
 	}, [fetchBoard]);
 
 	const scanPRs = useCallback(async (): Promise<void> => {
+		if (prScanning) return;
 		setPrScanning(true);
 		try {
 			const result = await trpc.jira.scanAndAttachPRs.mutate();
 			if (isMountedRef.current) {
-				setSubtasks(result.subtasks);
+				setPullRequests(result.pullRequests);
+				applyBoard(result.board);
 				if (result.attached > 0) {
 					toast.success(`Synced ${result.attached} PR${result.attached === 1 ? "" : "s"}`);
 				}
@@ -138,7 +189,7 @@ export function useJiraBoard(
 				setPrScanning(false);
 			}
 		}
-	}, [trpc]);
+	}, [trpc, prScanning]);
 
 	useEffect(() => {
 		scanPRsRef.current = scanPRs;
@@ -229,13 +280,16 @@ export function useJiraBoard(
 
 	return {
 		board,
-		subtasks,
+		pullRequests,
+		details,
 		isLoading,
 		isImporting,
 		moveCard,
 		deleteCard,
 		refetch,
+		importFromJira: syncFromJira,
 		scanPRs,
 		prScanning,
+		fetchDetail,
 	};
 }

@@ -1,11 +1,11 @@
 export type JiraCardStatus = "todo" | "in_progress" | "done";
-export type JiraSubtaskStatus = "backlog" | "in_progress" | "review" | "done";
+export type JiraPullRequestStatus = "backlog" | "in_progress" | "review" | "done";
 
 export interface JiraCard {
 	jiraKey: string;
 	summary: string;
 	status: JiraCardStatus;
-	subtaskIds: string[];
+	pullRequestIds: string[];
 	createdAt: number;
 	updatedAt: number;
 }
@@ -14,7 +14,7 @@ export interface JiraBoard {
 	cards: JiraCard[];
 }
 
-export interface JiraSubtask {
+export interface JiraPullRequest {
 	id: string;
 	jiraKey: string;
 	repoId: string;
@@ -24,10 +24,10 @@ export interface JiraSubtask {
 	baseRef: string;
 	branchName: string;
 	worktreePath: string;
-	status: JiraSubtaskStatus;
+	status: JiraPullRequestStatus;
 	prUrl?: string;
 	prNumber?: number;
-	isDraft?: boolean;
+	prState?: "open" | "draft" | "merged";
 	createdAt: number;
 	updatedAt: number;
 }

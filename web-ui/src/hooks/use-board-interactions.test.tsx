@@ -114,7 +114,7 @@ function HookHarness({
 		setSessions,
 		selectedCard,
 		selectedTaskId: null,
-		currentProjectId: "project-1",
+		currentRepoId: "repo-1",
 		setSelectedTaskId: setSelectedTaskIdOverride ?? setSelectedTaskId,
 		setIsClearTrashDialogOpen,
 		setIsGitHistoryOpen,

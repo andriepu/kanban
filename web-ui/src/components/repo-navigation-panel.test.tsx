@@ -2,9 +2,9 @@ import { act, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ProjectNavigationPanel } from "@/components/project-navigation-panel";
-import { useProjectNavigationLayout } from "@/resize/use-project-navigation-layout";
-import type { RuntimeProjectSummary } from "@/runtime/types";
+import { RepoNavigationPanel } from "@/components/repo-navigation-panel";
+import { useRepoNavigationLayout } from "@/resize/use-repo-navigation-layout";
+import type { RuntimeRepoSummary } from "@/runtime/types";
 import { LocalStorageKey } from "@/storage/local-storage-store";
 
 vi.mock("@/resize/layout-customizations", () => ({
@@ -14,19 +14,19 @@ vi.mock("@/resize/layout-customizations", () => ({
 /** Wrapper that owns the sidebar layout state via the hook and passes it as props. */
 function PanelWithLayout(
 	props: Omit<
-		ComponentProps<typeof ProjectNavigationPanel>,
+		ComponentProps<typeof RepoNavigationPanel>,
 		"sidebarWidth" | "setExpandedSidebarWidth" | "isCollapsed" | "setSidebarCollapsed"
 	>,
 ): React.ReactElement {
-	const layout = useProjectNavigationLayout();
-	return <ProjectNavigationPanel {...props} {...layout} />;
+	const layout = useRepoNavigationLayout();
+	return <RepoNavigationPanel {...props} {...layout} />;
 }
 
 const SIDEBAR_MIN_EXPANDED_WIDTH = 200;
 const SIDEBAR_MAX_EXPANDED_WIDTH = 600;
 const BOARD_SURFACE_HORIZONTAL_CHROME_PX = 40;
 
-const PROJECTS: RuntimeProjectSummary[] = [
+const REPOS: RuntimeRepoSummary[] = [
 	{
 		id: "project-1",
 		name: "Kanban",
@@ -37,6 +37,7 @@ const PROJECTS: RuntimeProjectSummary[] = [
 			review: 0,
 			trash: 0,
 		},
+		pullRequestCount: 0,
 	},
 ];
 
@@ -56,7 +57,7 @@ function getResizeHandle(container: HTMLElement): HTMLElement {
 	return handle as HTMLElement;
 }
 
-describe("ProjectNavigationPanel width persistence", () => {
+describe("RepoNavigationPanel width persistence", () => {
 	let container: HTMLDivElement;
 	let root: Root;
 	let previousActEnvironment: boolean | undefined;
@@ -109,17 +110,17 @@ describe("ProjectNavigationPanel width persistence", () => {
 		act(() => {
 			root.render(
 				<PanelWithLayout
-					projects={PROJECTS}
-					currentProjectId="project-1"
-					removingProjectId={null}
-					onSelectProject={() => {}}
-					onRemoveProject={async () => true}
-					onAddProject={() => {}}
-					sidebarTab="project"
+					repos={REPOS}
+					currentRepoId="project-1"
+					removingRepoId={null}
+					onSelectRepo={() => {}}
+					onRemoveRepo={async () => true}
+					onAddRepo={() => {}}
+					sidebarTab="pr"
 					onSidebarTabChange={() => {}}
 					hasJiraConfig={false}
-					projectFilter={null}
-					onFilterProject={() => {}}
+					repoFilter={null}
+					onFilterRepo={() => {}}
 					{...overrides}
 				/>,
 			);
@@ -156,7 +157,7 @@ describe("ProjectNavigationPanel width persistence", () => {
 			window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
 		});
 
-		expect(localStorage.getItem(LocalStorageKey.ProjectNavigationPanelWidth)).toBe(String(expectedResizedWidth));
+		expect(localStorage.getItem(LocalStorageKey.RepoNavigationPanelWidth)).toBe(String(expectedResizedWidth));
 
 		act(() => {
 			root.unmount();
@@ -168,20 +169,19 @@ describe("ProjectNavigationPanel width persistence", () => {
 		expect(sidebar.style.width).toBe(`${expectedResizedWidth}px`);
 	});
 
-	it("does not render agentSectionContent when sidebarTab is 'task'", () => {
+	it("does not render repo list when sidebarTab is 'task'", () => {
 		renderPanel({
 			sidebarTab: "task",
-			agentSectionContent: <div data-testid="agent-panel">agent</div>,
 		});
-		expect(container.querySelector('[data-testid="agent-panel"]')).toBeNull();
+		expect(container.querySelector(".kb-repo-row")).toBeNull();
 	});
 
-	it("renders agentSectionContent when sidebarTab is 'project'", () => {
+	it("renders repo list when sidebarTab is 'repo'", () => {
 		renderPanel({
-			sidebarTab: "project",
-			agentSectionContent: <div data-testid="agent-panel">agent</div>,
+			sidebarTab: "pr",
 		});
-		expect(container.querySelector('[data-testid="agent-panel"]')).not.toBeNull();
+		// When on the repo tab, repos are listed
+		expect(container.querySelector(".kb-repo-row")).not.toBeNull();
 	});
 
 	it("renders 48px vertical-text rail when sidebarTab is 'task' and no jiraDetailContent", () => {
@@ -191,10 +191,10 @@ describe("ProjectNavigationPanel width persistence", () => {
 		// vertical text buttons present
 		const buttons = container.querySelectorAll("button");
 		const texts = Array.from(buttons).map((b) => b.textContent?.trim());
-		expect(texts).toContain("Tasks");
-		expect(texts).toContain("Projects");
-		// project list NOT rendered
-		expect(container.querySelector(".kb-project-row")).toBeNull();
+		expect(texts).toContain("Task");
+		expect(texts).toContain("Pull Request");
+		// repo list NOT rendered
+		expect(container.querySelector(".kb-repo-row")).toBeNull();
 	});
 
 	it("renders detail panel when sidebarTab is 'task' and jiraDetailContent provided", () => {
@@ -205,25 +205,25 @@ describe("ProjectNavigationPanel width persistence", () => {
 		const sidebar = getSidebar(container);
 		expect(Number.parseInt(sidebar.style.width, 10)).toBeGreaterThan(48);
 		expect(container.querySelector('[data-testid="jira-detail"]')).not.toBeNull();
-		// project list NOT rendered
-		expect(container.querySelector(".kb-project-row")).toBeNull();
+		// repo list NOT rendered
+		expect(container.querySelector(".kb-repo-row")).toBeNull();
 	});
 
-	it("highlights project matching projectFilter path", () => {
+	it("highlights repo matching currentRepoId", () => {
 		renderPanel({
-			sidebarTab: "project",
-			projectFilter: "/tmp/kanban", // matches PROJECTS[0].path
+			sidebarTab: "pr",
+			currentRepoId: "project-1", // matches REPOS[0].id
 		});
-		const selected = container.querySelector(".kb-project-row-selected");
+		const selected = container.querySelector(".kb-repo-row-selected");
 		expect(selected).not.toBeNull();
 	});
 
-	it("highlights no project when projectFilter is null", () => {
+	it("highlights no repo when currentRepoId is null", () => {
 		renderPanel({
-			sidebarTab: "project",
-			projectFilter: null,
+			sidebarTab: "pr",
+			currentRepoId: null,
 		});
-		const selected = container.querySelector(".kb-project-row-selected");
+		const selected = container.querySelector(".kb-repo-row-selected");
 		expect(selected).toBeNull();
 	});
 });

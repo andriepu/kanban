@@ -2,10 +2,11 @@ import { type RuntimeConfigState, toGlobalRuntimeConfigState } from "../config/r
 import type {
 	RuntimeBoardColumnId,
 	RuntimeBoardData,
-	RuntimeProjectSummary,
-	RuntimeProjectTaskCounts,
+	RuntimeRepoSummary,
+	RuntimeRepoTaskCounts,
 	RuntimeWorkspaceStateResponse,
 } from "../core/api-contract";
+import { loadJiraPullRequests } from "../jira/jira-board-state.js";
 import {
 	listWorkspaceIndexEntries,
 	loadWorkspaceBoardById,
@@ -39,7 +40,7 @@ export interface ResolvedWorkspaceStreamTarget {
 	workspaceId: string | null;
 	workspacePath: string | null;
 	removedRequestedWorkspacePath: string | null;
-	didPruneProjects: boolean;
+	didPruneRepos: boolean;
 }
 
 export interface RemovedWorkspaceNotice {
@@ -67,16 +68,17 @@ export interface WorkspaceRegistry {
 		terminalManager: TerminalSessionManager | null;
 		workspacePath: string | null;
 	};
-	summarizeProjectTaskCounts: (workspaceId: string, repoPath: string) => Promise<RuntimeProjectTaskCounts>;
-	createProjectSummary: (input: {
+	summarizeRepoTaskCounts: (workspaceId: string, repoPath: string) => Promise<RuntimeRepoTaskCounts>;
+	createRepoSummary: (input: {
 		workspaceId: string;
 		repoPath: string;
-		taskCounts: RuntimeProjectTaskCounts;
-	}) => RuntimeProjectSummary;
+		taskCounts: RuntimeRepoTaskCounts;
+		pullRequestCount: number;
+	}) => RuntimeRepoSummary;
 	buildWorkspaceStateSnapshot: (workspaceId: string, workspacePath: string) => Promise<RuntimeWorkspaceStateResponse>;
-	buildProjectsPayload: (preferredCurrentProjectId: string | null) => Promise<{
-		currentProjectId: string | null;
-		projects: RuntimeProjectSummary[];
+	buildReposPayload: (preferredCurrentRepoId: string | null) => Promise<{
+		currentRepoId: string | null;
+		repos: RuntimeRepoSummary[];
 	}>;
 	resolveWorkspaceForStream: (
 		requestedWorkspaceId: string | null,
@@ -91,7 +93,7 @@ export interface WorkspaceRegistry {
 	}>;
 }
 
-function createEmptyProjectTaskCounts(): RuntimeProjectTaskCounts {
+function createEmptyRepoTaskCounts(): RuntimeRepoTaskCounts {
 	return {
 		backlog: 0,
 		in_progress: 0,
@@ -100,8 +102,8 @@ function createEmptyProjectTaskCounts(): RuntimeProjectTaskCounts {
 	};
 }
 
-function countTasksByColumn(board: RuntimeBoardData): RuntimeProjectTaskCounts {
-	const counts = createEmptyProjectTaskCounts();
+function countTasksByColumn(board: RuntimeBoardData): RuntimeRepoTaskCounts {
+	const counts = createEmptyRepoTaskCounts();
 	for (const column of board.columns) {
 		const count = column.cards.length;
 		switch (column.id) {
@@ -122,7 +124,7 @@ function countTasksByColumn(board: RuntimeBoardData): RuntimeProjectTaskCounts {
 	return counts;
 }
 
-export function collectProjectWorktreeTaskIdsForRemoval(board: RuntimeBoardData): Set<string> {
+export function collectRepoWorktreeTaskIdsForRemoval(board: RuntimeBoardData): Set<string> {
 	const taskIds = new Set<string>();
 	for (const column of board.columns) {
 		if (column.id === "backlog" || column.id === "trash") {
@@ -135,11 +137,11 @@ export function collectProjectWorktreeTaskIdsForRemoval(board: RuntimeBoardData)
 	return taskIds;
 }
 
-function applyLiveSessionStateToProjectTaskCounts(
-	counts: RuntimeProjectTaskCounts,
+function applyLiveSessionStateToRepoTaskCounts(
+	counts: RuntimeRepoTaskCounts,
 	board: RuntimeBoardData,
 	sessionSummaries: RuntimeWorkspaceStateResponse["sessions"],
-): RuntimeProjectTaskCounts {
+): RuntimeRepoTaskCounts {
 	const taskColumnById = new Map<string, RuntimeBoardColumnId>();
 	for (const column of board.columns) {
 		for (const card of column.cards) {
@@ -167,11 +169,12 @@ function applyLiveSessionStateToProjectTaskCounts(
 	return next;
 }
 
-function toProjectSummary(project: {
+function toRepoSummary(project: {
 	workspaceId: string;
 	repoPath: string;
-	taskCounts: RuntimeProjectTaskCounts;
-}): RuntimeProjectSummary {
+	taskCounts: RuntimeRepoTaskCounts;
+	pullRequestCount: number;
+}): RuntimeRepoSummary {
 	const normalized = project.repoPath.replaceAll("\\", "/").replace(/\/+$/g, "");
 	const segments = normalized.split("/").filter((segment) => segment.length > 0);
 	const name = segments[segments.length - 1] ?? normalized;
@@ -180,20 +183,16 @@ function toProjectSummary(project: {
 		path: project.repoPath,
 		name,
 		taskCounts: project.taskCounts,
+		pullRequestCount: project.pullRequestCount,
 	};
 }
 
 export async function createWorkspaceRegistry(deps: CreateWorkspaceRegistryDependencies): Promise<WorkspaceRegistry> {
 	const launchedFromGitRepo = deps.hasGitRepository(deps.cwd);
 	const initialWorkspace = launchedFromGitRepo ? await loadWorkspaceContext(deps.cwd) : null;
-	let indexedWorkspace: RuntimeWorkspaceIndexEntry | null = null;
-	if (!initialWorkspace) {
-		const indexedWorkspaces = await listWorkspaceIndexEntries();
-		indexedWorkspace = indexedWorkspaces[0] ?? null;
-	}
 
-	let activeWorkspaceId: string | null = initialWorkspace?.workspaceId ?? indexedWorkspace?.workspaceId ?? null;
-	let activeWorkspacePath: string | null = initialWorkspace?.repoPath ?? indexedWorkspace?.repoPath ?? null;
+	let activeWorkspaceId: string | null = initialWorkspace?.workspaceId ?? null;
+	let activeWorkspacePath: string | null = initialWorkspace?.repoPath ?? null;
 	let globalRuntimeConfig = await deps.loadGlobalRuntimeConfig();
 	let activeRuntimeConfig = activeWorkspacePath
 		? await deps.loadRuntimeConfig(activeWorkspacePath)
@@ -201,7 +200,7 @@ export async function createWorkspaceRegistry(deps: CreateWorkspaceRegistryDepen
 	const workspacePathsById = new Map<string, string>(
 		activeWorkspaceId && activeWorkspacePath ? [[activeWorkspaceId, activeWorkspacePath]] : [],
 	);
-	const projectTaskCountsByWorkspaceId = new Map<string, RuntimeProjectTaskCounts>();
+	const repoTaskCountsByWorkspaceId = new Map<string, RuntimeRepoTaskCounts>();
 	const terminalManagersByWorkspaceId = new Map<string, TerminalSessionManager>();
 	const terminalManagerLoadPromises = new Map<string, Promise<TerminalSessionManager>>();
 
@@ -279,7 +278,7 @@ export async function createWorkspaceRegistry(deps: CreateWorkspaceRegistryDepen
 			terminalManagersByWorkspaceId.delete(workspaceId);
 			terminalManagerLoadPromises.delete(workspaceId);
 		}
-		projectTaskCountsByWorkspaceId.delete(workspaceId);
+		repoTaskCountsByWorkspaceId.delete(workspaceId);
 		const workspacePath = workspacePathsById.get(workspaceId) ?? null;
 		workspacePathsById.delete(workspaceId);
 		return {
@@ -288,27 +287,24 @@ export async function createWorkspaceRegistry(deps: CreateWorkspaceRegistryDepen
 		};
 	};
 
-	const summarizeProjectTaskCounts = async (
-		workspaceId: string,
-		_repoPath: string,
-	): Promise<RuntimeProjectTaskCounts> => {
+	const summarizeRepoTaskCounts = async (workspaceId: string, _repoPath: string): Promise<RuntimeRepoTaskCounts> => {
 		try {
 			const board = await loadWorkspaceBoardById(workspaceId);
 			const persistedCounts = countTasksByColumn(board);
 			const terminalManager = getTerminalManagerForWorkspace(workspaceId);
 			if (!terminalManager) {
-				projectTaskCountsByWorkspaceId.set(workspaceId, persistedCounts);
+				repoTaskCountsByWorkspaceId.set(workspaceId, persistedCounts);
 				return persistedCounts;
 			}
 			const liveSessionsByTaskId: RuntimeWorkspaceStateResponse["sessions"] = {};
 			for (const summary of terminalManager.listSummaries()) {
 				liveSessionsByTaskId[summary.taskId] = summary;
 			}
-			const nextCounts = applyLiveSessionStateToProjectTaskCounts(persistedCounts, board, liveSessionsByTaskId);
-			projectTaskCountsByWorkspaceId.set(workspaceId, nextCounts);
+			const nextCounts = applyLiveSessionStateToRepoTaskCounts(persistedCounts, board, liveSessionsByTaskId);
+			repoTaskCountsByWorkspaceId.set(workspaceId, nextCounts);
 			return nextCounts;
 		} catch {
-			return projectTaskCountsByWorkspaceId.get(workspaceId) ?? createEmptyProjectTaskCounts();
+			return repoTaskCountsByWorkspaceId.get(workspaceId) ?? createEmptyRepoTaskCounts();
 		}
 	};
 
@@ -324,30 +320,36 @@ export async function createWorkspaceRegistry(deps: CreateWorkspaceRegistryDepen
 		return response;
 	};
 
-	const buildProjectsPayload = async (preferredCurrentProjectId: string | null) => {
+	const buildReposPayload = async (preferredCurrentRepoId: string | null) => {
 		const projects = await listWorkspaceIndexEntries();
-		const fallbackProjectId =
-			projects.find((project) => project.workspaceId === activeWorkspaceId)?.workspaceId ??
-			projects[0]?.workspaceId ??
-			null;
-		const resolvedCurrentProjectId =
-			(preferredCurrentProjectId &&
-				projects.some((project) => project.workspaceId === preferredCurrentProjectId) &&
-				preferredCurrentProjectId) ||
-			fallbackProjectId;
-		const projectSummaries = await Promise.all(
+		const fallbackRepoId = projects.find((project) => project.workspaceId === activeWorkspaceId)?.workspaceId ?? null;
+		const resolvedCurrentRepoId =
+			(preferredCurrentRepoId &&
+				projects.some((project) => project.workspaceId === preferredCurrentRepoId) &&
+				preferredCurrentRepoId) ||
+			fallbackRepoId;
+		const allPullRequests = await loadJiraPullRequests();
+		const pullRequestCountByRepoPath = new Map<string, number>();
+		for (const pullRequest of Object.values(allPullRequests)) {
+			const normalized = pullRequest.repoPath.replaceAll("\\", "/").replace(/\/+$/g, "");
+			pullRequestCountByRepoPath.set(normalized, (pullRequestCountByRepoPath.get(normalized) ?? 0) + 1);
+		}
+		const repoSummaries = await Promise.all(
 			projects.map(async (project) => {
-				const taskCounts = await summarizeProjectTaskCounts(project.workspaceId, project.repoPath);
-				return toProjectSummary({
+				const taskCounts = await summarizeRepoTaskCounts(project.workspaceId, project.repoPath);
+				const normalizedPath = project.repoPath.replaceAll("\\", "/").replace(/\/+$/g, "");
+				const pullRequestCount = pullRequestCountByRepoPath.get(normalizedPath) ?? 0;
+				return toRepoSummary({
 					workspaceId: project.workspaceId,
 					repoPath: project.repoPath,
 					taskCounts,
+					pullRequestCount,
 				});
 			}),
 		);
 		return {
-			currentProjectId: resolvedCurrentProjectId,
-			projects: projectSummaries,
+			currentRepoId: resolvedCurrentRepoId,
+			repos: repoSummaries,
 		};
 	};
 
@@ -358,23 +360,23 @@ export async function createWorkspaceRegistry(deps: CreateWorkspaceRegistryDepen
 		},
 	): Promise<ResolvedWorkspaceStreamTarget> => {
 		const allProjects = await listWorkspaceIndexEntries();
-		const existingProjects: RuntimeWorkspaceIndexEntry[] = [];
-		const removedProjects: RuntimeWorkspaceIndexEntry[] = [];
+		const existingRepos: RuntimeWorkspaceIndexEntry[] = [];
+		const removedRepos: RuntimeWorkspaceIndexEntry[] = [];
 
 		for (const project of allProjects) {
 			let removalMessage: string | null = null;
 			if (!(await deps.pathIsDirectory(project.repoPath))) {
-				removalMessage = `Project no longer exists on disk and was removed: ${project.repoPath}`;
+				removalMessage = `Repo no longer exists on disk and was removed: ${project.repoPath}`;
 			} else if (!deps.hasGitRepository(project.repoPath)) {
-				removalMessage = `Project is not a git repository and was removed: ${project.repoPath}`;
+				removalMessage = `Repo is not a git repository and was removed: ${project.repoPath}`;
 			}
 
 			if (!removalMessage) {
-				existingProjects.push(project);
+				existingRepos.push(project);
 				continue;
 			}
 
-			removedProjects.push(project);
+			removedRepos.push(project);
 			await removeWorkspaceIndexEntry(project.workspaceId);
 			await removeWorkspaceStateFiles(project.workspaceId);
 			disposeWorkspace(project.workspaceId);
@@ -386,20 +388,17 @@ export async function createWorkspaceRegistry(deps: CreateWorkspaceRegistryDepen
 		}
 
 		const removedRequestedWorkspacePath = requestedWorkspaceId
-			? (removedProjects.find((project) => project.workspaceId === requestedWorkspaceId)?.repoPath ?? null)
+			? (removedRepos.find((project) => project.workspaceId === requestedWorkspaceId)?.repoPath ?? null)
 			: null;
 
-		const activeWorkspaceMissing = !existingProjects.some((project) => project.workspaceId === activeWorkspaceId);
+		const activeWorkspaceMissing =
+			activeWorkspaceId !== null && !existingRepos.some((project) => project.workspaceId === activeWorkspaceId);
 		if (activeWorkspaceMissing) {
-			if (existingProjects[0]) {
-				await setActiveWorkspace(existingProjects[0].workspaceId, existingProjects[0].repoPath);
-			} else {
-				clearActiveWorkspace();
-			}
+			clearActiveWorkspace();
 		}
 
 		if (requestedWorkspaceId) {
-			const requestedWorkspace = existingProjects.find((project) => project.workspaceId === requestedWorkspaceId);
+			const requestedWorkspace = existingRepos.find((project) => project.workspaceId === requestedWorkspaceId);
 			if (requestedWorkspace) {
 				if (
 					activeWorkspaceId !== requestedWorkspace.workspaceId ||
@@ -411,26 +410,25 @@ export async function createWorkspaceRegistry(deps: CreateWorkspaceRegistryDepen
 					workspaceId: requestedWorkspace.workspaceId,
 					workspacePath: requestedWorkspace.repoPath,
 					removedRequestedWorkspacePath,
-					didPruneProjects: removedProjects.length > 0,
+					didPruneRepos: removedRepos.length > 0,
 				};
 			}
 		}
 
-		const fallbackWorkspace =
-			existingProjects.find((project) => project.workspaceId === activeWorkspaceId) ?? existingProjects[0] ?? null;
+		const fallbackWorkspace = existingRepos.find((project) => project.workspaceId === activeWorkspaceId) ?? null;
 		if (!fallbackWorkspace) {
 			return {
 				workspaceId: null,
 				workspacePath: null,
 				removedRequestedWorkspacePath,
-				didPruneProjects: removedProjects.length > 0,
+				didPruneRepos: removedRepos.length > 0,
 			};
 		}
 		return {
 			workspaceId: fallbackWorkspace.workspaceId,
 			workspacePath: fallbackWorkspace.repoPath,
 			removedRequestedWorkspacePath,
-			didPruneProjects: removedProjects.length > 0,
+			didPruneRepos: removedRepos.length > 0,
 		};
 	};
 
@@ -459,10 +457,10 @@ export async function createWorkspaceRegistry(deps: CreateWorkspaceRegistryDepen
 		setActiveWorkspace,
 		clearActiveWorkspace,
 		disposeWorkspace,
-		summarizeProjectTaskCounts,
-		createProjectSummary: toProjectSummary,
+		summarizeRepoTaskCounts,
+		createRepoSummary: toRepoSummary,
 		buildWorkspaceStateSnapshot,
-		buildProjectsPayload,
+		buildReposPayload,
 		resolveWorkspaceForStream,
 		listManagedWorkspaces: () => {
 			return Array.from(terminalManagersByWorkspaceId.entries()).map(([workspaceId, terminalManager]) => ({

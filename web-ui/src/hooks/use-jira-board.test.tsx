@@ -9,6 +9,8 @@ const mockSaveBoard = vi.hoisted(() => vi.fn());
 const mockImportFromJira = vi.hoisted(() => vi.fn());
 const mockTransitionIssue = vi.hoisted(() => vi.fn());
 const mockScanAndAttachPRs = vi.hoisted(() => vi.fn());
+const mockFetchIssue = vi.hoisted(() => vi.fn());
+const mockLoadDetails = vi.hoisted(() => vi.fn());
 
 // Return the same client object on every call to avoid reference churn —
 // a new object per call would change `trpc` on every render, which changes
@@ -20,6 +22,8 @@ const mockTrpcClient = {
 		importFromJira: { mutate: mockImportFromJira },
 		transitionIssue: { mutate: mockTransitionIssue },
 		scanAndAttachPRs: { mutate: mockScanAndAttachPRs },
+		fetchIssue: { query: mockFetchIssue },
+		loadDetails: { query: mockLoadDetails },
 	},
 };
 
@@ -56,11 +60,13 @@ describe("useJiraBoard", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Default: empty board resolves immediately so no pending async work is left after each test
-		mockLoadBoard.mockResolvedValue({ board: { cards: [] }, subtasks: {}, prLinks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [] }, pullRequests: {} });
 		mockSaveBoard.mockResolvedValue({ board: { cards: [] } });
 		mockImportFromJira.mockResolvedValue({ imported: 2, skipped: 0, board: { cards: [] } });
 		mockTransitionIssue.mockResolvedValue({ ok: true });
-		mockScanAndAttachPRs.mockResolvedValue({ attached: 0, skipped: 0, subtasks: {} });
+		mockScanAndAttachPRs.mockResolvedValue({ attached: 0, skipped: 0, pullRequests: {}, board: { cards: [] } });
+		mockFetchIssue.mockResolvedValue({ jiraKey: "POL-1", summary: "Fix", description: null });
+		mockLoadDetails.mockResolvedValue({ details: {} });
 
 		previousActEnvironment = (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
 			.IS_REACT_ACT_ENVIRONMENT;
@@ -128,13 +134,19 @@ describe("useJiraBoard", () => {
 			jiraKey: "POL-1",
 			summary: "Test issue",
 			status: "todo" as const,
-			subtaskIds: [],
+			pullRequestIds: [],
 			createdAt: 1000,
 			updatedAt: 1000,
 		};
 
 		// Override default mock to return a real card
-		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {}, prLinks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, pullRequests: {} });
+		mockScanAndAttachPRs.mockResolvedValue({
+			attached: 0,
+			skipped: 0,
+			pullRequests: {},
+			board: { cards: [testCard] },
+		});
 
 		let snapshot: UseJiraBoardResult | null = null;
 
@@ -160,11 +172,11 @@ describe("useJiraBoard", () => {
 			jiraKey: "POL-99",
 			summary: "Already done",
 			status: "done" as const,
-			subtaskIds: [],
+			pullRequestIds: [],
 			createdAt: 1,
 			updatedAt: 1,
 		};
-		mockLoadBoard.mockResolvedValue({ board: { cards: [doneCard] }, subtasks: {}, prLinks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [doneCard] }, pullRequests: {} });
 
 		let snapshot: UseJiraBoardResult | null = null;
 
@@ -193,12 +205,18 @@ describe("useJiraBoard", () => {
 			jiraKey: "POL-1",
 			summary: "Test issue",
 			status: "todo" as const,
-			subtaskIds: [],
+			pullRequestIds: [],
 			createdAt: 1000,
 			updatedAt: 1000,
 		};
-		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {}, prLinks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, pullRequests: {} });
 		mockSaveBoard.mockResolvedValue({ board: { cards: [] } });
+		mockScanAndAttachPRs.mockResolvedValue({
+			attached: 0,
+			skipped: 0,
+			pullRequests: {},
+			board: { cards: [testCard] },
+		});
 
 		let snapshot: UseJiraBoardResult | null = null;
 
@@ -252,11 +270,11 @@ describe("useJiraBoard", () => {
 			jiraKey: "POL-2",
 			summary: "Another issue",
 			status: "todo" as const,
-			subtaskIds: [],
+			pullRequestIds: [],
 			createdAt: 1000,
 			updatedAt: 1000,
 		};
-		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {}, prLinks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, pullRequests: {} });
 		mockSaveBoard.mockResolvedValue({ board: { cards: [] } });
 
 		let snapshot: UseJiraBoardResult | null = null;
@@ -306,14 +324,20 @@ describe("useJiraBoard", () => {
 			jiraKey: "POL-1",
 			summary: "Test issue",
 			status: "todo" as const,
-			subtaskIds: [],
+			pullRequestIds: [],
 			createdAt: 1000,
 			updatedAt: 1000,
 		};
 
-		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, subtasks: {}, prLinks: {} });
+		mockLoadBoard.mockResolvedValue({ board: { cards: [testCard] }, pullRequests: {} });
 		mockSaveBoard.mockResolvedValue({ board: { cards: [] } });
 		mockTransitionIssue.mockResolvedValue({ ok: true });
+		mockScanAndAttachPRs.mockResolvedValue({
+			attached: 0,
+			skipped: 0,
+			pullRequests: {},
+			board: { cards: [testCard] },
+		});
 
 		let snapshot: UseJiraBoardResult | null = null;
 
@@ -381,7 +405,7 @@ describe("useJiraBoard", () => {
 		expect(mockScanAndAttachPRs).toHaveBeenCalledOnce(); // still only once
 	});
 
-	it("scanPRs updates subtasks and clears prScanning", async () => {
+	it("scanPRs updates pullRequests and clears prScanning", async () => {
 		const mergedSubtasks = {
 			"sub-1": {
 				id: "sub-1",
@@ -400,7 +424,24 @@ describe("useJiraBoard", () => {
 				updatedAt: 2,
 			},
 		};
-		mockScanAndAttachPRs.mockResolvedValue({ attached: 1, skipped: 0, subtasks: mergedSubtasks });
+		const scannedBoard = {
+			cards: [
+				{
+					jiraKey: "POL-2",
+					summary: "Fix",
+					status: "in_progress" as const,
+					pullRequestIds: ["sub-1"],
+					createdAt: 1,
+					updatedAt: 2,
+				},
+			],
+		};
+		mockScanAndAttachPRs.mockResolvedValue({
+			attached: 1,
+			skipped: 0,
+			pullRequests: mergedSubtasks,
+			board: scannedBoard,
+		});
 		let snapshot: UseJiraBoardResult | undefined;
 		await act(async () => {
 			root.render(
@@ -416,7 +457,8 @@ describe("useJiraBoard", () => {
 			await snapshot?.scanPRs();
 			await flushPromises();
 		});
-		expect(snapshot?.subtasks).toEqual(mergedSubtasks);
+		expect(snapshot?.pullRequests).toEqual(mergedSubtasks);
+		expect(snapshot?.board).toEqual(scannedBoard);
 		expect(snapshot?.prScanning).toBe(false);
 	});
 
@@ -425,7 +467,7 @@ describe("useJiraBoard", () => {
 
 		// Auto-scan on mount succeeds; the explicit scanPRs call will fail
 		mockScanAndAttachPRs
-			.mockResolvedValueOnce({ attached: 0, skipped: 0, prLinks: {} }) // auto-scan
+			.mockResolvedValueOnce({ attached: 0, skipped: 0, pullRequests: {}, board: { cards: [] } }) // auto-scan
 			.mockRejectedValueOnce(new Error("scan failed")); // manual scan
 
 		let snapshot: UseJiraBoardResult | undefined;

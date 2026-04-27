@@ -5,8 +5,8 @@ import { resetRuntimeDebugState } from "@/runtime/runtime-config-query";
 import type { RuntimeConfigResponse } from "@/runtime/types";
 
 interface UseDebugToolsParams {
-	runtimeProjectConfig: RuntimeConfigResponse | null;
-	settingsRuntimeProjectConfig: RuntimeConfigResponse | null;
+	runtimeRepoConfig: RuntimeConfigResponse | null;
+	settingsRuntimeRepoConfig: RuntimeConfigResponse | null;
 }
 
 interface UseDebugToolsResult {
@@ -19,13 +19,13 @@ interface UseDebugToolsResult {
 }
 
 export function useDebugTools({
-	runtimeProjectConfig,
-	settingsRuntimeProjectConfig,
+	runtimeRepoConfig,
+	settingsRuntimeRepoConfig,
 }: UseDebugToolsParams): UseDebugToolsResult {
 	const [isDebugDialogOpen, setIsDebugDialogOpen] = useState(false);
 	const [isResetAllStatePending, setIsResetAllStatePending] = useState(false);
 	const debugModeEnabled =
-		(settingsRuntimeProjectConfig?.debugModeEnabled ?? runtimeProjectConfig?.debugModeEnabled ?? false) === true;
+		(settingsRuntimeRepoConfig?.debugModeEnabled ?? runtimeRepoConfig?.debugModeEnabled ?? false) === true;
 
 	const handleOpenDebugDialog = useCallback(() => {
 		setIsDebugDialogOpen(true);

@@ -3,31 +3,33 @@ import { access } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { lockedFileSystem } from "../fs/locked-file-system.js";
-import type { JiraBoard, JiraCard, JiraSubtask } from "../jira/jira-board-state.js";
+import type { JiraBoard, JiraCard, JiraDetail, JiraPullRequest } from "../jira/jira-board-state.js";
 import { extractJiraKey } from "../jira/jira-key-extract.js";
 import type { GhPullRequest } from "../jira/jira-pr-scan.js";
 import type { JiraIssueRaw } from "../jira/jira-rest.js";
 import type { RepoInfo } from "../jira/jira-worktree.js";
-import { buildSubtaskWorktreePath } from "../jira/jira-worktree.js";
+import { buildPullRequestWorktreePath } from "../jira/jira-worktree.js";
 
 export interface CreateJiraApiDependencies {
 	loadJiraBoard: () => Promise<JiraBoard>;
 	saveJiraBoard: (board: JiraBoard) => Promise<void>;
-	loadJiraSubtasks: () => Promise<Record<string, JiraSubtask>>;
-	createJiraSubtask: (input: Omit<JiraSubtask, "id" | "createdAt" | "updatedAt">) => Promise<JiraSubtask>;
-	deleteJiraSubtask: (subtaskId: string) => Promise<void>;
+	loadJiraPullRequests: () => Promise<Record<string, JiraPullRequest>>;
+	loadJiraDetails: () => Promise<Record<string, JiraDetail>>;
+	saveJiraDetail: (detail: JiraDetail) => Promise<void>;
+	createJiraPullRequest: (input: Omit<JiraPullRequest, "id" | "createdAt" | "updatedAt">) => Promise<JiraPullRequest>;
+	deleteJiraPullRequest: (pullRequestId: string) => Promise<void>;
 	searchJiraIssues: (jql: string) => Promise<JiraIssueRaw[]>;
 	fetchIssue: (issueKey: string) => Promise<{ key: string; summary: string; description: string | null }>;
 	transitionIssue: (issueKey: string, targetName: string) => Promise<void>;
 	setApiToken: (token: string | null) => Promise<void>;
 	scanRepos: (reposRoot: string) => Promise<RepoInfo[]>;
-	createSubtaskWorktree: (options: {
+	createPullRequestWorktree: (options: {
 		repoPath: string;
 		worktreePath: string;
 		branchName: string;
 		baseRef: string;
 	}) => Promise<void>;
-	removeSubtaskWorktree: (options: { repoPath: string; worktreePath: string }) => Promise<void>;
+	removePullRequestWorktree: (options: { repoPath: string; worktreePath: string }) => Promise<void>;
 	startTaskSession: (
 		workspacePath: string,
 		taskId: string,
@@ -38,12 +40,13 @@ export interface CreateJiraApiDependencies {
 	addWorkspace: (workspacePath: string) => Promise<string>;
 	getWorktreesRoot: () => string | null;
 	getReposRoot: () => string | null;
-	listOpenAuthoredGhPullRequests: () => Promise<GhPullRequest[]>;
+	listAuthoredGhPullRequestsForProject: (projectKey: string) => Promise<GhPullRequest[]>;
 	getJiraProjectKey: () => string | null;
+	broadcastRuntimeReposUpdated?: () => void;
 }
 
-function getSubtasksFilePath(): string {
-	return join(homedir(), ".kanban", "kanban", "jira-subtasks.json");
+function getPullRequestsFilePath(): string {
+	return join(homedir(), ".kanban", "kanban", "jira-pull-requests.json");
 }
 
 const JIRA_STATUS_MAP: Record<string, "todo" | "in_progress" | "done"> = {
@@ -61,9 +64,9 @@ const JIRA_STATUS_MAP: Record<string, "todo" | "in_progress" | "done"> = {
 
 export function createJiraApi(deps: CreateJiraApiDependencies) {
 	return {
-		async loadBoard(): Promise<{ board: JiraBoard; subtasks: Record<string, JiraSubtask> }> {
-			const [board, subtasks] = await Promise.all([deps.loadJiraBoard(), deps.loadJiraSubtasks()]);
-			return { board, subtasks };
+		async loadBoard(): Promise<{ board: JiraBoard; pullRequests: Record<string, JiraPullRequest> }> {
+			const [board, pullRequests] = await Promise.all([deps.loadJiraBoard(), deps.loadJiraPullRequests()]);
+			return { board, pullRequests };
 		},
 
 		async saveBoard(board: JiraBoard): Promise<{ board: JiraBoard }> {
@@ -78,7 +81,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			return { repos };
 		},
 
-		async createSubtask(input: {
+		async createPullRequest(input: {
 			jiraKey: string;
 			repoId: string;
 			repoPath: string;
@@ -86,35 +89,45 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			title: string;
 			baseRef: string;
 			branchName: string;
-		}): Promise<{ subtask: JiraSubtask }> {
+		}): Promise<{ pullRequest: JiraPullRequest }> {
 			const worktreesRoot = deps.getWorktreesRoot();
 			if (!worktreesRoot) throw new Error("worktreesRoot not configured");
 
-			const worktreePath = buildSubtaskWorktreePath(worktreesRoot, input.jiraKey, input.repoId, input.branchName);
+			const worktreePath = buildPullRequestWorktreePath(
+				worktreesRoot,
+				input.jiraKey,
+				input.repoId,
+				input.branchName,
+			);
 
-			await deps.createSubtaskWorktree({
+			await deps.createPullRequestWorktree({
 				repoPath: input.repoPath,
 				worktreePath,
 				branchName: input.branchName,
 				baseRef: input.baseRef,
 			});
 
-			const subtask = await deps.createJiraSubtask({
+			const pullRequest = await deps.createJiraPullRequest({
 				...input,
 				worktreePath,
 				status: "backlog",
 			});
 
-			return { subtask };
+			deps.broadcastRuntimeReposUpdated?.();
+			return { pullRequest };
 		},
 
-		async deleteSubtask(subtaskId: string): Promise<{ deleted: boolean }> {
-			const subtasks = await deps.loadJiraSubtasks();
-			const subtask = subtasks[subtaskId];
-			if (subtask) {
-				await deps.removeSubtaskWorktree({ repoPath: subtask.repoPath, worktreePath: subtask.worktreePath });
+		async deletePullRequest(pullRequestId: string): Promise<{ deleted: boolean }> {
+			const pullRequests = await deps.loadJiraPullRequests();
+			const pullRequest = pullRequests[pullRequestId];
+			if (pullRequest) {
+				await deps.removePullRequestWorktree({
+					repoPath: pullRequest.repoPath,
+					worktreePath: pullRequest.worktreePath,
+				});
 			}
-			await deps.deleteJiraSubtask(subtaskId);
+			await deps.deleteJiraPullRequest(pullRequestId);
+			deps.broadcastRuntimeReposUpdated?.();
 			return { deleted: true };
 		},
 
@@ -152,7 +165,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 						jiraKey: issue.key,
 						summary: issue.summary,
 						status: mappedStatus,
-						subtaskIds: [],
+						pullRequestIds: [],
 						createdAt: now,
 						updatedAt: now,
 					});
@@ -173,8 +186,20 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			return { ok: true };
 		},
 
+		async loadDetails(): Promise<{ details: Record<string, JiraDetail> }> {
+			const details = await deps.loadJiraDetails();
+			return { details };
+		},
+
 		async fetchIssue(jiraKey: string): Promise<{ jiraKey: string; summary: string; description: string | null }> {
 			const result = await deps.fetchIssue(jiraKey);
+			const detail: JiraDetail = {
+				jiraKey: result.key,
+				summary: result.summary,
+				description: result.description,
+				fetchedAt: Date.now(),
+			};
+			await deps.saveJiraDetail(detail);
 			return {
 				jiraKey: result.key,
 				summary: result.summary,
@@ -187,59 +212,67 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			return { configured: token !== null };
 		},
 
-		async startSubtaskSession(
-			subtaskId: string,
+		async startPullRequestSession(
+			pullRequestId: string,
 		): Promise<{ started: boolean; workspacePath: string; workspaceId: string; openUrl?: string }> {
-			const subtasks = await deps.loadJiraSubtasks();
-			const subtask = subtasks[subtaskId];
-			if (!subtask) throw new Error(`Subtask ${subtaskId} not found`);
+			const pullRequests = await deps.loadJiraPullRequests();
+			const pullRequest = pullRequests[pullRequestId];
+			if (!pullRequest) throw new Error(`Pull request ${pullRequestId} not found`);
 
-			if (subtask.worktreePath) {
+			if (pullRequest.worktreePath) {
 				let worktreeAccessible = false;
 				try {
-					await access(subtask.worktreePath);
+					await access(pullRequest.worktreePath);
 					worktreeAccessible = true;
 				} catch {}
 
 				if (worktreeAccessible) {
-					const workspaceId = await deps.addWorkspace(subtask.repoPath);
+					const workspaceId = await deps.addWorkspace(pullRequest.repoPath);
 					const result = await deps.startTaskSession(
-						subtask.repoPath,
-						subtask.id,
-						subtask.prompt,
-						subtask.worktreePath,
+						pullRequest.repoPath,
+						pullRequest.id,
+						pullRequest.prompt,
+						pullRequest.worktreePath,
 					);
-					subtasks[subtaskId] = { ...subtask, status: "in_progress", updatedAt: Date.now() };
-					await lockedFileSystem.writeJsonFileAtomic(getSubtasksFilePath(), subtasks);
-					return { started: result.started, workspacePath: subtask.repoPath, workspaceId };
+					pullRequests[pullRequestId] = { ...pullRequest, status: "in_progress", updatedAt: Date.now() };
+					await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
+					return { started: result.started, workspacePath: pullRequest.repoPath, workspaceId };
 				}
 			}
 
-			if (subtask.prUrl) {
-				return { started: false, workspacePath: "", workspaceId: "", openUrl: subtask.prUrl };
+			if (pullRequest.prUrl) {
+				return { started: false, workspacePath: "", workspaceId: "", openUrl: pullRequest.prUrl };
 			}
 
-			throw new Error(`Subtask ${subtaskId}: no worktree path and no PR URL`);
+			throw new Error(`Pull request ${pullRequestId}: no worktree path and no PR URL`);
 		},
 
-		async stopSubtaskSession(subtaskId: string, workspacePath: string): Promise<{ stopped: boolean }> {
-			return deps.stopTaskSession(workspacePath, subtaskId);
+		async stopPullRequestSession(pullRequestId: string, workspacePath: string): Promise<{ stopped: boolean }> {
+			return deps.stopTaskSession(workspacePath, pullRequestId);
 		},
 
-		async updateSubtaskStatus(subtaskId: string, status: JiraSubtask["status"]): Promise<{ subtask: JiraSubtask }> {
-			const subtasks = await deps.loadJiraSubtasks();
-			const subtask = subtasks[subtaskId];
-			if (!subtask) throw new Error(`Subtask ${subtaskId} not found`);
+		async updatePullRequestStatus(
+			pullRequestId: string,
+			status: JiraPullRequest["status"],
+		): Promise<{ pullRequest: JiraPullRequest }> {
+			const pullRequests = await deps.loadJiraPullRequests();
+			const pullRequest = pullRequests[pullRequestId];
+			if (!pullRequest) throw new Error(`Pull request ${pullRequestId} not found`);
 
-			const updated: JiraSubtask = { ...subtask, status, updatedAt: Date.now() };
-			subtasks[subtaskId] = updated;
+			const updated: JiraPullRequest = { ...pullRequest, status, updatedAt: Date.now() };
+			pullRequests[pullRequestId] = updated;
 
-			await lockedFileSystem.writeJsonFileAtomic(getSubtasksFilePath(), subtasks);
+			await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
 
-			return { subtask: updated };
+			return { pullRequest: updated };
 		},
 
-		async scanAndAttachPRs(): Promise<{ attached: number; skipped: number; subtasks: Record<string, JiraSubtask> }> {
+		async scanAndAttachPRs(): Promise<{
+			attached: number;
+			skipped: number;
+			pullRequests: Record<string, JiraPullRequest>;
+			board: JiraBoard;
+		}> {
 			const projectKey = deps.getJiraProjectKey();
 			if (!projectKey) {
 				throw new Error("Jira project key not configured. Set it in Settings → Jira & Repos.");
@@ -247,22 +280,22 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 
 			let prs: GhPullRequest[];
 			try {
-				prs = await deps.listOpenAuthoredGhPullRequests();
+				prs = await deps.listAuthoredGhPullRequestsForProject(projectKey);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				throw new Error(`Failed to fetch GitHub PRs: ${message}`);
 			}
 
-			const [board, subtasks] = await Promise.all([deps.loadJiraBoard(), deps.loadJiraSubtasks()]);
+			const [board, pullRequests] = await Promise.all([deps.loadJiraBoard(), deps.loadJiraPullRequests()]);
 			const boardKeySet = new Set(board.cards.map((c) => c.jiraKey));
 
-			const prUrlToSubtaskId = new Map<string, string>();
-			for (const [id, subtask] of Object.entries(subtasks)) {
-				if (subtask.prUrl) prUrlToSubtaskId.set(subtask.prUrl, id);
+			const prUrlToPullRequestId = new Map<string, string>();
+			for (const [id, pullRequest] of Object.entries(pullRequests)) {
+				if (pullRequest.prUrl) prUrlToPullRequestId.set(pullRequest.prUrl, id);
 			}
 
-			const updatedSubtasks: Record<string, JiraSubtask> = { ...subtasks };
-			const newSubtasksByCard = new Map<string, string[]>();
+			const updatedPullRequests: Record<string, JiraPullRequest> = { ...pullRequests };
+			const newPullRequestsByCard = new Map<string, string[]>();
 			const now = Date.now();
 			let attached = 0;
 			let skipped = 0;
@@ -274,15 +307,17 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 					continue;
 				}
 
-				const existingId = prUrlToSubtaskId.get(pr.url);
+				const existingId = prUrlToPullRequestId.get(pr.url);
 				if (existingId) {
-					const existing = updatedSubtasks[existingId];
+					const existing = updatedPullRequests[existingId];
 					if (existing) {
-						const newStatus: JiraSubtask["status"] = pr.isDraft ? "in_progress" : "review";
+						const prState: JiraPullRequest["prState"] =
+							existing.prState === "merged" || pr.state === "MERGED" ? "merged" : pr.isDraft ? "draft" : "open";
+						const newStatus: JiraPullRequest["status"] = pr.isDraft ? "in_progress" : "review";
 						const shouldUpdateStatus = existing.status === "in_progress" || existing.status === "review";
-						updatedSubtasks[existingId] = {
+						updatedPullRequests[existingId] = {
 							...existing,
-							isDraft: pr.isDraft,
+							prState,
 							status: shouldUpdateStatus ? newStatus : existing.status,
 							updatedAt: now,
 						};
@@ -298,7 +333,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 					}
 
 					const id = randomUUID();
-					const newSubtask: JiraSubtask = {
+					const newPullRequest: JiraPullRequest = {
 						id,
 						jiraKey,
 						repoId: repoShortName,
@@ -311,30 +346,40 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 						status: pr.isDraft ? "in_progress" : "review",
 						prUrl: pr.url,
 						prNumber: pr.number,
-						isDraft: pr.isDraft,
+						prState: pr.state === "MERGED" ? "merged" : pr.isDraft ? "draft" : "open",
 						createdAt: now,
 						updatedAt: now,
 					};
-					updatedSubtasks[id] = newSubtask;
+					updatedPullRequests[id] = newPullRequest;
 
-					const existing = newSubtasksByCard.get(jiraKey) ?? [];
-					newSubtasksByCard.set(jiraKey, [...existing, id]);
+					const existing = newPullRequestsByCard.get(jiraKey) ?? [];
+					newPullRequestsByCard.set(jiraKey, [...existing, id]);
 					attached++;
 				}
 			}
 
-			if (newSubtasksByCard.size > 0) {
+			let updatedBoard: JiraBoard = board;
+			if (newPullRequestsByCard.size > 0) {
 				const updatedCards = board.cards.map((card) => {
-					const newIds = newSubtasksByCard.get(card.jiraKey);
+					const newIds = newPullRequestsByCard.get(card.jiraKey);
 					if (!newIds) return card;
-					return { ...card, subtaskIds: [...card.subtaskIds, ...newIds], updatedAt: now };
+					return { ...card, pullRequestIds: [...card.pullRequestIds, ...newIds], updatedAt: now };
 				});
-				await deps.saveJiraBoard({ cards: updatedCards });
+				updatedBoard = { cards: updatedCards };
+				await deps.saveJiraBoard(updatedBoard);
 			}
 
-			await lockedFileSystem.writeJsonFileAtomic(getSubtasksFilePath(), updatedSubtasks);
+			for (const pullRequest of Object.values(updatedPullRequests)) {
+				if (pullRequest.prUrl !== undefined && pullRequest.prState === undefined) {
+					pullRequest.prState = "open";
+				}
+			}
 
-			return { attached, skipped, subtasks: updatedSubtasks };
+			await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), updatedPullRequests);
+
+			deps.broadcastRuntimeReposUpdated?.();
+
+			return { attached, skipped, pullRequests: updatedPullRequests, board: updatedBoard };
 		},
 	};
 }

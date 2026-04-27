@@ -6,7 +6,7 @@ import type {
 	RuntimeAgentId,
 	RuntimeConfigResponse,
 	RuntimeDebugResetAllStateResponse,
-	RuntimeProjectShortcut,
+	RuntimeRepoShortcut,
 } from "@/runtime/types";
 
 export async function fetchRuntimeConfig(workspaceId: string | null): Promise<RuntimeConfigResponse> {
@@ -20,7 +20,7 @@ export async function saveRuntimeConfig(
 		selectedAgentId?: RuntimeAgentId;
 		selectedShortcutLabel?: string | null;
 		agentAutonomousModeEnabled?: boolean;
-		shortcuts?: RuntimeProjectShortcut[];
+		shortcuts?: RuntimeRepoShortcut[];
 		readyForReviewNotificationsEnabled?: boolean;
 		commitPromptTemplate?: string;
 		openPrPromptTemplate?: string;
@@ -30,8 +30,6 @@ export async function saveRuntimeConfig(
 		jiraBaseUrl?: string | null;
 		jiraEmail?: string | null;
 		jiraSyncIntervalMs?: number | null;
-		jiraBaseUrl?: string | null;
-		jiraEmail?: string | null;
 	},
 ): Promise<RuntimeConfigResponse> {
 	const trpcClient = getRuntimeTrpcClient(workspaceId);
@@ -54,7 +52,7 @@ export async function openFileOnHost(workspaceId: string | null, filePath: strin
  */
 export async function pickDirectoryOnHost(workspaceId: string | null): Promise<string | null> {
 	const trpcClient = getRuntimeTrpcClient(workspaceId);
-	const result = await trpcClient.projects.pickDirectory.mutate();
+	const result = await trpcClient.repos.pickDirectory.mutate();
 	if (result.ok && result.path) {
 		return result.path;
 	}
@@ -63,7 +61,7 @@ export async function pickDirectoryOnHost(workspaceId: string | null): Promise<s
 
 export async function syncReposRoot(workspaceId: string | null): Promise<{ added: number; skipped: number }> {
 	const trpcClient = getRuntimeTrpcClient(workspaceId);
-	return await trpcClient.projects.syncFromReposRoot.mutate();
+	return await trpcClient.repos.syncFromReposRoot.mutate();
 }
 
 export async function setJiraApiToken(

@@ -17,7 +17,7 @@ import { useBooleanLocalStorageValue, useRawLocalStorageValue } from "@/utils/re
 interface UseTaskEditorInput {
 	board: BoardData;
 	setBoard: Dispatch<SetStateAction<BoardData>>;
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	createTaskBranchOptions: Array<{ value: string; label: string }>;
 	defaultTaskBranchRef: string;
 	setSelectedTaskId: Dispatch<SetStateAction<string | null>>;
@@ -80,7 +80,7 @@ export interface UseTaskEditorResult {
 export function useTaskEditor({
 	board,
 	setBoard,
-	currentProjectId,
+	currentRepoId,
 	createTaskBranchOptions,
 	defaultTaskBranchRef,
 	setSelectedTaskId,
@@ -104,7 +104,7 @@ export function useTaskEditor({
 	);
 	const isNewTaskStartInPlanModeDisabled = newTaskAutoReviewEnabled && newTaskAutoReviewMode === "move_to_trash";
 	const [newTaskBranchRef, setNewTaskBranchRef] = useState("");
-	const [lastCreatedTaskBranchByProjectId, setLastCreatedTaskBranchByProjectId] = useState<Record<string, string>>({});
+	const [lastCreatedTaskBranchByRepoId, setLastCreatedTaskBranchByProjectId] = useState<Record<string, string>>({});
 	const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 	const [editTaskPrompt, setEditTaskPrompt] = useState("");
 	const [editTaskImages, setEditTaskImages] = useState<TaskImage[]>([]);
@@ -118,11 +118,11 @@ export function useTaskEditor({
 	const [editTaskAgentId, setEditTaskAgentId] = useState<RuntimeAgentId | undefined>(undefined);
 
 	const lastCreatedTaskBranchRef = useMemo(() => {
-		if (!currentProjectId) {
+		if (!currentRepoId) {
 			return null;
 		}
-		return lastCreatedTaskBranchByProjectId[currentProjectId] ?? null;
-	}, [currentProjectId, lastCreatedTaskBranchByProjectId]);
+		return lastCreatedTaskBranchByRepoId[currentRepoId] ?? null;
+	}, [currentRepoId, lastCreatedTaskBranchByRepoId]);
 
 	const resolvedDefaultTaskBranchRef = useMemo(() => {
 		if (
@@ -339,10 +339,10 @@ export function useTaskEditor({
 				baseRef,
 			});
 			setBoard(created.board);
-			if (currentProjectId) {
+			if (currentRepoId) {
 				setLastCreatedTaskBranchByProjectId((current) => ({
 					...current,
-					[currentProjectId]: baseRef,
+					[currentRepoId]: baseRef,
 				}));
 			}
 
@@ -357,7 +357,7 @@ export function useTaskEditor({
 		},
 		[
 			board,
-			currentProjectId,
+			currentRepoId,
 			newTaskAgentId,
 			newTaskAutoReviewEnabled,
 			newTaskAutoReviewMode,
@@ -397,10 +397,10 @@ export function useTaskEditor({
 				createdTaskIds.push(created.task.id);
 			}
 			setBoard(updatedBoard);
-			if (currentProjectId) {
+			if (currentRepoId) {
 				setLastCreatedTaskBranchByProjectId((current) => ({
 					...current,
-					[currentProjectId]: baseRef,
+					[currentRepoId]: baseRef,
 				}));
 			}
 
@@ -415,7 +415,7 @@ export function useTaskEditor({
 		},
 		[
 			board,
-			currentProjectId,
+			currentRepoId,
 			newTaskAgentId,
 			newTaskAutoReviewEnabled,
 			newTaskAutoReviewMode,

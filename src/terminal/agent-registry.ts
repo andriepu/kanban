@@ -106,7 +106,7 @@ export function buildRuntimeConfigResponse(runtimeConfig: RuntimeConfigState): R
 		debugModeEnabled: isRuntimeDebugModeEnabled(),
 		effectiveCommand,
 		globalConfigPath: runtimeConfig.globalConfigPath,
-		projectConfigPath: runtimeConfig.projectConfigPath,
+		repoConfigPath: runtimeConfig.repoConfigPath,
 		readyForReviewNotificationsEnabled: runtimeConfig.readyForReviewNotificationsEnabled,
 		detectedCommands,
 		agents,

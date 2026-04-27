@@ -8,7 +8,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import type { RuntimeConfigState } from "../config/runtime-config";
-import { updateGlobalRuntimeConfig, updateRuntimeConfig } from "../config/runtime-config";
+import { loadJiraApiToken, updateGlobalRuntimeConfig, updateRuntimeConfig } from "../config/runtime-config";
 import type { RuntimeCommandRunResponse } from "../core/api-contract";
 import {
 	parseCommandRunRequest,
@@ -70,7 +70,11 @@ export function createRuntimeApi(deps: CreateRuntimeApiDependencies): RuntimeTrp
 		join(homedir(), ".kanban", "worktrees"),
 	] as const;
 
-	const buildConfigResponse = (runtimeConfig: RuntimeConfigState) => buildRuntimeConfigResponse(runtimeConfig);
+	const buildConfigResponse = async (runtimeConfig: RuntimeConfigState) => {
+		const token = await loadJiraApiToken();
+		const base = buildRuntimeConfigResponse(runtimeConfig);
+		return { ...base, jiraApiTokenConfigured: token !== null };
+	};
 
 	return {
 		loadConfig: async (workspaceScope) => {

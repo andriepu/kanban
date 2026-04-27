@@ -266,21 +266,22 @@ export const runtimeWorkspaceStateNotifyResponseSchema = z.object({
 });
 export type RuntimeWorkspaceStateNotifyResponse = z.infer<typeof runtimeWorkspaceStateNotifyResponseSchema>;
 
-export const runtimeProjectTaskCountsSchema = z.object({
+export const runtimeRepoTaskCountsSchema = z.object({
 	backlog: z.number(),
 	in_progress: z.number(),
 	review: z.number(),
 	trash: z.number(),
 });
-export type RuntimeProjectTaskCounts = z.infer<typeof runtimeProjectTaskCountsSchema>;
+export type RuntimeRepoTaskCounts = z.infer<typeof runtimeRepoTaskCountsSchema>;
 
-export const runtimeProjectSummarySchema = z.object({
+export const runtimeRepoSummarySchema = z.object({
 	id: z.string(),
 	path: z.string(),
 	name: z.string(),
-	taskCounts: runtimeProjectTaskCountsSchema,
+	taskCounts: runtimeRepoTaskCountsSchema,
+	pullRequestCount: z.number().int().nonnegative(),
 });
-export type RuntimeProjectSummary = z.infer<typeof runtimeProjectSummarySchema>;
+export type RuntimeRepoSummary = z.infer<typeof runtimeRepoSummarySchema>;
 
 export const runtimeTaskWorkspaceMetadataSchema = z.object({
 	taskId: z.string(),
@@ -306,8 +307,8 @@ export type RuntimeWorkspaceMetadata = z.infer<typeof runtimeWorkspaceMetadataSc
 
 export const runtimeStateStreamSnapshotMessageSchema = z.object({
 	type: z.literal("snapshot"),
-	currentProjectId: z.string().nullable(),
-	projects: z.array(runtimeProjectSummarySchema),
+	currentRepoId: z.string().nullable(),
+	repos: z.array(runtimeRepoSummarySchema),
 	workspaceState: runtimeWorkspaceStateResponseSchema.nullable(),
 	workspaceMetadata: runtimeWorkspaceMetadataSchema.nullable(),
 });
@@ -327,12 +328,12 @@ export const runtimeStateStreamTaskSessionsMessageSchema = z.object({
 });
 export type RuntimeStateStreamTaskSessionsMessage = z.infer<typeof runtimeStateStreamTaskSessionsMessageSchema>;
 
-export const runtimeStateStreamProjectsMessageSchema = z.object({
-	type: z.literal("projects_updated"),
-	currentProjectId: z.string().nullable(),
-	projects: z.array(runtimeProjectSummarySchema),
+export const runtimeStateStreamReposMessageSchema = z.object({
+	type: z.literal("repos_updated"),
+	currentRepoId: z.string().nullable(),
+	repos: z.array(runtimeRepoSummarySchema),
 });
-export type RuntimeStateStreamProjectsMessage = z.infer<typeof runtimeStateStreamProjectsMessageSchema>;
+export type RuntimeStateStreamReposMessage = z.infer<typeof runtimeStateStreamReposMessageSchema>;
 
 export const runtimeStateStreamWorkspaceMetadataMessageSchema = z.object({
 	type: z.literal("workspace_metadata_updated"),
@@ -378,7 +379,7 @@ export const runtimeStateStreamMessageSchema = z.discriminatedUnion("type", [
 	runtimeStateStreamSnapshotMessageSchema,
 	runtimeStateStreamWorkspaceStateMessageSchema,
 	runtimeStateStreamTaskSessionsMessageSchema,
-	runtimeStateStreamProjectsMessageSchema,
+	runtimeStateStreamReposMessageSchema,
 	runtimeStateStreamWorkspaceMetadataMessageSchema,
 	runtimeStateStreamTaskReadyForReviewMessageSchema,
 	runtimeStateStreamTaskChatMessageSchema,
@@ -387,35 +388,35 @@ export const runtimeStateStreamMessageSchema = z.discriminatedUnion("type", [
 ]);
 export type RuntimeStateStreamMessage = z.infer<typeof runtimeStateStreamMessageSchema>;
 
-export const runtimeProjectsResponseSchema = z.object({
-	currentProjectId: z.string().nullable(),
-	projects: z.array(runtimeProjectSummarySchema),
+export const runtimeReposResponseSchema = z.object({
+	currentRepoId: z.string().nullable(),
+	repos: z.array(runtimeRepoSummarySchema),
 });
-export type RuntimeProjectsResponse = z.infer<typeof runtimeProjectsResponseSchema>;
+export type RuntimeReposResponse = z.infer<typeof runtimeReposResponseSchema>;
 
-export const runtimeProjectAddRequestSchema = z
+export const runtimeRepoAddRequestSchema = z
 	.object({
 		path: z.string().optional(),
 		gitUrl: z.string().optional(),
 		initializeGit: z.boolean().optional(),
 	})
 	.refine((data) => data.path || data.gitUrl, { message: "Either path or gitUrl is required" });
-export type RuntimeProjectAddRequest = z.infer<typeof runtimeProjectAddRequestSchema>;
+export type RuntimeRepoAddRequest = z.infer<typeof runtimeRepoAddRequestSchema>;
 
-export const runtimeProjectAddResponseSchema = z.object({
+export const runtimeRepoAddResponseSchema = z.object({
 	ok: z.boolean(),
-	project: runtimeProjectSummarySchema.nullable(),
+	repo: runtimeRepoSummarySchema.nullable(),
 	requiresGitInitialization: z.boolean().optional(),
 	error: z.string().optional(),
 });
-export type RuntimeProjectAddResponse = z.infer<typeof runtimeProjectAddResponseSchema>;
+export type RuntimeRepoAddResponse = z.infer<typeof runtimeRepoAddResponseSchema>;
 
-export const runtimeProjectDirectoryPickerResponseSchema = z.object({
+export const runtimeRepoDirectoryPickerResponseSchema = z.object({
 	ok: z.boolean(),
 	path: z.string().nullable(),
 	error: z.string().optional(),
 });
-export type RuntimeProjectDirectoryPickerResponse = z.infer<typeof runtimeProjectDirectoryPickerResponseSchema>;
+export type RuntimeRepoDirectoryPickerResponse = z.infer<typeof runtimeRepoDirectoryPickerResponseSchema>;
 
 export const runtimeDirectoryListEntrySchema = z.object({
 	name: z.string(),
@@ -439,16 +440,16 @@ export const runtimeDirectoryListResponseSchema = z.object({
 });
 export type RuntimeDirectoryListResponse = z.infer<typeof runtimeDirectoryListResponseSchema>;
 
-export const runtimeProjectRemoveRequestSchema = z.object({
-	projectId: z.string(),
+export const runtimeRepoRemoveRequestSchema = z.object({
+	repoId: z.string(),
 });
-export type RuntimeProjectRemoveRequest = z.infer<typeof runtimeProjectRemoveRequestSchema>;
+export type RuntimeRepoRemoveRequest = z.infer<typeof runtimeRepoRemoveRequestSchema>;
 
-export const runtimeProjectRemoveResponseSchema = z.object({
+export const runtimeRepoRemoveResponseSchema = z.object({
 	ok: z.boolean(),
 	error: z.string().optional(),
 });
-export type RuntimeProjectRemoveResponse = z.infer<typeof runtimeProjectRemoveResponseSchema>;
+export type RuntimeRepoRemoveResponse = z.infer<typeof runtimeRepoRemoveResponseSchema>;
 
 export const runtimeWorktreeEnsureRequestSchema = z.object({
 	taskId: z.string(),
@@ -504,12 +505,12 @@ export const runtimeTaskWorkspaceInfoResponseSchema = z.object({
 });
 export type RuntimeTaskWorkspaceInfoResponse = z.infer<typeof runtimeTaskWorkspaceInfoResponseSchema>;
 
-export const runtimeProjectShortcutSchema = z.object({
+export const runtimeRepoShortcutSchema = z.object({
 	label: z.string(),
 	command: z.string(),
 	icon: z.string().optional(),
 });
-export type RuntimeProjectShortcut = z.infer<typeof runtimeProjectShortcutSchema>;
+export type RuntimeRepoShortcut = z.infer<typeof runtimeRepoShortcutSchema>;
 
 export const runtimeCommandRunRequestSchema = z.object({
 	command: z.string(),
@@ -559,11 +560,11 @@ export const runtimeConfigResponseSchema = z.object({
 	debugModeEnabled: z.boolean().optional(),
 	effectiveCommand: z.string().nullable(),
 	globalConfigPath: z.string(),
-	projectConfigPath: z.string().nullable(),
+	repoConfigPath: z.string().nullable(),
 	readyForReviewNotificationsEnabled: z.boolean(),
 	detectedCommands: z.array(z.string()),
 	agents: z.array(runtimeAgentDefinitionSchema),
-	shortcuts: z.array(runtimeProjectShortcutSchema),
+	shortcuts: z.array(runtimeRepoShortcutSchema),
 	commitPromptTemplate: z.string(),
 	openPrPromptTemplate: z.string(),
 	commitPromptTemplateDefault: z.string(),
@@ -582,7 +583,7 @@ export const runtimeConfigSaveRequestSchema = z.object({
 	selectedAgentId: runtimeAgentIdSchema.optional(),
 	selectedShortcutLabel: z.string().nullable().optional(),
 	agentAutonomousModeEnabled: z.boolean().optional(),
-	shortcuts: z.array(runtimeProjectShortcutSchema).optional(),
+	shortcuts: z.array(runtimeRepoShortcutSchema).optional(),
 	readyForReviewNotificationsEnabled: z.boolean().optional(),
 	commitPromptTemplate: z.string().optional(),
 	openPrPromptTemplate: z.string().optional(),
@@ -911,7 +912,7 @@ export const jiraCardSchema = z.object({
 	jiraKey: z.string(),
 	summary: z.string(),
 	status: jiraCardStatusSchema,
-	subtaskIds: z.array(z.string()),
+	pullRequestIds: z.array(z.string()),
 	createdAt: z.number(),
 	updatedAt: z.number(),
 });
@@ -920,10 +921,10 @@ export type RuntimeJiraCard = z.infer<typeof jiraCardSchema>;
 export const jiraBoardSchema = z.object({ cards: z.array(jiraCardSchema) });
 export type RuntimeJiraBoard = z.infer<typeof jiraBoardSchema>;
 
-export const jiraSubtaskStatusSchema = z.enum(["backlog", "in_progress", "review", "done"]);
-export type JiraSubtaskStatus = z.infer<typeof jiraSubtaskStatusSchema>;
+export const jiraPullRequestStatusSchema = z.enum(["backlog", "in_progress", "review", "done"]);
+export type JiraPullRequestStatus = z.infer<typeof jiraPullRequestStatusSchema>;
 
-export const jiraSubtaskSchema = z.object({
+export const jiraPullRequestSchema = z.object({
 	id: z.string(),
 	jiraKey: z.string(),
 	repoId: z.string(),
@@ -933,34 +934,35 @@ export const jiraSubtaskSchema = z.object({
 	baseRef: z.string(),
 	branchName: z.string(),
 	worktreePath: z.string(),
-	status: jiraSubtaskStatusSchema,
+	status: jiraPullRequestStatusSchema,
 	prUrl: z.string().optional(),
 	prNumber: z.number().optional(),
-	isDraft: z.boolean().optional(),
+	prState: z.enum(["open", "draft", "merged"]).optional(),
 	createdAt: z.number(),
 	updatedAt: z.number(),
 });
-export type RuntimeJiraSubtask = z.infer<typeof jiraSubtaskSchema>;
+export type RuntimeJiraPullRequest = z.infer<typeof jiraPullRequestSchema>;
 
 // ── Jira API request/response schemas ──────────────────────────────────────
 
 export const jiraScanAndAttachPrsResponseSchema = z.object({
 	attached: z.number(),
 	skipped: z.number(),
-	subtasks: z.record(z.string(), jiraSubtaskSchema),
+	pullRequests: z.record(z.string(), jiraPullRequestSchema),
+	board: jiraBoardSchema,
 });
 export type JiraScanAndAttachPrsResponse = z.infer<typeof jiraScanAndAttachPrsResponseSchema>;
 
 export const jiraBoardLoadResponseSchema = z.object({
 	board: jiraBoardSchema,
-	subtasks: z.record(z.string(), jiraSubtaskSchema),
+	pullRequests: z.record(z.string(), jiraPullRequestSchema),
 });
 export type JiraBoardLoadResponse = z.infer<typeof jiraBoardLoadResponseSchema>;
 
 export const jiraBoardSaveRequestSchema = z.object({ board: jiraBoardSchema });
 export const jiraBoardSaveResponseSchema = z.object({ board: jiraBoardSchema });
 
-export const jiraSubtaskCreateRequestSchema = z.object({
+export const jiraPullRequestCreateRequestSchema = z.object({
 	jiraKey: z.string(),
 	repoId: z.string(),
 	repoPath: z.string(),
@@ -969,10 +971,10 @@ export const jiraSubtaskCreateRequestSchema = z.object({
 	baseRef: z.string(),
 	branchName: z.string(),
 });
-export const jiraSubtaskCreateResponseSchema = z.object({ subtask: jiraSubtaskSchema });
+export const jiraPullRequestCreateResponseSchema = z.object({ pullRequest: jiraPullRequestSchema });
 
-export const jiraSubtaskDeleteRequestSchema = z.object({ subtaskId: z.string() });
-export const jiraSubtaskDeleteResponseSchema = z.object({ deleted: z.boolean() });
+export const jiraPullRequestDeleteRequestSchema = z.object({ pullRequestId: z.string() });
+export const jiraPullRequestDeleteResponseSchema = z.object({ deleted: z.boolean() });
 
 export const jiraImportRequestSchema = z.object({ jql: z.string() });
 export const jiraImportResponseSchema = z.object({
@@ -995,22 +997,37 @@ export const jiraScanReposResponseSchema = z.object({
 	repos: z.array(z.object({ id: z.string(), path: z.string() })),
 });
 
-export const jiraSubtaskSessionStartRequestSchema = z.object({ subtaskId: z.string() });
-export const jiraSubtaskSessionStartResponseSchema = z.object({
+export const jiraPullRequestSessionStartRequestSchema = z.object({ pullRequestId: z.string() });
+export const jiraPullRequestSessionStartResponseSchema = z.object({
 	started: z.boolean(),
 	workspacePath: z.string(),
 	workspaceId: z.string(),
 	openUrl: z.string().optional(),
 });
 
-export const jiraSubtaskSessionStopRequestSchema = z.object({ subtaskId: z.string(), workspacePath: z.string() });
-export const jiraSubtaskSessionStopResponseSchema = z.object({ stopped: z.boolean() });
-
-export const jiraSubtaskUpdateStatusRequestSchema = z.object({
-	subtaskId: z.string(),
-	status: jiraSubtaskStatusSchema,
+export const jiraPullRequestSessionStopRequestSchema = z.object({
+	pullRequestId: z.string(),
+	workspacePath: z.string(),
 });
-export const jiraSubtaskUpdateStatusResponseSchema = z.object({ subtask: jiraSubtaskSchema });
+export const jiraPullRequestSessionStopResponseSchema = z.object({ stopped: z.boolean() });
+
+export const jiraPullRequestUpdateStatusRequestSchema = z.object({
+	pullRequestId: z.string(),
+	status: jiraPullRequestStatusSchema,
+});
+export const jiraPullRequestUpdateStatusResponseSchema = z.object({ pullRequest: jiraPullRequestSchema });
 
 export const jiraSetApiTokenRequestSchema = z.object({ token: z.string().nullable() });
 export const jiraSetApiTokenResponseSchema = z.object({ configured: z.boolean() });
+
+export const jiraDetailSchema = z.object({
+	jiraKey: z.string(),
+	summary: z.string(),
+	description: z.string().nullable(),
+	fetchedAt: z.number(),
+});
+export type RuntimeJiraDetail = z.infer<typeof jiraDetailSchema>;
+
+export const jiraLoadDetailsResponseSchema = z.object({
+	details: z.record(z.string(), jiraDetailSchema),
+});

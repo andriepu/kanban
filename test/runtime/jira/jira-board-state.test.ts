@@ -33,12 +33,12 @@ afterEach(async () => {
 // Path resolution calls homedir() lazily at invocation time, so the HOME override
 // set in beforeEach is always in effect when any exported function runs.
 import {
-	createJiraSubtask,
-	deleteJiraSubtask,
+	createJiraPullRequest,
+	deleteJiraPullRequest,
 	type JiraBoard,
-	type JiraSubtask,
+	type JiraPullRequest,
 	loadJiraBoard,
-	loadJiraSubtasks,
+	loadJiraPullRequests,
 	saveJiraBoard,
 } from "../../../src/jira/jira-board-state";
 
@@ -57,7 +57,7 @@ describe("saveJiraBoard + loadJiraBoard", () => {
 					jiraKey: "POL-1",
 					summary: "Fix login",
 					status: "todo",
-					subtaskIds: [],
+					pullRequestIds: [],
 					createdAt: 1000,
 					updatedAt: 1000,
 				},
@@ -70,21 +70,67 @@ describe("saveJiraBoard + loadJiraBoard", () => {
 	});
 });
 
-describe("loadJiraSubtasks", () => {
+describe("loadJiraPullRequests", () => {
 	it("returns empty object when file does not exist", async () => {
-		const subtasks = await loadJiraSubtasks();
-		expect(Object.keys(subtasks)).toHaveLength(0);
+		const pullRequests = await loadJiraPullRequests();
+		expect(Object.keys(pullRequests)).toHaveLength(0);
+	});
+
+	it("migrates from jira-subtasks.json: backfills prState='open' for entries that have prUrl but no prState", async () => {
+		// Write to the OLD file path to simulate pre-migration disk data
+		const subtasksPath = path.join(tempHome, ".kanban", "kanban", "jira-subtasks.json");
+		await fs.mkdir(path.dirname(subtasksPath), { recursive: true });
+		const legacyEntry = {
+			id: "legacy-sub",
+			jiraKey: "POL-1",
+			repoId: "r",
+			repoPath: "/r",
+			prompt: "p",
+			title: "t",
+			baseRef: "main",
+			branchName: "b",
+			worktreePath: "/w",
+			status: "review",
+			prUrl: "https://github.com/a/b/pull/1",
+			prNumber: 1,
+			// prState intentionally absent — simulates pre-migration disk data
+			createdAt: 1,
+			updatedAt: 1,
+		};
+		const alreadyMerged: JiraPullRequest = {
+			id: "merged-sub",
+			jiraKey: "POL-1",
+			repoId: "r",
+			repoPath: "/r",
+			prompt: "p",
+			title: "t2",
+			baseRef: "main",
+			branchName: "b2",
+			worktreePath: "/w2",
+			status: "review",
+			prUrl: "https://github.com/a/b/pull/2",
+			prNumber: 2,
+			prState: "merged",
+			createdAt: 1,
+			updatedAt: 1,
+		};
+		await fs.writeFile(subtasksPath, JSON.stringify({ "legacy-sub": legacyEntry, "merged-sub": alreadyMerged }));
+
+		const pullRequests = await loadJiraPullRequests();
+
+		expect(pullRequests["legacy-sub"]?.prState).toBe("open");
+		expect(pullRequests["merged-sub"]?.prState).toBe("merged"); // must not be overwritten
 	});
 });
 
-describe("createJiraSubtask", () => {
-	it("creates subtask and adds to board subtaskIds", async () => {
+describe("createJiraPullRequest", () => {
+	it("creates pull request and adds to board pullRequestIds", async () => {
 		const board: JiraBoard = {
-			cards: [{ jiraKey: "POL-1", summary: "Fix", status: "todo", subtaskIds: [], createdAt: 1, updatedAt: 1 }],
+			cards: [{ jiraKey: "POL-1", summary: "Fix", status: "todo", pullRequestIds: [], createdAt: 1, updatedAt: 1 }],
 		};
 		await saveJiraBoard(board);
 
-		const input: Omit<JiraSubtask, "id" | "createdAt" | "updatedAt"> = {
+		const input: Omit<JiraPullRequest, "id" | "createdAt" | "updatedAt"> = {
 			jiraKey: "POL-1",
 			repoId: "my-repo",
 			repoPath: "/repos/my-repo",
@@ -95,34 +141,34 @@ describe("createJiraSubtask", () => {
 			worktreePath: "/worktrees/POL-1/my-repo__POL-1-fix-login",
 			status: "backlog",
 		};
-		const subtask = await createJiraSubtask(input);
+		const pullRequest = await createJiraPullRequest(input);
 
-		expect(subtask.id).toBeTruthy();
-		expect(subtask.jiraKey).toBe("POL-1");
-		expect(subtask.createdAt).toBeGreaterThan(0);
+		expect(pullRequest.id).toBeTruthy();
+		expect(pullRequest.jiraKey).toBe("POL-1");
+		expect(pullRequest.createdAt).toBeGreaterThan(0);
 
-		const subtasks = await loadJiraSubtasks();
-		expect(subtasks[subtask.id]).toBeDefined();
+		const pullRequests = await loadJiraPullRequests();
+		expect(pullRequests[pullRequest.id]).toBeDefined();
 
 		const updatedBoard = await loadJiraBoard();
-		expect(updatedBoard.cards[0]?.subtaskIds).toContain(subtask.id);
+		expect(updatedBoard.cards[0]?.pullRequestIds).toContain(pullRequest.id);
 	});
 });
 
-describe("deleteJiraSubtask", () => {
-	it("removes subtask and updates board subtaskIds", async () => {
-		// Seed a board with a known subtask ID
+describe("deleteJiraPullRequest", () => {
+	it("removes pull request and updates board pullRequestIds", async () => {
+		// Seed a board with a known pull request ID
 		const board: JiraBoard = {
 			cards: [
-				{ jiraKey: "POL-1", summary: "Fix", status: "todo", subtaskIds: ["sub-1"], createdAt: 1, updatedAt: 1 },
+				{ jiraKey: "POL-1", summary: "Fix", status: "todo", pullRequestIds: ["sub-1"], createdAt: 1, updatedAt: 1 },
 			],
 		};
 		await saveJiraBoard(board);
 
-		// Seed the subtasks file directly
-		const subtasksPath = path.join(tempHome, ".kanban", "kanban", "jira-subtasks.json");
-		await fs.mkdir(path.dirname(subtasksPath), { recursive: true });
-		const seededSubtask: JiraSubtask = {
+		// Seed the pull requests file directly
+		const pullRequestsPath = path.join(tempHome, ".kanban", "kanban", "jira-pull-requests.json");
+		await fs.mkdir(path.dirname(pullRequestsPath), { recursive: true });
+		const seededPullRequest: JiraPullRequest = {
 			id: "sub-1",
 			jiraKey: "POL-1",
 			repoId: "r",
@@ -136,27 +182,27 @@ describe("deleteJiraSubtask", () => {
 			createdAt: 1,
 			updatedAt: 1,
 		};
-		await fs.writeFile(subtasksPath, JSON.stringify({ "sub-1": seededSubtask }));
+		await fs.writeFile(pullRequestsPath, JSON.stringify({ "sub-1": seededPullRequest }));
 
-		await deleteJiraSubtask("sub-1");
+		await deleteJiraPullRequest("sub-1");
 
-		const subtasks = await loadJiraSubtasks();
-		expect(subtasks["sub-1"]).toBeUndefined();
+		const pullRequests = await loadJiraPullRequests();
+		expect(pullRequests["sub-1"]).toBeUndefined();
 
 		const updatedBoard = await loadJiraBoard();
-		expect(updatedBoard.cards[0]?.subtaskIds).not.toContain("sub-1");
+		expect(updatedBoard.cards[0]?.pullRequestIds).not.toContain("sub-1");
 	});
 
-	it("does not throw when subtask does not exist", async () => {
-		await expect(deleteJiraSubtask("nonexistent-id")).resolves.not.toThrow();
+	it("does not throw when pull request does not exist", async () => {
+		await expect(deleteJiraPullRequest("nonexistent-id")).resolves.not.toThrow();
 	});
 });
 
-describe("createJiraSubtask — error cases", () => {
+describe("createJiraPullRequest — error cases", () => {
 	it("throws when parent jiraKey is not in board", async () => {
 		// board is empty (no saveJiraBoard call)
 		await expect(
-			createJiraSubtask({
+			createJiraPullRequest({
 				jiraKey: "POL-999",
 				repoId: "r",
 				repoPath: "/r",

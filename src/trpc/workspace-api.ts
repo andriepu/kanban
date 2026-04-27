@@ -36,7 +36,7 @@ import type { RuntimeTrpcContext } from "./app-router";
 export interface CreateWorkspaceApiDependencies {
 	ensureTerminalManagerForWorkspace: (workspaceId: string, repoPath: string) => Promise<TerminalSessionManager>;
 	broadcastRuntimeWorkspaceStateUpdated: (workspaceId: string, workspacePath: string) => Promise<void> | void;
-	broadcastRuntimeProjectsUpdated: (preferredCurrentProjectId: string | null) => Promise<void> | void;
+	broadcastRuntimeReposUpdated: (preferredCurrentRepoId: string | null) => Promise<void> | void;
 	buildWorkspaceStateSnapshot: (workspaceId: string, workspacePath: string) => Promise<RuntimeWorkspaceStateResponse>;
 }
 
@@ -317,7 +317,7 @@ export function createWorkspaceApi(deps: CreateWorkspaceApiDependencies): Runtim
 		},
 		notifyStateUpdated: async (workspaceScope) => {
 			void deps.broadcastRuntimeWorkspaceStateUpdated(workspaceScope.workspaceId, workspaceScope.workspacePath);
-			void deps.broadcastRuntimeProjectsUpdated(workspaceScope.workspaceId);
+			void deps.broadcastRuntimeReposUpdated(workspaceScope.workspaceId);
 			return {
 				ok: true,
 			};
@@ -333,7 +333,7 @@ export function createWorkspaceApi(deps: CreateWorkspaceApiDependencies): Runtim
 				}
 				const response = await saveWorkspaceState(workspaceScope.workspacePath, input);
 				void deps.broadcastRuntimeWorkspaceStateUpdated(workspaceScope.workspaceId, workspaceScope.workspacePath);
-				void deps.broadcastRuntimeProjectsUpdated(workspaceScope.workspaceId);
+				void deps.broadcastRuntimeReposUpdated(workspaceScope.workspaceId);
 				return response;
 			} catch (error) {
 				if (error instanceof WorkspaceStateConflictError) {

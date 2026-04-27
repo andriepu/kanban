@@ -83,7 +83,7 @@ function createRuntimeConfig(selectedAgentId: RuntimeConfigResponse["selectedAge
 		agentAutonomousModeEnabled: true,
 		effectiveCommand: null,
 		globalConfigPath: "/tmp/global-config.json",
-		projectConfigPath: "/tmp/project-config.json",
+		repoConfigPath: "/tmp/repo-config.json",
 		readyForReviewNotificationsEnabled: true,
 		detectedCommands: [],
 		agents: [
@@ -132,10 +132,10 @@ function HookHarness({
 	sendTaskSessionInput: Parameters<typeof useGitActions>[0]["sendTaskSessionInput"];
 }): null {
 	const gitActions = useGitActions({
-		currentProjectId: "project-1",
+		currentRepoId: "repo-1",
 		board: createBoard(),
 		selectedCard: null,
-		runtimeProjectConfig: createRuntimeConfig("claude"),
+		runtimeRepoConfig: createRuntimeConfig("claude"),
 		sendTaskSessionInput,
 		fetchTaskWorkspaceInfo: async () => createWorkspaceInfo(),
 		isGitHistoryOpen: false,

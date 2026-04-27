@@ -14,9 +14,9 @@ import { normalizeBoardData } from "@/state/board-state";
 import type { BoardData } from "@/types";
 
 interface UseWorkspaceSyncInput {
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	streamedWorkspaceState: RuntimeWorkspaceStateResponse | null;
-	hasNoProjects: boolean;
+	hasNoRepos: boolean;
 	hasReceivedSnapshot: boolean;
 	isDocumentVisible: boolean;
 	setBoard: Dispatch<SetStateAction<BoardData>>;
@@ -51,9 +51,9 @@ function mergeTaskSessionSummaries(
 }
 
 export function useWorkspaceSync({
-	currentProjectId,
+	currentRepoId,
 	streamedWorkspaceState,
-	hasNoProjects,
+	hasNoRepos,
 	hasReceivedSnapshot,
 	isDocumentVisible,
 	setBoard,
@@ -62,7 +62,7 @@ export function useWorkspaceSync({
 }: UseWorkspaceSyncInput): UseWorkspaceSyncResult {
 	const [workspacePath, setWorkspacePath] = useState<string | null>(null);
 	const [workspaceGit, setWorkspaceGit] = useState<RuntimeGitRepositoryInfo | null>(null);
-	const [appliedWorkspaceProjectId, setAppliedWorkspaceProjectId] = useState<string | null>(null);
+	const [appliedWorkspaceRepoId, setAppliedWorkspaceProjectId] = useState<string | null>(null);
 	const [workspaceRevision, setWorkspaceRevision] = useState<number | null>(null);
 	const [workspaceHydrationNonce, setWorkspaceHydrationNonce] = useState(0);
 	const [isWorkspaceStateRefreshing, setIsWorkspaceStateRefreshing] = useState(false);
@@ -72,17 +72,17 @@ export function useWorkspaceSync({
 	});
 	const workspaceRefreshRequestIdRef = useRef(0);
 
-	const isWorkspaceMetadataPending = currentProjectId !== null && appliedWorkspaceProjectId !== currentProjectId;
+	const isWorkspaceMetadataPending = currentRepoId !== null && appliedWorkspaceRepoId !== currentRepoId;
 
 	useEffect(() => {
-		if (workspaceVersionRef.current.projectId !== currentProjectId) {
+		if (workspaceVersionRef.current.projectId !== currentRepoId) {
 			return;
 		}
 		workspaceVersionRef.current = {
-			projectId: currentProjectId,
+			projectId: currentRepoId,
 			revision: workspaceRevision,
 		};
-	}, [currentProjectId, workspaceRevision]);
+	}, [currentRepoId, workspaceRevision]);
 
 	const applyWorkspaceState = useCallback(
 		(nextWorkspaceState: RuntimeWorkspaceStateResponse | null) => {
@@ -95,13 +95,13 @@ export function useWorkspaceSync({
 				setSessions({});
 				setWorkspaceRevision(null);
 				workspaceVersionRef.current = {
-					projectId: currentProjectId,
+					projectId: currentRepoId,
 					revision: null,
 				};
 				return;
 			}
 			const currentVersion = workspaceVersionRef.current;
-			const isSameProject = currentVersion.projectId === currentProjectId;
+			const isSameProject = currentVersion.projectId === currentRepoId;
 			const currentRevision = isSameProject ? currentVersion.revision : null;
 			if (isSameProject && currentRevision !== null && nextWorkspaceState.revision < currentRevision) {
 				return;
@@ -120,22 +120,22 @@ export function useWorkspaceSync({
 			}
 			setWorkspaceRevision(nextWorkspaceState.revision);
 			workspaceVersionRef.current = {
-				projectId: currentProjectId,
+				projectId: currentRepoId,
 				revision: nextWorkspaceState.revision,
 			};
-			setAppliedWorkspaceProjectId(currentProjectId);
+			setAppliedWorkspaceProjectId(currentRepoId);
 			setCanPersistWorkspaceState(true);
 		},
-		[currentProjectId, setBoard, setCanPersistWorkspaceState, setSessions],
+		[currentRepoId, setBoard, setCanPersistWorkspaceState, setSessions],
 	);
 
 	const refreshWorkspaceState = useCallback(async () => {
-		if (!currentProjectId) {
+		if (!currentRepoId) {
 			return;
 		}
 		const requestId = workspaceRefreshRequestIdRef.current + 1;
 		workspaceRefreshRequestIdRef.current = requestId;
-		const requestedProjectId = currentProjectId;
+		const requestedProjectId = currentRepoId;
 		setIsWorkspaceStateRefreshing(true);
 		try {
 			const refreshed = await fetchWorkspaceState(requestedProjectId);
@@ -160,7 +160,7 @@ export function useWorkspaceSync({
 				setIsWorkspaceStateRefreshing(false);
 			}
 		}
-	}, [applyWorkspaceState, currentProjectId]);
+	}, [applyWorkspaceState, currentRepoId]);
 
 	const resetWorkspaceSyncState = useCallback(() => {
 		workspaceRefreshRequestIdRef.current += 1;
@@ -169,13 +169,13 @@ export function useWorkspaceSync({
 		setIsWorkspaceStateRefreshing(false);
 		setAppliedWorkspaceProjectId(null);
 		workspaceVersionRef.current = {
-			projectId: currentProjectId,
+			projectId: currentRepoId,
 			revision: null,
 		};
-	}, [currentProjectId, setCanPersistWorkspaceState]);
+	}, [currentRepoId, setCanPersistWorkspaceState]);
 
 	useEffect(() => {
-		if (hasNoProjects) {
+		if (hasNoRepos) {
 			applyWorkspaceState(null);
 			return;
 		}
@@ -183,7 +183,7 @@ export function useWorkspaceSync({
 			return;
 		}
 		applyWorkspaceState(streamedWorkspaceState);
-	}, [applyWorkspaceState, hasNoProjects, streamedWorkspaceState]);
+	}, [applyWorkspaceState, hasNoRepos, streamedWorkspaceState]);
 
 	useEffect(() => {
 		if (!hasReceivedSnapshot || !isDocumentVisible) {

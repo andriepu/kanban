@@ -52,24 +52,30 @@ export function countTasksByColumn(board: BoardData): {
 	return counts;
 }
 
-export function parseProjectIdFromPathname(pathname: string): string | null {
-	const segments = pathname.split("/").filter((segment) => segment.length > 0);
-	if (segments.length === 0) {
-		return null;
+export type Route = { kind: "task" } | { kind: "pr"; repoName: string | null };
+
+export function parseRoute(pathname: string): Route | null {
+	const segments = pathname.split("/").filter((s) => s.length > 0);
+	if (segments.length === 0) return null;
+	const first = segments[0];
+	if (first === "task" && segments.length === 1) return { kind: "task" };
+	if (first === "pr") {
+		if (segments.length === 1) return { kind: "pr", repoName: null };
+		if (segments.length === 2 && segments[1]) {
+			try {
+				return { kind: "pr", repoName: decodeURIComponent(segments[1]) };
+			} catch {
+				return { kind: "pr", repoName: null };
+			}
+		}
 	}
-	const firstSegment = segments[0];
-	if (!firstSegment) {
-		return null;
-	}
-	try {
-		return decodeURIComponent(firstSegment);
-	} catch {
-		return null;
-	}
+	return null;
 }
 
-export function buildProjectPathname(projectId: string): string {
-	return `/${encodeURIComponent(projectId)}`;
+export function buildPathname(route: Route): string {
+	if (route.kind === "task") return "/task";
+	if (route.repoName == null) return "/pr";
+	return `/pr/${encodeURIComponent(route.repoName)}`;
 }
 
 export function parseDetailTaskIdFromSearch(search: string): string | null {

@@ -66,7 +66,7 @@ function createRuntimeConfig(overrides: Partial<RuntimeConfigResponse> = {}): Ru
 		agentAutonomousModeEnabled: true,
 		effectiveCommand: "claude --dangerously-skip-permissions",
 		globalConfigPath: "/tmp/global-config.json",
-		projectConfigPath: "/tmp/project-config.json",
+		repoConfigPath: "/tmp/repo-config.json",
 		readyForReviewNotificationsEnabled: true,
 		detectedCommands: ["claude"],
 		agents: [
@@ -136,13 +136,13 @@ function requireTaskId(taskId: string | null): string {
 
 function HookHarness({
 	config,
-	currentProjectId,
+	currentRepoId,
 	onSnapshot,
 	workspaceGit = DEFAULT_WORKSPACE_GIT,
 	seedSessionSummary = false,
 }: {
 	config: RuntimeConfigResponse | null;
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	onSnapshot: (snapshot: HookSnapshot) => void;
 	workspaceGit?: RuntimeGitRepositoryInfo | null;
 	seedSessionSummary?: boolean;
@@ -155,8 +155,8 @@ function HookHarness({
 		}));
 	}, []);
 	const result = useHomeAgentSession({
-		currentProjectId,
-		runtimeProjectConfig: config,
+		currentRepoId,
+		runtimeRepoConfig: config,
 		workspaceGit,
 		sessionSummaries,
 		setSessionSummaries,
@@ -227,7 +227,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={createRuntimeConfig()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -258,7 +258,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={createRuntimeConfig()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -273,7 +273,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={createRuntimeConfig()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -295,7 +295,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={createRuntimeConfig()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					seedSessionSummary
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
@@ -328,7 +328,7 @@ describe("useHomeAgentSession", () => {
 						selectedAgentId: "claude",
 						effectiveCommand: "claude",
 					})}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -352,7 +352,7 @@ describe("useHomeAgentSession", () => {
 						selectedAgentId: "claude",
 						effectiveCommand: "claude",
 					})}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -374,7 +374,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={createRuntimeConfig()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -390,7 +390,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={createRuntimeConfig()}
-					currentProjectId="workspace-2"
+					currentRepoId="workspace-2"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -415,7 +415,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={createRuntimeConfig()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -450,7 +450,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={createRuntimeConfig()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -465,7 +465,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={createRuntimeConfig()}
-					currentProjectId="workspace-2"
+					currentRepoId="workspace-2"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -480,7 +480,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={createRuntimeConfig()}
-					currentProjectId="workspace-1"
+					currentRepoId="workspace-1"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -496,7 +496,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={null}
-					currentProjectId="workspace-2"
+					currentRepoId="workspace-2"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}
@@ -522,7 +522,7 @@ describe("useHomeAgentSession", () => {
 			root.render(
 				<HookHarness
 					config={createRuntimeConfig()}
-					currentProjectId="workspace-2"
+					currentRepoId="workspace-2"
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
 					}}

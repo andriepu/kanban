@@ -29,7 +29,7 @@ import { Dialog, DialogBody, DialogFooter, DialogHeader } from "@/components/ui/
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import type { RuntimeGitSyncAction, RuntimeProjectShortcut } from "@/runtime/types";
+import type { RuntimeGitSyncAction, RuntimeRepoShortcut } from "@/runtime/types";
 import {
 	useHomeGitSummaryValue,
 	useTaskWorkspaceInfoValue,
@@ -312,7 +312,7 @@ export function TopBar({
 	onOpenWorkspace,
 	canOpenWorkspace,
 	isOpeningWorkspace,
-	hideProjectDependentActions = false,
+	hideRepoDependentActions = false,
 }: {
 	onToggleSidebar?: () => void;
 	onBack?: () => void;
@@ -335,19 +335,19 @@ export function TopBar({
 	onOpenSettings?: (section?: SettingsSection) => void;
 	showDebugButton?: boolean;
 	onOpenDebugDialog?: () => void;
-	shortcuts?: RuntimeProjectShortcut[];
+	shortcuts?: RuntimeRepoShortcut[];
 	selectedShortcutLabel?: string | null;
 	onSelectShortcutLabel?: (shortcutLabel: string) => void;
 	runningShortcutLabel?: string | null;
 	onRunShortcut?: (shortcutLabel: string) => void;
-	onCreateFirstShortcut?: (shortcut: RuntimeProjectShortcut) => Promise<CreateShortcutResult>;
+	onCreateFirstShortcut?: (shortcut: RuntimeRepoShortcut) => Promise<CreateShortcutResult>;
 	openTargetOptions: readonly OpenTargetOption[];
 	selectedOpenTargetId: OpenTargetId;
 	onSelectOpenTarget: (targetId: OpenTargetId) => void;
 	onOpenWorkspace: () => void;
 	canOpenWorkspace: boolean;
 	isOpeningWorkspace: boolean;
-	hideProjectDependentActions?: boolean;
+	hideRepoDependentActions?: boolean;
 }): React.ReactElement {
 	const isMobile = useIsMobile();
 	const displayWorkspacePath = workspacePath ? formatPathForDisplay(workspacePath) : null;
@@ -480,12 +480,12 @@ export function TopBar({
 									/>
 								</div>
 							) : null}
-							{!hideProjectDependentActions && workspaceHint ? (
+							{!hideRepoDependentActions && workspaceHint ? (
 								<span className="kb-navbar-tag inline-flex items-center rounded border border-border bg-surface-2 px-1.5 py-0.5 text-xs text-text-secondary">
 									{workspaceHint}
 								</span>
 							) : null}
-							{!hideProjectDependentActions && runtimeHint ? (
+							{!hideRepoDependentActions && runtimeHint ? (
 								onOpenSettings ? (
 									<button
 										type="button"
@@ -500,7 +500,7 @@ export function TopBar({
 									</span>
 								)
 							) : null}
-							{!hideProjectDependentActions ? (
+							{!hideRepoDependentActions ? (
 								<TopBarGitStatusSection
 									showHomeGitSummary={showHomeGitSummary === true}
 									selectedTaskId={selectedTaskId ?? null}
@@ -522,7 +522,7 @@ export function TopBar({
 					{/* Desktop: inline shortcut, terminal, debug buttons */}
 					{!isMobile ? (
 						<>
-							{!hideProjectDependentActions && onRunShortcut ? (
+							{!hideRepoDependentActions && onRunShortcut ? (
 								selectedShortcut ? (
 									<div className="flex">
 										<Button
@@ -648,7 +648,7 @@ export function TopBar({
 					{/* Mobile: inline run + terminal buttons (icon-only) */}
 					{isMobile ? (
 						<>
-							{!hideProjectDependentActions && onRunShortcut && selectedShortcut ? (
+							{!hideRepoDependentActions && onRunShortcut && selectedShortcut ? (
 								<Button
 									variant="ghost"
 									size="sm"

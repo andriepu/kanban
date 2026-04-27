@@ -164,14 +164,14 @@ describe.sequential("runtime-config auto agent selection", () => {
 			await withTemporaryEnv({ home: tempHome }, async () => {
 				const state = await loadRuntimeConfig(tempHome);
 				expect(state.globalConfigPath).toBe(join(tempHome, ".kanban", "kanban", "config.json"));
-				expect(state.projectConfigPath).toBeNull();
+				expect(state.repoConfigPath).toBeNull();
 				expect(state.shortcuts).toEqual([]);
 
 				const updated = await updateRuntimeConfig(tempHome, {
 					selectedAgentId: "claude",
 				});
 				expect(updated.selectedAgentId).toBe("claude");
-				expect(updated.projectConfigPath).toBeNull();
+				expect(updated.repoConfigPath).toBeNull();
 
 				const globalPayload = JSON.parse(
 					readFileSync(join(tempHome, ".kanban", "kanban", "config.json"), "utf8"),
@@ -195,7 +195,7 @@ describe.sequential("runtime-config auto agent selection", () => {
 			await withTemporaryEnv({ home: tempHome }, async () => {
 				const state = await loadGlobalRuntimeConfig();
 				expect(state.globalConfigPath).toBe(join(tempHome, ".kanban", "kanban", "config.json"));
-				expect(state.projectConfigPath).toBeNull();
+				expect(state.repoConfigPath).toBeNull();
 				expect(state.shortcuts).toEqual([]);
 			});
 		} finally {

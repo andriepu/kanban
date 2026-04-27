@@ -15,10 +15,10 @@ interface RuntimeShortcut {
 }
 
 interface UseShortcutActionsInput {
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	selectedShortcutLabel: string | null | undefined;
 	shortcuts: RuntimeShortcut[];
-	refreshRuntimeProjectConfig: () => void;
+	refreshRuntimeRepoConfig: () => void;
 	prepareTerminalForShortcut: (input: {
 		prepareWaitForTerminalConnectionReady: (taskId: string) => () => Promise<void>;
 	}) => Promise<{ ok: boolean; targetTaskId?: string; message?: string; hadExistingOpenTerminal?: boolean }>;
@@ -38,10 +38,10 @@ interface UseShortcutActionsResult {
 }
 
 export function useShortcutActions({
-	currentProjectId,
+	currentRepoId,
 	selectedShortcutLabel,
 	shortcuts,
-	refreshRuntimeProjectConfig,
+	refreshRuntimeRepoConfig,
 	prepareTerminalForShortcut,
 	prepareWaitForTerminalConnectionReady,
 	sendTaskSessionInput,
@@ -69,14 +69,14 @@ export function useShortcutActions({
 
 	const saveSelectedShortcutPreference = useCallback(
 		async (nextShortcutLabel: string | null): Promise<boolean> => {
-			if (!currentProjectId) {
+			if (!currentRepoId) {
 				return false;
 			}
 			try {
-				await saveRuntimeConfig(currentProjectId, {
+				await saveRuntimeConfig(currentRepoId, {
 					selectedShortcutLabel: nextShortcutLabel,
 				});
-				refreshRuntimeProjectConfig();
+				refreshRuntimeRepoConfig();
 				return true;
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
@@ -92,7 +92,7 @@ export function useShortcutActions({
 				return false;
 			}
 		},
-		[currentProjectId, refreshRuntimeProjectConfig],
+		[currentRepoId, refreshRuntimeRepoConfig],
 	);
 
 	const handleSelectShortcutLabel = useCallback(
@@ -108,7 +108,7 @@ export function useShortcutActions({
 	const handleRunShortcut = useCallback(
 		async (shortcutLabel: string) => {
 			const shortcut = shortcuts.find((item) => item.label === shortcutLabel);
-			if (!shortcut || !currentProjectId) {
+			if (!shortcut || !currentRepoId) {
 				return;
 			}
 
@@ -155,7 +155,7 @@ export function useShortcutActions({
 			}
 		},
 		[
-			currentProjectId,
+			currentRepoId,
 			prepareTerminalForShortcut,
 			prepareWaitForTerminalConnectionReady,
 			sendTaskSessionInput,
@@ -165,7 +165,7 @@ export function useShortcutActions({
 
 	const handleCreateShortcut = useCallback(
 		async (shortcut: RuntimeShortcut): Promise<{ ok: boolean; message?: string }> => {
-			if (!currentProjectId) {
+			if (!currentRepoId) {
 				return { ok: false, message: "Select a project first." };
 			}
 			const normalizedCommand = shortcut.command.trim();
@@ -175,7 +175,7 @@ export function useShortcutActions({
 			const baseLabel = shortcut.label.trim().length > 0 ? shortcut.label.trim() : "Run";
 			const nextLabel = getNextShortcutLabel(baseLabel);
 			try {
-				await saveRuntimeConfig(currentProjectId, {
+				await saveRuntimeConfig(currentRepoId, {
 					shortcuts: [
 						...shortcuts,
 						{
@@ -186,7 +186,7 @@ export function useShortcutActions({
 					],
 					selectedShortcutLabel: nextLabel,
 				});
-				refreshRuntimeProjectConfig();
+				refreshRuntimeRepoConfig();
 				return { ok: true };
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
@@ -202,7 +202,7 @@ export function useShortcutActions({
 				return { ok: false, message: `Could not save shortcut: ${message}` };
 			}
 		},
-		[currentProjectId, getNextShortcutLabel, refreshRuntimeProjectConfig, shortcuts],
+		[currentRepoId, getNextShortcutLabel, refreshRuntimeRepoConfig, shortcuts],
 	);
 
 	return {

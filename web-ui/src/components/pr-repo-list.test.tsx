@@ -47,12 +47,12 @@ describe("PrRepoList", () => {
 		}
 	});
 
-	function render(repos: RuntimeRepoSummary[], repoFilter: string | null = null): void {
+	function render(repos: RuntimeRepoSummary[], currentRepoId: string | null = null): void {
 		act(() => {
 			root.render(
 				<PrRepoList
 					repos={repos}
-					repoFilter={repoFilter}
+					currentRepoId={currentRepoId}
 					removingRepoId={null}
 					onSelect={() => {}}
 					onRemove={() => {}}
@@ -130,5 +130,17 @@ describe("PrRepoList", () => {
 		]);
 		expect(container.textContent).toContain("Active (2)");
 		expect(container.textContent).not.toContain("Inactive");
+	});
+
+	it("highlights no row when currentRepoId is null", () => {
+		render(
+			[
+				makeRepo({ id: "repo-a", name: "Repo A", pullRequestCount: 1 }),
+				makeRepo({ id: "repo-b", name: "Repo B", pullRequestCount: 0 }),
+			],
+			null,
+		);
+		const selected = container.querySelectorAll(".kb-repo-row-selected");
+		expect(selected).toHaveLength(0);
 	});
 });

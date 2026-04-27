@@ -470,32 +470,32 @@ body.kb-dependency-link-mode {
 	margin-left: 8px;
 }
 
-/* -- Project navigation rows -- */
+/* -- Repo navigation rows -- */
 
-.kb-project-row {
+.kb-repo-row {
 }
 
-.kb-project-row-actions {
+.kb-repo-row-actions {
 	opacity: 0;
 }
 
 @media (hover: hover) {
-	.kb-project-row:hover {
+	.kb-repo-row:hover {
 		background: var(--color-surface-2);
 	}
 
-	.kb-project-row:hover .kb-project-row-actions {
+	.kb-repo-row:hover .kb-repo-row-actions {
 		opacity: 1;
 	}
 }
 
-.kb-project-row-selected,
-.kb-project-row-selected:hover {
+.kb-repo-row-selected,
+.kb-repo-row-selected:hover {
 	background: var(--color-accent);
 	color: var(--color-accent-fg);
 }
 
-.kb-project-count-tag {
+.kb-repo-count-tag {
 	font-size: 10px;
 }
 
@@ -1174,12 +1174,12 @@ body.kb-dependency-link-mode {
 		border-color: var(--color-border-bright);
 	}
 
-	.kb-project-row {
+	.kb-repo-row {
 		touch-action: manipulation;
 		-webkit-tap-highlight-color: transparent;
 	}
 
-	.kb-project-row:active {
+	.kb-repo-row:active {
 		background: var(--color-surface-3);
 	}
 }

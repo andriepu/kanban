@@ -5,7 +5,7 @@ import { FolderOpen } from "lucide-react";
 import type { ReactElement } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { AddProjectDialog } from "@/components/add-project-dialog";
+import { AddRepoDialog } from "@/components/add-repo-dialog";
 import { notifyError, showAppToast } from "@/components/app-toaster";
 import { CardDetailView } from "@/components/card-detail-view";
 import { ClearTrashDialog } from "@/components/clear-trash-dialog";
@@ -14,9 +14,10 @@ import { AgentTerminalPanel } from "@/components/detail-panels/agent-terminal-pa
 import { GitHistoryView } from "@/components/git-history-view";
 import { JiraBoardView } from "@/components/jira-board";
 import { JiraCardDetailView } from "@/components/jira-card-detail-view";
-import { JiraSubtaskBoard } from "@/components/jira-subtask-board";
-import { ProjectNavigationPanel } from "@/components/project-navigation-panel";
+import { JiraPullRequestBoard } from "@/components/jira-pull-request-board";
+import { RepoNavigationPanel } from "@/components/repo-navigation-panel";
 import { RuntimeSettingsDialog, type RuntimeSettingsSection } from "@/components/runtime-settings-dialog";
+import { StartupOnboardingDialog } from "@/components/startup-onboarding-dialog";
 import { TaskCreateDialog } from "@/components/task-create-dialog";
 import { TaskInlineCreateCard } from "@/components/task-inline-create-card";
 import { TopBar } from "@/components/top-bar";
@@ -40,12 +41,11 @@ import { useDebugTools } from "@/hooks/use-debug-tools";
 import { useDetailTaskNavigation } from "@/hooks/use-detail-task-navigation";
 import { useDocumentVisibility } from "@/hooks/use-document-visibility";
 import { useGitActions } from "@/hooks/use-git-actions";
-import { useHomeSidebarAgentPanel } from "@/hooks/use-home-sidebar-agent-panel";
 import { useJiraBoard } from "@/hooks/use-jira-board";
 import { useKanbanAccessGate } from "@/hooks/use-kanban-access-gate";
 import { useOpenWorkspace } from "@/hooks/use-open-workspace";
-import { parseRemovedProjectPathFromStreamError, useProjectNavigation } from "@/hooks/use-project-navigation";
-import { useProjectUiState } from "@/hooks/use-project-ui-state";
+import { parseRemovedRepoPathFromStreamError, useRepoNavigation } from "@/hooks/use-repo-navigation";
+import { useRepoUiState } from "@/hooks/use-repo-ui-state";
 import { useReviewReadyNotifications } from "@/hooks/use-review-ready-notifications";
 import { useShortcutActions } from "@/hooks/use-shortcut-actions";
 import { useTaskBranchOptions } from "@/hooks/use-task-branch-options";
@@ -56,10 +56,12 @@ import { useTerminalPanels } from "@/hooks/use-terminal-panels";
 import { useWorkspaceSync } from "@/hooks/use-workspace-sync";
 import { LayoutCustomizationsProvider } from "@/resize/layout-customizations";
 import { ResizableBottomPane } from "@/resize/resizable-bottom-pane";
-import { useProjectNavigationLayout } from "@/resize/use-project-navigation-layout";
+import { useRepoNavigationLayout } from "@/resize/use-repo-navigation-layout";
 import { getTaskAgentNavbarHint } from "@/runtime/native-agent";
+import { shouldShowStartupOnboardingDialog } from "@/runtime/onboarding";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
-import { useRuntimeProjectConfig } from "@/runtime/use-runtime-project-config";
+import { useRuntimeConfig } from "@/runtime/use-runtime-config";
+import { useRuntimeRepoConfig } from "@/runtime/use-runtime-repo-config";
 import { useTerminalConnectionReady } from "@/runtime/use-terminal-connection-ready";
 import { useWorkspacePersistence } from "@/runtime/use-workspace-persistence";
 import { saveWorkspaceState } from "@/runtime/workspace-state-query";
@@ -72,7 +74,7 @@ import {
 } from "@/stores/workspace-metadata-store";
 import { useTerminalThemeColors } from "@/terminal/theme-colors";
 import type { BoardData } from "@/types";
-import type { JiraSubtask } from "@/types/jira";
+import type { JiraPullRequest } from "@/types/jira";
 
 export default function App(): ReactElement {
 	const terminalThemeColors = useTerminalThemeColors();
@@ -81,61 +83,62 @@ export default function App(): ReactElement {
 	const [canPersistWorkspaceState, setCanPersistWorkspaceState] = useState(false);
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [settingsInitialSection, setSettingsInitialSection] = useState<RuntimeSettingsSection | null>(null);
-	const [sidebarTab, setSidebarTab] = useState<"task" | "project">("task");
 	const [selectedJiraKey, setSelectedJiraKey] = useState<string | null>(null);
 	const [isClearTrashDialogOpen, setIsClearTrashDialogOpen] = useState(false);
 	const [isGitHistoryOpen, setIsGitHistoryOpen] = useState(false);
 	const [pendingTaskStartAfterEditId, setPendingTaskStartAfterEditId] = useState<string | null>(null);
 	const taskEditorResetRef = useRef<() => void>(() => {});
 	const lastStreamErrorRef = useRef<string | null>(null);
-	const pendingSubtaskIdRef = useRef<string | null>(null);
-	const handleProjectSwitchStart = useCallback(() => {
+	const pendingPullRequestIdRef = useRef<string | null>(null);
+	const handleRepoSwitchStart = useCallback(() => {
 		setCanPersistWorkspaceState(false);
 		setIsGitHistoryOpen(false);
 		setPendingTaskStartAfterEditId(null);
 		taskEditorResetRef.current();
 	}, []);
 	const {
-		currentProjectId,
-		projects,
+		currentRepoId,
+		repos,
 		workspaceState: streamedWorkspaceState,
 		workspaceMetadata,
-		latestTaskChatMessage,
-		taskChatMessagesByTaskId,
 		latestTaskReadyForReview,
 		streamError,
 		isRuntimeDisconnected,
 		hasReceivedSnapshot,
-		navigationCurrentProjectId,
-		removingProjectId,
-		hasNoProjects,
-		isProjectSwitching,
-		handleSelectProject,
-		handleAddProject,
-		handleAddProjectSuccess,
-		handleRemoveProject,
-		isAddProjectDialogOpen,
-		setIsAddProjectDialogOpen,
+		navigationCurrentRepoId,
+		removingRepoId,
+		hasNoRepos,
+		isRepoSwitching,
+		handleSelectRepo,
+		handleAddRepo,
+		handleAddRepoSuccess,
+		handleRemoveRepo,
+		isAddRepoDialogOpen,
+		setIsAddRepoDialogOpen,
 		pendingNativeGitInitPath,
-		resetProjectNavigationState,
-		projectFilter,
-		setProjectFilter,
-	} = useProjectNavigation({
-		onProjectSwitchStart: handleProjectSwitchStart,
+		resetRepoNavigationState,
+		repoFilter,
+		setRepoFilter,
+		sidebarTab,
+		setSidebarTab,
+	} = useRepoNavigation({
+		onRepoSwitchStart: handleRepoSwitchStart,
 	});
-	const activeNotificationWorkspaceId = navigationCurrentProjectId;
+	const activeNotificationWorkspaceId = navigationCurrentRepoId;
 	const isDocumentVisible = useDocumentVisibility();
-	const isInitialRuntimeLoad =
-		!hasReceivedSnapshot && currentProjectId === null && projects.length === 0 && !streamError;
-	const isAwaitingWorkspaceSnapshot = currentProjectId !== null && streamedWorkspaceState === null;
-	const { config: runtimeProjectConfig, refresh: refreshRuntimeProjectConfig } =
-		useRuntimeProjectConfig(currentProjectId);
+	const isInitialRuntimeLoad = !hasReceivedSnapshot && currentRepoId === null && repos.length === 0 && !streamError;
+	const isAwaitingWorkspaceSnapshot = currentRepoId !== null && streamedWorkspaceState === null;
+	const {
+		config: runtimeRepoConfig,
+		isLoading: isRuntimeRepoConfigLoading,
+		refresh: refreshRuntimeRepoConfig,
+	} = useRuntimeRepoConfig(currentRepoId);
 	const { isBlocked: isKanbanAccessBlocked } = useKanbanAccessGate({
-		workspaceId: currentProjectId,
+		workspaceId: currentRepoId,
 	});
-	const settingsWorkspaceId = navigationCurrentProjectId ?? currentProjectId;
-	const { config: settingsRuntimeProjectConfig, refresh: refreshSettingsRuntimeProjectConfig } =
-		useRuntimeProjectConfig(settingsWorkspaceId);
+	const settingsWorkspaceId = navigationCurrentRepoId ?? currentRepoId;
+	const { config: settingsRuntimeRepoConfig, refresh: refreshSettingsRuntimeRepoConfig } =
+		useRuntimeRepoConfig(settingsWorkspaceId);
 	const {
 		debugModeEnabled,
 		isDebugDialogOpen,
@@ -144,25 +147,25 @@ export default function App(): ReactElement {
 		handleDebugDialogOpenChange,
 		handleResetAllState,
 	} = useDebugTools({
-		runtimeProjectConfig,
-		settingsRuntimeProjectConfig,
+		runtimeRepoConfig,
+		settingsRuntimeRepoConfig,
 	});
 	const {
 		markConnectionReady: markTerminalConnectionReady,
 		prepareWaitForConnection: prepareWaitForTerminalConnectionReady,
 	} = useTerminalConnectionReady();
-	const readyForReviewNotificationsEnabled = runtimeProjectConfig?.readyForReviewNotificationsEnabled ?? true;
-	const shortcuts = runtimeProjectConfig?.shortcuts ?? [];
+	const readyForReviewNotificationsEnabled = runtimeRepoConfig?.readyForReviewNotificationsEnabled ?? true;
+	const shortcuts = runtimeRepoConfig?.shortcuts ?? [];
 	const selectedShortcutLabel = useMemo(() => {
 		if (shortcuts.length === 0) {
 			return null;
 		}
-		const configured = runtimeProjectConfig?.selectedShortcutLabel ?? null;
+		const configured = runtimeRepoConfig?.selectedShortcutLabel ?? null;
 		if (configured && shortcuts.some((shortcut) => shortcut.label === configured)) {
 			return configured;
 		}
 		return shortcuts[0]?.label ?? null;
-	}, [runtimeProjectConfig?.selectedShortcutLabel, shortcuts]);
+	}, [runtimeRepoConfig?.selectedShortcutLabel, shortcuts]);
 	const {
 		upsertSession,
 		ensureTaskWorkspace,
@@ -172,7 +175,7 @@ export default function App(): ReactElement {
 		cleanupTaskWorkspace,
 		fetchTaskWorkspaceInfo,
 	} = useTaskSessions({
-		currentProjectId,
+		currentRepoId,
 		setSessions,
 	});
 
@@ -187,9 +190,9 @@ export default function App(): ReactElement {
 		refreshWorkspaceState,
 		resetWorkspaceSyncState,
 	} = useWorkspaceSync({
-		currentProjectId,
+		currentRepoId,
 		streamedWorkspaceState,
-		hasNoProjects,
+		hasNoRepos,
 		hasReceivedSnapshot,
 		isDocumentVisible,
 		setBoard,
@@ -198,10 +201,10 @@ export default function App(): ReactElement {
 	});
 	const { selectedTaskId, selectedCard, setSelectedTaskId, handleBack } = useDetailTaskNavigation({
 		board,
-		currentProjectId,
+		currentRepoId,
 		isAwaitingWorkspaceSnapshot,
 		isInitialRuntimeLoad,
-		isProjectSwitching,
+		isRepoSwitching,
 		isWorkspaceMetadataPending,
 		onDetailClosed: () => {
 			setIsGitHistoryOpen(false);
@@ -213,34 +216,34 @@ export default function App(): ReactElement {
 	}, [workspaceMetadata]);
 
 	useEffect(() => {
-		if (!isProjectSwitching) {
+		if (!isRepoSwitching) {
 			return;
 		}
 		resetWorkspaceMetadataStore();
-	}, [isProjectSwitching]);
+	}, [isRepoSwitching]);
 
 	useEffect(() => {
-		if (!pendingSubtaskIdRef.current) return;
-		if (isProjectSwitching || isAwaitingWorkspaceSnapshot) return;
-		setSelectedTaskId(pendingSubtaskIdRef.current);
-		pendingSubtaskIdRef.current = null;
-	}, [currentProjectId, isProjectSwitching, isAwaitingWorkspaceSnapshot, setSelectedTaskId]);
+		if (!pendingPullRequestIdRef.current) return;
+		if (isRepoSwitching || isAwaitingWorkspaceSnapshot) return;
+		setSelectedTaskId(pendingPullRequestIdRef.current);
+		pendingPullRequestIdRef.current = null;
+	}, [currentRepoId, isRepoSwitching, isAwaitingWorkspaceSnapshot, setSelectedTaskId]);
 
 	const {
-		displayedProjects,
-		navigationProjectPath,
-		shouldShowProjectLoadingState,
-		isProjectListLoading,
+		displayedRepos,
+		navigationRepoPath,
+		shouldShowRepoLoadingState,
+		isRepoListLoading,
 		shouldUseNavigationPath,
-	} = useProjectUiState({
+	} = useRepoUiState({
 		board,
 		canPersistWorkspaceState,
-		currentProjectId,
-		projects,
-		navigationCurrentProjectId,
+		currentRepoId,
+		repos,
+		navigationCurrentRepoId,
 		selectedTaskId,
 		streamError,
-		isProjectSwitching,
+		isRepoSwitching,
 		isInitialRuntimeLoad,
 		isAwaitingWorkspaceSnapshot,
 		isWorkspaceMetadataPending,
@@ -306,7 +309,7 @@ export default function App(): ReactElement {
 	} = useTaskEditor({
 		board,
 		setBoard,
-		currentProjectId,
+		currentRepoId,
 		createTaskBranchOptions,
 		defaultTaskBranchRef,
 		setSelectedTaskId,
@@ -318,22 +321,18 @@ export default function App(): ReactElement {
 	}, [resetTaskEditorState]);
 
 	useEffect(() => {
-		if (!isProjectSwitching) {
+		if (!isRepoSwitching) {
 			return;
 		}
 		resetWorkspaceSyncState();
-	}, [isProjectSwitching, resetWorkspaceSyncState]);
+	}, [isRepoSwitching, resetWorkspaceSyncState]);
 
 	useEffect(() => {
-		if (!isProjectSwitching) {
+		if (!isRepoSwitching) {
 			return;
 		}
 		resetTaskEditorState();
-	}, [isProjectSwitching, resetTaskEditorState]);
-
-	useEffect(() => {
-		if (sidebarTab === "project") setProjectFilter(null);
-	}, [sidebarTab, setProjectFilter]);
+	}, [isRepoSwitching, resetTaskEditorState]);
 
 	const {
 		runningGitAction,
@@ -357,16 +356,16 @@ export default function App(): ReactElement {
 		runAutoReviewGitAction,
 		resetGitActionState,
 	} = useGitActions({
-		currentProjectId,
+		currentRepoId,
 		board,
 		selectedCard,
-		runtimeProjectConfig,
+		runtimeRepoConfig,
 		sendTaskSessionInput,
 		fetchTaskWorkspaceInfo,
 		isGitHistoryOpen,
 		refreshWorkspaceState,
 	});
-	const agentCommand = runtimeProjectConfig?.effectiveCommand ?? null;
+	const agentCommand = runtimeRepoConfig?.effectiveCommand ?? null;
 	const {
 		homeTerminalTaskId,
 		isHomeTerminalOpen,
@@ -394,7 +393,7 @@ export default function App(): ReactElement {
 		closeDetailTerminal,
 		resetTerminalPanelsState,
 	} = useTerminalPanels({
-		currentProjectId,
+		currentRepoId,
 		selectedCard,
 		workspaceGit,
 		agentCommand,
@@ -402,29 +401,20 @@ export default function App(): ReactElement {
 		sendTaskSessionInput,
 	});
 	const homeTerminalSummary = sessions[homeTerminalTaskId] ?? null;
-	const homeSidebarAgentPanel = useHomeSidebarAgentPanel({
-		currentProjectId,
-		hasNoProjects,
-		runtimeProjectConfig,
-		taskSessions: sessions,
-		workspaceGit,
-		latestTaskChatMessage,
-		taskChatMessagesByTaskId,
-	});
 	const { runningShortcutLabel, handleSelectShortcutLabel, handleRunShortcut, handleCreateShortcut } =
 		useShortcutActions({
-			currentProjectId,
-			selectedShortcutLabel: runtimeProjectConfig?.selectedShortcutLabel,
+			currentRepoId,
+			selectedShortcutLabel: runtimeRepoConfig?.selectedShortcutLabel,
 			shortcuts,
-			refreshRuntimeProjectConfig,
+			refreshRuntimeRepoConfig,
 			prepareTerminalForShortcut,
 			prepareWaitForTerminalConnectionReady,
 			sendTaskSessionInput,
 		});
 
-	const jiraSyncIntervalMs = runtimeProjectConfig?.jiraSyncIntervalMs ?? 60 * 60 * 1000;
-	const isJiraBoardActive = !isGitHistoryOpen && sidebarTab !== "project";
-	const jiraBoard = useJiraBoard(currentProjectId, {
+	const jiraSyncIntervalMs = runtimeRepoConfig?.jiraSyncIntervalMs ?? 60 * 60 * 1000;
+	const isJiraBoardActive = !isGitHistoryOpen && sidebarTab !== "pr";
+	const jiraBoard = useJiraBoard(currentRepoId, {
 		isActive: isJiraBoardActive,
 		syncIntervalMs: jiraSyncIntervalMs,
 	});
@@ -449,7 +439,7 @@ export default function App(): ReactElement {
 	useWorkspacePersistence({
 		board,
 		sessions,
-		currentProjectId,
+		currentRepoId,
 		workspaceRevision,
 		hydrationNonce: workspaceHydrationNonce,
 		canPersistWorkspaceState,
@@ -466,18 +456,18 @@ export default function App(): ReactElement {
 			lastStreamErrorRef.current = null;
 			return;
 		}
-		const removedPath = parseRemovedProjectPathFromStreamError(streamError);
+		const removedPath = parseRemovedRepoPathFromStreamError(streamError);
 		if (removedPath !== null) {
 			showAppToast(
 				{
 					intent: "danger",
 					icon: "warning-sign",
 					message: removedPath
-						? `Project no longer exists and was removed: ${removedPath}`
-						: "Project no longer exists and was removed.",
+						? `Repo no longer exists and was removed: ${removedPath}`
+						: "Repo no longer exists and was removed.",
 					timeout: 6000,
 				},
-				`project-removed-${removedPath || "unknown"}`,
+				`repo-removed-${removedPath || "unknown"}`,
 			);
 			lastStreamErrorRef.current = null;
 			return;
@@ -496,32 +486,26 @@ export default function App(): ReactElement {
 		resetTaskEditorState();
 		setIsClearTrashDialogOpen(false);
 		resetGitActionState();
-		resetProjectNavigationState();
+		resetRepoNavigationState();
 		resetTerminalPanelsState();
 		setSelectedJiraKey(null);
-	}, [
-		currentProjectId,
-		resetGitActionState,
-		resetProjectNavigationState,
-		resetTaskEditorState,
-		resetTerminalPanelsState,
-	]);
+	}, [currentRepoId, resetGitActionState, resetRepoNavigationState, resetTaskEditorState, resetTerminalPanelsState]);
 
 	useEffect(() => {
 		if (selectedCard) {
 			return;
 		}
-		if (hasNoProjects || !currentProjectId) {
+		if (hasNoRepos || !currentRepoId) {
 			if (isHomeTerminalOpen) {
 				closeHomeTerminal();
 			}
 			return;
 		}
-	}, [closeHomeTerminal, currentProjectId, hasNoProjects, isHomeTerminalOpen, selectedCard]);
-	const showHomeBottomTerminal = !selectedCard && !hasNoProjects && isHomeTerminalOpen;
+	}, [closeHomeTerminal, currentRepoId, hasNoRepos, isHomeTerminalOpen, selectedCard]);
+	const showHomeBottomTerminal = !selectedCard && !hasNoRepos && isHomeTerminalOpen;
 	const homeTerminalSubtitle = useMemo(
-		() => workspacePath ?? navigationProjectPath ?? null,
-		[navigationProjectPath, workspacePath],
+		() => workspacePath ?? navigationRepoPath ?? null,
+		[navigationRepoPath, workspacePath],
 	);
 
 	const handleOpenSettings = useCallback((section?: RuntimeSettingsSection) => {
@@ -529,11 +513,11 @@ export default function App(): ReactElement {
 		setIsSettingsOpen(true);
 	}, []);
 	const handleToggleGitHistory = useCallback(() => {
-		if (hasNoProjects) {
+		if (hasNoRepos) {
 			return;
 		}
 		setIsGitHistoryOpen((current) => !current);
-	}, [hasNoProjects]);
+	}, [hasNoRepos]);
 	const handleCloseGitHistory = useCallback(() => {
 		setIsGitHistoryOpen(false);
 	}, []);
@@ -560,7 +544,7 @@ export default function App(): ReactElement {
 		setSessions,
 		selectedCard,
 		selectedTaskId,
-		currentProjectId,
+		currentRepoId,
 		setSelectedTaskId,
 		setIsClearTrashDialogOpen,
 		setIsGitHistoryOpen,
@@ -575,18 +559,18 @@ export default function App(): ReactElement {
 		runAutoReviewGitAction,
 	});
 
-	const handleSubtaskClick = useCallback(
-		(subtask: JiraSubtask) => {
-			const project = projects.find((p) => p.path === subtask.repoPath);
-			if (!project) return;
-			if (project.id === currentProjectId) {
-				setSelectedTaskId(subtask.id);
+	const handlePullRequestClick = useCallback(
+		(pullRequest: JiraPullRequest) => {
+			const repo = repos.find((r) => r.path === pullRequest.repoPath);
+			if (!repo) return;
+			if (repo.id === currentRepoId) {
+				setSelectedTaskId(pullRequest.id);
 			} else {
-				pendingSubtaskIdRef.current = subtask.id;
-				handleSelectProject(project.id);
+				pendingPullRequestIdRef.current = pullRequest.id;
+				handleSelectRepo(repo.id);
 			}
 		},
-		[projects, handleSelectProject, setSelectedTaskId, currentProjectId],
+		[repos, handleSelectRepo, setSelectedTaskId, currentRepoId],
 	);
 
 	const {
@@ -609,7 +593,7 @@ export default function App(): ReactElement {
 		isDetailTerminalOpen,
 		isHomeTerminalOpen: showHomeBottomTerminal,
 		isHomeGitHistoryOpen: !selectedCard && isGitHistoryOpen,
-		canUseCreateTaskShortcut: !hasNoProjects && currentProjectId !== null,
+		canUseCreateTaskShortcut: !hasNoRepos && currentRepoId !== null,
 		handleToggleDetailTerminal,
 		handleToggleHomeTerminal,
 		handleToggleExpandDetailTerminal,
@@ -649,10 +633,10 @@ export default function App(): ReactElement {
 	}, [selectedCard]);
 
 	const runtimeHint = useMemo(() => {
-		return getTaskAgentNavbarHint(runtimeProjectConfig, {
+		return getTaskAgentNavbarHint(runtimeRepoConfig, {
 			shouldUseNavigationPath,
 		});
-	}, [runtimeProjectConfig, shouldUseNavigationPath]);
+	}, [runtimeRepoConfig, shouldUseNavigationPath]);
 
 	const activeWorkspacePath = selectedCard
 		? (getTaskWorkspaceInfo(selectedCard.card.id, selectedCard.card.baseRef)?.path ??
@@ -660,7 +644,7 @@ export default function App(): ReactElement {
 			workspacePath ??
 			undefined)
 		: shouldUseNavigationPath
-			? (navigationProjectPath ?? undefined)
+			? (navigationRepoPath ?? undefined)
 			: (workspacePath ?? undefined);
 
 	const activeWorkspaceHint = useMemo(() => {
@@ -677,16 +661,19 @@ export default function App(): ReactElement {
 		return undefined;
 	}, [selectedCard]);
 
-	const sidebarLayout = useProjectNavigationLayout();
+	const sidebarLayout = useRepoNavigationLayout();
 	const handleToggleSidebar = useCallback(() => {
 		sidebarLayout.setSidebarCollapsed(!sidebarLayout.isCollapsed);
 	}, [sidebarLayout]);
 
-	const navbarWorkspacePath = hasNoProjects ? undefined : activeWorkspacePath;
-	const navbarWorkspaceHint = hasNoProjects ? undefined : activeWorkspaceHint;
-	const navbarRuntimeHint = hasNoProjects ? undefined : runtimeHint;
-	const shouldHideProjectDependentTopBarActions =
-		!selectedCard && (isProjectSwitching || isAwaitingWorkspaceSnapshot || isWorkspaceMetadataPending);
+	const navbarWorkspacePath = hasNoRepos ? undefined : activeWorkspacePath;
+	const navbarWorkspaceHint = hasNoRepos ? undefined : activeWorkspaceHint;
+	const navbarRuntimeHint = hasNoRepos ? undefined : runtimeHint;
+	const shouldHideRepoDependentTopBarActions =
+		!selectedCard && (isRepoSwitching || isAwaitingWorkspaceSnapshot || isWorkspaceMetadataPending);
+	const isHomeWithoutSelectedRepo =
+		!selectedCard && (sidebarTab === "task" || (sidebarTab === "pr" && repoFilter === null));
+	const panelHighlightRepoId = sidebarTab === "pr" && repoFilter === null ? null : navigationCurrentRepoId;
 
 	const {
 		openTargetOptions,
@@ -696,9 +683,20 @@ export default function App(): ReactElement {
 		canOpenWorkspace,
 		isOpeningWorkspace,
 	} = useOpenWorkspace({
-		currentProjectId,
+		currentRepoId,
 		workspacePath: activeWorkspacePath,
 	});
+	const globalRuntimeConfig = useRuntimeConfig(true, null, null);
+
+	const showingOnboarding = shouldShowStartupOnboardingDialog(globalRuntimeConfig.config);
+	const prevShowingOnboardingRef = useRef(showingOnboarding);
+	useEffect(() => {
+		if (prevShowingOnboardingRef.current && !showingOnboarding) {
+			void jiraBoard.importFromJira();
+		}
+		prevShowingOnboardingRef.current = showingOnboarding;
+	}, [showingOnboarding, jiraBoard.importFromJira]);
+
 	const handleCreateDialogOpenChange = useCallback(
 		(open: boolean) => {
 			if (!open) {
@@ -724,7 +722,7 @@ export default function App(): ReactElement {
 			onAutoReviewEnabledChange={setEditTaskAutoReviewEnabled}
 			autoReviewMode={editTaskAutoReviewMode}
 			onAutoReviewModeChange={setEditTaskAutoReviewMode}
-			workspaceId={currentProjectId}
+			workspaceId={currentRepoId}
 			branchRef={editTaskBranchRef}
 			branchOptions={createTaskBranchOptions}
 			onBranchRefChange={setEditTaskBranchRef}
@@ -738,8 +736,12 @@ export default function App(): ReactElement {
 			<JiraCardDetailView
 				jiraKey={selectedJiraKey}
 				board={jiraBoard.board}
-				subtasks={jiraBoard.subtasks}
-				onSubtaskCreated={jiraBoard.refetch}
+				pullRequests={jiraBoard.pullRequests}
+				details={jiraBoard.details}
+				prScanning={jiraBoard.prScanning}
+				fetchDetail={jiraBoard.fetchDetail}
+				scanPRs={jiraBoard.scanPRs}
+				onPullRequestCreated={jiraBoard.refetch}
 			/>
 		) : undefined;
 
@@ -763,19 +765,18 @@ export default function App(): ReactElement {
 		<LayoutCustomizationsProvider onResetBottomTerminalLayoutCustomizations={resetBottomTerminalLayoutCustomizations}>
 			<div className="flex h-[100svh] min-w-0 overflow-hidden">
 				{!selectedCard ? (
-					<ProjectNavigationPanel
-						projects={displayedProjects}
-						isLoadingProjects={isProjectListLoading}
-						currentProjectId={navigationCurrentProjectId}
-						removingProjectId={removingProjectId}
-						agentSectionContent={sidebarTab === "project" ? homeSidebarAgentPanel : undefined}
+					<RepoNavigationPanel
+						repos={displayedRepos}
+						isLoadingRepos={isRepoListLoading}
+						currentRepoId={panelHighlightRepoId}
+						removingRepoId={removingRepoId}
 						jiraDetailContent={jiraDetailContent}
-						onSelectProject={(projectId) => {
-							void handleSelectProject(projectId);
+						onSelectRepo={(repoId) => {
+							void handleSelectRepo(repoId);
 						}}
-						onRemoveProject={handleRemoveProject}
-						onAddProject={() => {
-							void handleAddProject();
+						onRemoveRepo={handleRemoveRepo}
+						onAddRepo={() => {
+							void handleAddRepo();
 						}}
 						sidebarWidth={sidebarLayout.sidebarWidth}
 						setExpandedSidebarWidth={sidebarLayout.setExpandedSidebarWidth}
@@ -783,23 +784,26 @@ export default function App(): ReactElement {
 						setSidebarCollapsed={sidebarLayout.setSidebarCollapsed}
 						sidebarTab={sidebarTab}
 						onSidebarTabChange={setSidebarTab}
-						hasJiraConfig={Boolean(runtimeProjectConfig?.worktreesRoot && runtimeProjectConfig?.reposRoot)}
-						projectFilter={projectFilter}
-						onFilterProject={setProjectFilter}
+						hasJiraConfig={
+							isRuntimeRepoConfigLoading ||
+							Boolean(runtimeRepoConfig?.worktreesRoot && runtimeRepoConfig?.reposRoot)
+						}
+						repoFilter={repoFilter}
+						onFilterRepo={setRepoFilter}
 					/>
 				) : null}
 				<div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 					<TopBar
 						onToggleSidebar={!selectedCard ? handleToggleSidebar : undefined}
 						onBack={selectedCard ? handleBack : undefined}
-						workspacePath={navbarWorkspacePath}
-						isWorkspacePathLoading={shouldShowProjectLoadingState}
-						workspaceHint={navbarWorkspaceHint}
-						runtimeHint={navbarRuntimeHint}
+						workspacePath={isHomeWithoutSelectedRepo ? undefined : navbarWorkspacePath}
+						isWorkspacePathLoading={shouldShowRepoLoadingState}
+						workspaceHint={isHomeWithoutSelectedRepo ? undefined : navbarWorkspaceHint}
+						runtimeHint={isHomeWithoutSelectedRepo ? undefined : navbarRuntimeHint}
 						selectedTaskId={selectedCard?.card.id ?? null}
 						selectedTaskBaseRef={selectedCard?.card.baseRef ?? null}
-						showHomeGitSummary={!hasNoProjects && !selectedCard}
-						runningGitAction={selectedCard || hasNoProjects ? null : runningGitAction}
+						showHomeGitSummary={!hasNoRepos && !selectedCard && !isHomeWithoutSelectedRepo}
+						runningGitAction={selectedCard || hasNoRepos || isHomeWithoutSelectedRepo ? null : runningGitAction}
 						onGitFetch={
 							selectedCard
 								? undefined
@@ -822,7 +826,11 @@ export default function App(): ReactElement {
 									}
 						}
 						onToggleTerminal={
-							hasNoProjects ? undefined : selectedCard ? handleToggleDetailTerminal : handleToggleHomeTerminal
+							hasNoRepos || isHomeWithoutSelectedRepo
+								? undefined
+								: selectedCard
+									? handleToggleDetailTerminal
+									: handleToggleHomeTerminal
 						}
 						isTerminalOpen={selectedCard ? isDetailTerminalOpen : showHomeBottomTerminal}
 						isTerminalLoading={selectedCard ? isDetailTerminalStarting : isHomeTerminalStarting}
@@ -834,16 +842,16 @@ export default function App(): ReactElement {
 						onSelectShortcutLabel={handleSelectShortcutLabel}
 						runningShortcutLabel={runningShortcutLabel}
 						onRunShortcut={handleRunShortcut}
-						onCreateFirstShortcut={currentProjectId ? handleCreateShortcut : undefined}
+						onCreateFirstShortcut={currentRepoId ? handleCreateShortcut : undefined}
 						openTargetOptions={openTargetOptions}
 						selectedOpenTargetId={selectedOpenTargetId}
 						onSelectOpenTarget={onSelectOpenTarget}
 						onOpenWorkspace={onOpenWorkspace}
 						canOpenWorkspace={canOpenWorkspace}
 						isOpeningWorkspace={isOpeningWorkspace}
-						onToggleGitHistory={hasNoProjects ? undefined : handleToggleGitHistory}
+						onToggleGitHistory={hasNoRepos || isHomeWithoutSelectedRepo ? undefined : handleToggleGitHistory}
 						isGitHistoryOpen={isGitHistoryOpen}
-						hideProjectDependentActions={shouldHideProjectDependentTopBarActions}
+						hideRepoDependentActions={shouldHideRepoDependentTopBarActions || isHomeWithoutSelectedRepo}
 					/>
 					<div className="relative flex flex-1 min-h-0 min-w-0 overflow-hidden">
 						<div
@@ -851,25 +859,25 @@ export default function App(): ReactElement {
 							aria-hidden={selectedCard ? true : undefined}
 							style={selectedCard ? { visibility: "hidden" } : undefined}
 						>
-							{shouldShowProjectLoadingState ? (
+							{shouldShowRepoLoadingState ? (
 								<div className="flex flex-1 min-h-0 items-center justify-center bg-surface-0">
 									<Spinner size={30} />
 								</div>
-							) : hasNoProjects ? (
+							) : hasNoRepos ? (
 								<div className="flex flex-1 min-h-0 items-center justify-center bg-surface-0 p-6">
 									<div className="flex flex-col items-center justify-center gap-3 text-text-tertiary">
 										<FolderOpen size={48} strokeWidth={1} />
-										<h3 className="text-sm font-semibold text-text-primary">No projects yet</h3>
+										<h3 className="text-sm font-semibold text-text-primary">No repos yet</h3>
 										<p className="text-[13px] text-text-secondary">
 											Add a git repository to start using Kanban.
 										</p>
 										<Button
 											variant="primary"
 											onClick={() => {
-												void handleAddProject();
+												void handleAddRepo();
 											}}
 										>
-											Add Project
+											Add Repo
 										</Button>
 									</div>
 								</div>
@@ -878,7 +886,7 @@ export default function App(): ReactElement {
 									<div className="flex flex-1 min-h-0 min-w-0">
 										{isGitHistoryOpen ? (
 											<GitHistoryView
-												workspaceId={currentProjectId}
+												workspaceId={currentRepoId}
 												gitHistory={gitHistory}
 												onCheckoutBranch={(branch) => {
 													void switchHomeBranch(branch);
@@ -888,12 +896,12 @@ export default function App(): ReactElement {
 												}}
 												isDiscardWorkingChangesPending={isDiscardingHomeWorkingChanges}
 											/>
-										) : sidebarTab === "project" ? (
-											<JiraSubtaskBoard
-												subtasks={Object.values(jiraBoard.subtasks)}
-												projectFilter={projectFilter}
+										) : sidebarTab === "pr" ? (
+											<JiraPullRequestBoard
+												pullRequests={Object.values(jiraBoard.pullRequests)}
+												repoFilter={repoFilter}
 												sessions={sessions}
-												onSubtaskClick={handleSubtaskClick}
+												onPullRequestClick={handlePullRequestClick}
 											/>
 										) : (
 											<div className="flex flex-1 min-h-0 min-w-0">
@@ -925,7 +933,7 @@ export default function App(): ReactElement {
 												<AgentTerminalPanel
 													key={`home-shell-${homeTerminalTaskId}`}
 													taskId={homeTerminalTaskId}
-													workspaceId={currentProjectId}
+													workspaceId={currentRepoId}
 													summary={homeTerminalSummary}
 													onSummary={upsertSession}
 													showSessionToolbar={false}
@@ -952,10 +960,10 @@ export default function App(): ReactElement {
 							<div className="absolute inset-0 flex min-h-0 min-w-0">
 								<CardDetailView
 									selection={selectedCard}
-									currentProjectId={currentProjectId}
+									currentRepoId={currentRepoId}
 									workspacePath={workspacePath}
-									selectedAgentId={runtimeProjectConfig?.selectedAgentId ?? null}
-									runtimeConfig={runtimeProjectConfig ?? null}
+									selectedAgentId={runtimeRepoConfig?.selectedAgentId ?? null}
+									runtimeConfig={runtimeRepoConfig ?? null}
 									sessionSummary={detailSession}
 									taskSessions={sessions}
 									onSessionSummary={upsertSession}
@@ -992,7 +1000,7 @@ export default function App(): ReactElement {
 									isMoveToTrashLoading={moveToTrashLoadingById[selectedCard.card.id] ?? false}
 									gitHistoryPanel={
 										isGitHistoryOpen ? (
-											<GitHistoryView workspaceId={currentProjectId} gitHistory={gitHistory} />
+											<GitHistoryView workspaceId={currentRepoId} gitHistory={gitHistory} />
 										) : undefined
 									}
 									onCloseGitHistory={handleCloseGitHistory}
@@ -1018,7 +1026,7 @@ export default function App(): ReactElement {
 				<RuntimeSettingsDialog
 					open={isSettingsOpen}
 					workspaceId={settingsWorkspaceId}
-					initialConfig={settingsRuntimeProjectConfig}
+					initialConfig={settingsRuntimeRepoConfig}
 					initialSection={settingsInitialSection}
 					onOpenChange={(nextOpen) => {
 						setIsSettingsOpen(nextOpen);
@@ -1027,9 +1035,18 @@ export default function App(): ReactElement {
 						}
 					}}
 					onSaved={() => {
-						refreshRuntimeProjectConfig();
-						refreshSettingsRuntimeProjectConfig();
+						refreshRuntimeRepoConfig();
+						refreshSettingsRuntimeRepoConfig();
 					}}
+				/>
+				<StartupOnboardingDialog
+					open={shouldShowStartupOnboardingDialog(globalRuntimeConfig.config)}
+					config={globalRuntimeConfig.config}
+					isSaving={globalRuntimeConfig.isSaving}
+					onSave={async (patch) => {
+						await globalRuntimeConfig.save(patch);
+					}}
+					onRefreshConfig={globalRuntimeConfig.refresh}
 				/>
 				<DebugDialog
 					open={isDebugDialogOpen}
@@ -1056,13 +1073,13 @@ export default function App(): ReactElement {
 					onAutoReviewEnabledChange={setNewTaskAutoReviewEnabled}
 					autoReviewMode={newTaskAutoReviewMode}
 					onAutoReviewModeChange={setNewTaskAutoReviewMode}
-					workspaceId={currentProjectId}
+					workspaceId={currentRepoId}
 					branchRef={newTaskBranchRef}
 					branchOptions={createTaskBranchOptions}
 					onBranchRefChange={setNewTaskBranchRef}
 					agentId={newTaskAgentId}
 					onAgentIdChange={setNewTaskAgentId}
-					defaultAgentId={runtimeProjectConfig?.selectedAgentId ?? null}
+					defaultAgentId={runtimeRepoConfig?.selectedAgentId ?? null}
 				/>
 				<ClearTrashDialog
 					open={isClearTrashDialogOpen}
@@ -1071,11 +1088,11 @@ export default function App(): ReactElement {
 					onConfirm={handleConfirmClearTrash}
 				/>
 
-				<AddProjectDialog
-					open={isAddProjectDialogOpen}
-					onOpenChange={setIsAddProjectDialogOpen}
-					onProjectAdded={handleAddProjectSuccess}
-					currentProjectId={currentProjectId}
+				<AddRepoDialog
+					open={isAddRepoDialogOpen}
+					onOpenChange={setIsAddRepoDialogOpen}
+					onRepoAdded={handleAddRepoSuccess}
+					currentRepoId={currentRepoId}
 					initialGitInitPath={pendingNativeGitInitPath}
 				/>
 

@@ -65,8 +65,8 @@ export function RepoNavigationPanel({
 	setExpandedSidebarWidth: (width: number) => void;
 	isCollapsed: boolean;
 	setSidebarCollapsed: (collapsed: boolean, persist?: boolean) => void;
-	sidebarTab: "task" | "repo";
-	onSidebarTabChange: (tab: "task" | "repo") => void;
+	sidebarTab: "task" | "pr";
+	onSidebarTabChange: (tab: "task" | "pr") => void;
 	hasJiraConfig: boolean;
 	repoFilter: string | null;
 	onFilterRepo: (repoPath: string) => void;
@@ -209,7 +209,7 @@ export function RepoNavigationPanel({
 						</button>
 						<button
 							type="button"
-							onClick={() => onSidebarTabChange("repo")}
+							onClick={() => onSidebarTabChange("pr")}
 							style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
 							className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-3"
 						>
@@ -236,7 +236,7 @@ export function RepoNavigationPanel({
 									</button>
 									<button
 										type="button"
-										onClick={() => onSidebarTabChange("repo")}
+										onClick={() => onSidebarTabChange("pr")}
 										className="cursor-pointer rounded-sm px-2 py-1 text-xs font-medium text-text-secondary hover:text-text-primary border border-transparent"
 									>
 										Pull Request
@@ -313,6 +313,9 @@ export function RepoNavigationPanel({
 									setCollapsed(false);
 								}
 								onSelectRepo(repo.id);
+								if (sidebarTab === "pr") {
+									onFilterRepo(repo.path);
+								}
 							}}
 							// Collapsed icons switch workspace; highlight tracks currentRepoId, not repoFilter.
 							className={cn(
@@ -389,10 +392,10 @@ export function RepoNavigationPanel({
 							</button>
 							<button
 								type="button"
-								onClick={() => onSidebarTabChange("repo")}
+								onClick={() => onSidebarTabChange("pr")}
 								className={cn(
 									"cursor-pointer rounded-sm px-2 py-1 text-xs font-medium",
-									sidebarTab === "repo"
+									sidebarTab === "pr"
 										? "bg-surface-4 text-text-primary border border-border"
 										: "text-text-secondary hover:text-text-primary border border-transparent",
 								)}
@@ -415,12 +418,13 @@ export function RepoNavigationPanel({
 						</div>
 					) : null}
 
-					{sidebarTab === "repo" ? (
+					{sidebarTab === "pr" ? (
 						<PrRepoList
 							repos={repos}
-							repoFilter={repoFilter}
+							currentRepoId={currentRepoId}
 							removingRepoId={removingRepoId}
-							onSelect={(repoPath) => {
+							onSelect={(repoId, repoPath) => {
+								onSelectRepo(repoId);
 								onFilterRepo(repoPath);
 								if (isMobile) {
 									setCollapsed(true);
@@ -439,9 +443,10 @@ export function RepoNavigationPanel({
 							<RepoRow
 								key={repo.id}
 								repo={repo}
-								isCurrent={repoFilter === repo.path}
+								isCurrent={currentRepoId === repo.id}
 								removingRepoId={removingRepoId}
 								onSelect={() => {
+									onSelectRepo(repo.id);
 									onFilterRepo(repo.path);
 									if (isMobile) {
 										setCollapsed(true);

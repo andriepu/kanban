@@ -1,9 +1,6 @@
-import type { RuntimeProjectShortcut } from "../core/api-contract";
+import type { RuntimeRepoShortcut } from "../core/api-contract";
 
-export function areRuntimeProjectShortcutsEqual(
-	left: RuntimeProjectShortcut[],
-	right: RuntimeProjectShortcut[],
-): boolean {
+export function areRuntimeRepoShortcutsEqual(left: RuntimeRepoShortcut[], right: RuntimeRepoShortcut[]): boolean {
 	if (left.length !== right.length) {
 		return false;
 	}

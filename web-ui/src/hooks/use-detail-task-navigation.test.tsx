@@ -41,21 +41,21 @@ interface HookSnapshot {
 
 function HookHarness({
 	board,
-	currentProjectId,
+	currentRepoId,
 	onDetailClosed,
 	onSnapshot,
 }: {
 	board: BoardData;
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	onDetailClosed?: () => void;
 	onSnapshot: (snapshot: HookSnapshot) => void;
 }): null {
 	const navigation = useDetailTaskNavigation({
 		board,
-		currentProjectId,
+		currentRepoId,
 		isAwaitingWorkspaceSnapshot: false,
 		isInitialRuntimeLoad: false,
-		isProjectSwitching: false,
+		isRepoSwitching: false,
 		isWorkspaceMetadataPending: false,
 		onDetailClosed,
 	});
@@ -89,7 +89,7 @@ describe("useDetailTaskNavigation", () => {
 		container = document.createElement("div");
 		document.body.appendChild(container);
 		root = createRoot(container);
-		window.history.replaceState({}, "", "/project-1");
+		window.history.replaceState({}, "", "/task");
 	});
 
 	afterEach(() => {
@@ -115,7 +115,7 @@ describe("useDetailTaskNavigation", () => {
 				root.render(
 					<HookHarness
 						board={board}
-						currentProjectId="project-1"
+						currentRepoId="project-1"
 						onDetailClosed={onDetailClosed}
 						onSnapshot={(snapshot) => {
 							latestSnapshot = snapshot;
@@ -147,7 +147,7 @@ describe("useDetailTaskNavigation", () => {
 			root.render(
 				<HookHarness
 					board={board}
-					currentProjectId="project-1"
+					currentRepoId="project-1"
 					onDetailClosed={onDetailClosed}
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;
@@ -164,7 +164,7 @@ describe("useDetailTaskNavigation", () => {
 			root.render(
 				<HookHarness
 					board={board}
-					currentProjectId="project-2"
+					currentRepoId="project-2"
 					onDetailClosed={onDetailClosed}
 					onSnapshot={(snapshot) => {
 						latestSnapshot = snapshot;

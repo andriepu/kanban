@@ -21,7 +21,7 @@ import {
 	trashTaskAndGetReadyLinkedTaskIds,
 	updateTask,
 } from "../core/task-board-mutations";
-import { resolveProjectInputPath } from "../projects/project-path";
+import { resolveRepoInputPath } from "../repos/repo-path";
 import { loadWorkspaceContext, mutateWorkspaceState } from "../state/workspace-state";
 import type { RuntimeAppRouter } from "../trpc/app-router";
 
@@ -140,35 +140,35 @@ function createRuntimeTrpcClient(workspaceId: string | null) {
 }
 
 async function resolveRuntimeWorkspace(
-	projectPath: string | undefined,
+	repoPath: string | undefined,
 	cwd: string,
 	options: { autoCreateIfMissing?: boolean } = {},
 ) {
-	const normalizedProjectPath = (projectPath ?? "").trim();
-	const resolvedPath = normalizedProjectPath ? resolveProjectInputPath(normalizedProjectPath, cwd) : cwd;
+	const normalizedRepoPath = (repoPath ?? "").trim();
+	const resolvedPath = normalizedRepoPath ? resolveRepoInputPath(normalizedRepoPath, cwd) : cwd;
 	return await loadWorkspaceContext(resolvedPath, {
 		autoCreateIfMissing: options.autoCreateIfMissing ?? true,
 	});
 }
 
 async function resolveWorkspaceRepoPath(
-	projectPath: string | undefined,
+	repoPath: string | undefined,
 	cwd: string,
 	options: { autoCreateIfMissing?: boolean } = {},
 ): Promise<string> {
-	const workspace = await resolveRuntimeWorkspace(projectPath, cwd, options);
+	const workspace = await resolveRuntimeWorkspace(repoPath, cwd, options);
 	return workspace.repoPath;
 }
 
 async function ensureRuntimeWorkspace(workspaceRepoPath: string): Promise<string> {
 	const runtimeClient = createRuntimeTrpcClient(null);
-	const added = await runtimeClient.projects.add.mutate({
+	const added = await runtimeClient.repos.add.mutate({
 		path: workspaceRepoPath,
 	});
-	if (!added.ok || !added.project) {
-		throw new Error(added.error ?? `Could not register project ${workspaceRepoPath} in Kanban runtime.`);
+	if (!added.ok || !added.repo) {
+		throw new Error(added.error ?? `Could not register repo ${workspaceRepoPath} in Kanban runtime.`);
 	}
-	return added.project.id;
+	return added.repo.id;
 }
 
 async function notifyRuntimeWorkspaceStateUpdated(

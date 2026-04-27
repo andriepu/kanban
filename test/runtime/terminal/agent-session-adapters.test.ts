@@ -163,7 +163,7 @@ describe("prepareAgentLaunch hook strategies", () => {
 		expect(claudeLaunch.args).toContain("--dangerously-skip-permissions");
 	});
 
-	it("threads registeredProjects into the --append-system-prompt arg for home sessions", async () => {
+	it("threads registeredRepos into the --append-system-prompt arg for home sessions", async () => {
 		setupTempHome();
 		setKanbanProcessContext();
 		const launch = await prepareAgentLaunch({
@@ -173,7 +173,7 @@ describe("prepareAgentLaunch hook strategies", () => {
 			args: [],
 			cwd: "/tmp",
 			prompt: "",
-			registeredProjects: [{ name: "my-api", path: "/Users/me/repos/my-api" }],
+			registeredRepos: [{ name: "my-api", path: "/Users/me/repos/my-api" }],
 		});
 		const promptIdx = launch.args.indexOf("--append-system-prompt");
 		expect(promptIdx).toBeGreaterThanOrEqual(0);
@@ -182,7 +182,7 @@ describe("prepareAgentLaunch hook strategies", () => {
 		expect(promptArg).toContain("- my-api: /Users/me/repos/my-api");
 	});
 
-	it("omits Available Projects section when registeredProjects is undefined", async () => {
+	it("omits Available Projects section when registeredRepos is undefined", async () => {
 		setupTempHome();
 		setKanbanProcessContext();
 		const launch = await prepareAgentLaunch({

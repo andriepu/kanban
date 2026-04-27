@@ -13,23 +13,25 @@ import {
 	getKanbanRuntimePort,
 } from "../core/runtime-endpoint";
 import {
-	createJiraSubtask,
-	deleteJiraSubtask,
+	createJiraPullRequest,
+	deleteJiraPullRequest,
 	loadJiraBoard,
-	loadJiraSubtasks,
+	loadJiraDetails,
+	loadJiraPullRequests,
 	saveJiraBoard,
+	saveJiraDetail,
 } from "../jira/jira-board-state";
-import { listOpenAuthoredGhPullRequests } from "../jira/jira-pr-scan";
+import { listAuthoredGhPullRequestsForProject } from "../jira/jira-pr-scan";
 import type { JiraRestCredentials } from "../jira/jira-rest";
 import { fetchJiraIssueViaRest, searchJiraIssuesViaRest, transitionJiraIssueViaRest } from "../jira/jira-rest";
-import { createSubtaskWorktree, removeSubtaskWorktree, scanReposInRoot } from "../jira/jira-worktree";
+import { createPullRequestWorktree, removePullRequestWorktree, scanReposInRoot } from "../jira/jira-worktree";
 import { loadWorkspaceContext, loadWorkspaceContextById } from "../state/workspace-state";
 import type { TerminalSessionManager } from "../terminal/session-manager";
 import { createTerminalWebSocketBridge } from "../terminal/ws-server";
 import { type RuntimeTrpcContext, type RuntimeTrpcWorkspaceScope, runtimeAppRouter } from "../trpc/app-router";
 import { createHooksApi } from "../trpc/hooks-api";
 import { createJiraApi } from "../trpc/jira-api";
-import { createProjectsApi } from "../trpc/projects-api";
+import { createReposApi } from "../trpc/repos-api";
 import { createRuntimeApi } from "../trpc/runtime-api";
 import { createWorkspaceApi } from "../trpc/workspace-api";
 import { getWebUiDir, normalizeRequestPath, readAsset } from "./assets";
@@ -48,7 +50,7 @@ export interface CreateRuntimeServerDependencies {
 	ensureTerminalManagerForWorkspace: (workspaceId: string, repoPath: string) => Promise<TerminalSessionManager>;
 	resolveInteractiveShellCommand: () => { binary: string; args: string[] };
 	runCommand: (command: string, cwd: string) => Promise<RuntimeCommandRunResponse>;
-	resolveProjectInputPath: (inputPath: string, basePath: string) => string;
+	resolveRepoInputPath: (inputPath: string, basePath: string) => string;
 	assertPathIsDirectory: (targetPath: string) => Promise<void>;
 	hasGitRepository: (path: string) => boolean;
 	disposeWorkspace: (
@@ -57,7 +59,7 @@ export interface CreateRuntimeServerDependencies {
 			stopTerminalSessions?: boolean;
 		},
 	) => DisposeTrackedWorkspaceResult;
-	collectProjectWorktreeTaskIdsForRemoval: (board: RuntimeWorkspaceStateResponse["board"]) => Set<string>;
+	collectRepoWorktreeTaskIdsForRemoval: (board: RuntimeWorkspaceStateResponse["board"]) => Set<string>;
 	pickDirectoryPathFromSystemDialog: () => string | null;
 }
 
@@ -180,9 +182,11 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 	const jiraApiInstance = createJiraApi({
 		loadJiraBoard,
 		saveJiraBoard,
-		loadJiraSubtasks,
-		createJiraSubtask,
-		deleteJiraSubtask,
+		loadJiraPullRequests,
+		loadJiraDetails,
+		saveJiraDetail,
+		createJiraPullRequest,
+		deleteJiraPullRequest,
 		searchJiraIssues: async (jql: string) => {
 			const creds = await requireJiraRestCredentials();
 			return searchJiraIssuesViaRest(jql, creds);
@@ -197,8 +201,8 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 		},
 		setApiToken: saveJiraApiToken,
 		scanRepos: scanReposInRoot,
-		createSubtaskWorktree,
-		removeSubtaskWorktree,
+		createPullRequestWorktree,
+		removePullRequestWorktree,
 		startTaskSession: async (workspacePath, taskId, prompt, customCwd) => {
 			const ctx = await loadWorkspaceContext(workspacePath);
 			const workspaceScope: RuntimeTrpcWorkspaceScope = {
@@ -229,8 +233,11 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 		},
 		getWorktreesRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.worktreesRoot ?? null,
 		getReposRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.reposRoot ?? null,
-		listOpenAuthoredGhPullRequests,
+		listAuthoredGhPullRequestsForProject,
 		getJiraProjectKey: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.jiraProjectKey ?? null,
+		broadcastRuntimeReposUpdated: () => {
+			void deps.runtimeStateHub.broadcastRuntimeReposUpdated(null);
+		},
 	});
 
 	const createTrpcContext = async (req: IncomingMessage): Promise<RuntimeTrpcContext> => {
@@ -243,28 +250,28 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 			workspaceApi: createWorkspaceApi({
 				ensureTerminalManagerForWorkspace: deps.ensureTerminalManagerForWorkspace,
 				broadcastRuntimeWorkspaceStateUpdated: deps.runtimeStateHub.broadcastRuntimeWorkspaceStateUpdated,
-				broadcastRuntimeProjectsUpdated: deps.runtimeStateHub.broadcastRuntimeProjectsUpdated,
+				broadcastRuntimeReposUpdated: deps.runtimeStateHub.broadcastRuntimeReposUpdated,
 				buildWorkspaceStateSnapshot: deps.workspaceRegistry.buildWorkspaceStateSnapshot,
 			}),
-			projectsApi: createProjectsApi({
+			reposApi: createReposApi({
 				getActiveWorkspacePath: deps.workspaceRegistry.getActiveWorkspacePath,
 				getActiveWorkspaceId: deps.workspaceRegistry.getActiveWorkspaceId,
 				rememberWorkspace: deps.workspaceRegistry.rememberWorkspace,
 				setActiveWorkspace: deps.workspaceRegistry.setActiveWorkspace,
 				clearActiveWorkspace: deps.workspaceRegistry.clearActiveWorkspace,
-				resolveProjectInputPath: deps.resolveProjectInputPath,
+				resolveRepoInputPath: deps.resolveRepoInputPath,
 				assertPathIsDirectory: deps.assertPathIsDirectory,
 				hasGitRepository: deps.hasGitRepository,
-				summarizeProjectTaskCounts: deps.workspaceRegistry.summarizeProjectTaskCounts,
-				createProjectSummary: deps.workspaceRegistry.createProjectSummary,
-				broadcastRuntimeProjectsUpdated: deps.runtimeStateHub.broadcastRuntimeProjectsUpdated,
+				summarizeRepoTaskCounts: deps.workspaceRegistry.summarizeRepoTaskCounts,
+				createRepoSummary: deps.workspaceRegistry.createRepoSummary,
+				broadcastRuntimeReposUpdated: deps.runtimeStateHub.broadcastRuntimeReposUpdated,
 				getTerminalManagerForWorkspace: deps.workspaceRegistry.getTerminalManagerForWorkspace,
 				disposeWorkspace: (workspaceId, options) => {
 					return deps.disposeWorkspace(workspaceId, options);
 				},
-				collectProjectWorktreeTaskIdsForRemoval: deps.collectProjectWorktreeTaskIdsForRemoval,
+				collectRepoWorktreeTaskIdsForRemoval: deps.collectRepoWorktreeTaskIdsForRemoval,
 				warn: deps.warn,
-				buildProjectsPayload: deps.workspaceRegistry.buildProjectsPayload,
+				buildReposPayload: deps.workspaceRegistry.buildReposPayload,
 				pickDirectoryPathFromSystemDialog: deps.pickDirectoryPathFromSystemDialog,
 				serverCwd: process.cwd(),
 				getReposRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.reposRoot ?? null,

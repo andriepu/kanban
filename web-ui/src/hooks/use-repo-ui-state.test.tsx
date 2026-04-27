@@ -2,10 +2,10 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { useProjectUiState } from "@/hooks/use-project-ui-state";
+import { useRepoUiState } from "@/hooks/use-repo-ui-state";
 import type { BoardData } from "@/types";
 
-type ProjectUiStateResult = ReturnType<typeof useProjectUiState>;
+type RepoUiStateResult = ReturnType<typeof useRepoUiState>;
 
 function createBoard(): BoardData {
 	return {
@@ -19,29 +19,31 @@ function createBoard(): BoardData {
 	};
 }
 
-function HookHarness({ onResult }: { onResult: (result: ReturnType<typeof useProjectUiState>) => void }): null {
-	const result = useProjectUiState({
+function HookHarness({ onResult }: { onResult: (result: ReturnType<typeof useRepoUiState>) => void }): null {
+	const result = useRepoUiState({
 		board: createBoard(),
 		canPersistWorkspaceState: true,
-		currentProjectId: "project-b",
-		projects: [
+		currentRepoId: "project-b",
+		repos: [
 			{
 				id: "project-a",
 				name: "project-a",
 				path: "/tmp/project-a",
 				taskCounts: { backlog: 1, in_progress: 0, review: 1, trash: 0 },
+				pullRequestCount: 0,
 			},
 			{
 				id: "project-b",
 				name: "project-b",
 				path: "/tmp/project-b",
 				taskCounts: { backlog: 0, in_progress: 0, review: 0, trash: 0 },
+				pullRequestCount: 0,
 			},
 		],
-		navigationCurrentProjectId: "project-b",
+		navigationCurrentRepoId: "project-b",
 		selectedTaskId: null,
 		streamError: null,
-		isProjectSwitching: false,
+		isRepoSwitching: false,
 		isInitialRuntimeLoad: false,
 		isAwaitingWorkspaceSnapshot: false,
 		isWorkspaceMetadataPending: true,
@@ -52,7 +54,7 @@ function HookHarness({ onResult }: { onResult: (result: ReturnType<typeof usePro
 	return null;
 }
 
-describe("useProjectUiState", () => {
+describe("useRepoUiState", () => {
 	let container: HTMLDivElement;
 	let root: Root;
 	let previousActEnvironment: boolean | undefined;
@@ -79,8 +81,8 @@ describe("useProjectUiState", () => {
 		}
 	});
 
-	it("keeps the project loading state visible while workspace metadata is still syncing", async () => {
-		let latestResult: ProjectUiStateResult | null = null;
+	it("keeps the repo loading state visible while workspace metadata is still syncing", async () => {
+		let latestResult: RepoUiStateResult | null = null;
 
 		await act(async () => {
 			root.render(
@@ -95,8 +97,8 @@ describe("useProjectUiState", () => {
 		if (latestResult === null) {
 			throw new Error("Expected a hook result.");
 		}
-		const result: ProjectUiStateResult = latestResult;
-		expect(result.shouldShowProjectLoadingState).toBe(true);
+		const result: RepoUiStateResult = latestResult;
+		expect(result.shouldShowRepoLoadingState).toBe(true);
 		expect(result.shouldUseNavigationPath).toBe(true);
 	});
 });

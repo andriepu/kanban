@@ -5,8 +5,8 @@ interface InitializeRepoResult {
 	error: string | null;
 }
 
-export async function initializeGitRepository(projectPath: string): Promise<InitializeRepoResult> {
-	const result = await runGit(projectPath, ["init"]);
+export async function initializeGitRepository(repoPath: string): Promise<InitializeRepoResult> {
+	const result = await runGit(repoPath, ["init"]);
 	if (!result.ok) {
 		return {
 			ok: false,
@@ -14,16 +14,16 @@ export async function initializeGitRepository(projectPath: string): Promise<Init
 		};
 	}
 
-	return ensureInitialCommit(projectPath);
+	return ensureInitialCommit(repoPath);
 }
 
-export async function ensureInitialCommit(projectPath: string): Promise<InitializeRepoResult> {
-	const headCheck = await runGit(projectPath, ["rev-parse", "--verify", "HEAD"]);
+export async function ensureInitialCommit(repoPath: string): Promise<InitializeRepoResult> {
+	const headCheck = await runGit(repoPath, ["rev-parse", "--verify", "HEAD"]);
 	if (headCheck.ok) {
 		return { ok: true, error: null };
 	}
 
-	const addResult = await runGit(projectPath, ["add", "-A"]);
+	const addResult = await runGit(repoPath, ["add", "-A"]);
 	if (!addResult.ok) {
 		return {
 			ok: false,
@@ -31,7 +31,7 @@ export async function ensureInitialCommit(projectPath: string): Promise<Initiali
 		};
 	}
 
-	const commitResult = await runGit(projectPath, ["commit", "--allow-empty", "-m", "Initial commit through Kanban"]);
+	const commitResult = await runGit(repoPath, ["commit", "--allow-empty", "-m", "Initial commit through Kanban"]);
 
 	if (!commitResult.ok) {
 		return {

@@ -6,8 +6,8 @@ import {
 	type RuntimeDirectoryListRequest,
 	type RuntimeGitCheckoutRequest,
 	type RuntimeHookIngestRequest,
-	type RuntimeProjectAddRequest,
-	type RuntimeProjectRemoveRequest,
+	type RuntimeRepoAddRequest,
+	type RuntimeRepoRemoveRequest,
 	type RuntimeShellSessionStartRequest,
 	type RuntimeTaskChatAbortRequest,
 	type RuntimeTaskChatCancelRequest,
@@ -29,8 +29,8 @@ import {
 	runtimeDirectoryListRequestSchema,
 	runtimeGitCheckoutRequestSchema,
 	runtimeHookIngestRequestSchema,
-	runtimeProjectAddRequestSchema,
-	runtimeProjectRemoveRequestSchema,
+	runtimeRepoAddRequestSchema,
+	runtimeRepoRemoveRequestSchema,
 	runtimeShellSessionStartRequestSchema,
 	runtimeTaskChatAbortRequestSchema,
 	runtimeTaskChatCancelRequestSchema,
@@ -160,8 +160,8 @@ export function parseWorkspaceStateSaveRequest(value: unknown): RuntimeWorkspace
 	return parseWithSchema(runtimeWorkspaceStateSaveRequestSchema, value);
 }
 
-export function parseProjectAddRequest(value: unknown): RuntimeProjectAddRequest {
-	const parsed = parseWithSchema(runtimeProjectAddRequestSchema, value);
+export function parseRepoAddRequest(value: unknown): RuntimeRepoAddRequest {
+	const parsed = parseWithSchema(runtimeRepoAddRequestSchema, value);
 	const path = parsed.path?.trim() || undefined;
 	const gitUrl = parsed.gitUrl?.trim() || undefined;
 	if (!path && !gitUrl) {
@@ -174,14 +174,14 @@ export function parseProjectAddRequest(value: unknown): RuntimeProjectAddRequest
 	};
 }
 
-export function parseProjectRemoveRequest(value: unknown): RuntimeProjectRemoveRequest {
-	const parsed = parseWithSchema(runtimeProjectRemoveRequestSchema, value);
-	const projectId = parsed.projectId.trim();
-	if (!projectId) {
-		throw new Error("Project ID cannot be empty.");
+export function parseRepoRemoveRequest(value: unknown): RuntimeRepoRemoveRequest {
+	const parsed = parseWithSchema(runtimeRepoRemoveRequestSchema, value);
+	const repoId = parsed.repoId.trim();
+	if (!repoId) {
+		throw new Error("Repo ID cannot be empty.");
 	}
 	return {
-		projectId,
+		repoId,
 	};
 }
 

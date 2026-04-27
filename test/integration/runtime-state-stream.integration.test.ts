@@ -13,12 +13,12 @@ import { WebSocket } from "ws";
 import type {
 	RuntimeBoardData,
 	RuntimeHookIngestResponse,
-	RuntimeProjectAddResponse,
-	RuntimeProjectRemoveResponse,
-	RuntimeProjectsResponse,
+	RuntimeRepoAddResponse,
+	RuntimeRepoRemoveResponse,
+	RuntimeReposResponse,
 	RuntimeShellSessionStartResponse,
 	RuntimeStateStreamMessage,
-	RuntimeStateStreamProjectsMessage,
+	RuntimeStateStreamReposMessage,
 	RuntimeStateStreamSnapshotMessage,
 	RuntimeStateStreamTaskReadyForReviewMessage,
 	RuntimeStateStreamWorkspaceStateMessage,
@@ -473,22 +473,22 @@ describe.sequential("runtime state stream integration", () => {
 			const runtimeUrl = new URL(server.runtimeUrl);
 			expect(runtimeUrl.pathname).toBe("/");
 
-			const projectsResponse = await requestJson<RuntimeProjectsResponse>({
+			const projectsResponse = await requestJson<RuntimeReposResponse>({
 				baseUrl: `http://127.0.0.1:${port}`,
-				procedure: "projects.list",
+				procedure: "repos.list",
 				type: "query",
 			});
 			expect(projectsResponse.status).toBe(200);
-			expect(projectsResponse.payload.currentProjectId).toBeNull();
-			expect(projectsResponse.payload.projects).toEqual([]);
+			expect(projectsResponse.payload.currentRepoId).toBeNull();
+			expect(projectsResponse.payload.repos).toEqual([]);
 
 			stream = await connectRuntimeStream(`ws://127.0.0.1:${port}/api/runtime/ws`);
 			const snapshot = (await stream.waitForMessage(
 				(message): message is RuntimeStateStreamSnapshotMessage => message.type === "snapshot",
 			)) as RuntimeStateStreamSnapshotMessage;
-			expect(snapshot.currentProjectId).toBeNull();
+			expect(snapshot.currentRepoId).toBeNull();
 			expect(snapshot.workspaceState).toBeNull();
-			expect(snapshot.projects).toEqual([]);
+			expect(snapshot.repos).toEqual([]);
 		} finally {
 			if (stream) {
 				await stream.close();
@@ -515,22 +515,22 @@ describe.sequential("runtime state stream integration", () => {
 			const runtimeUrl = new URL(server.runtimeUrl);
 			expect(runtimeUrl.pathname).toBe("/");
 
-			const projectsResponse = await requestJson<RuntimeProjectsResponse>({
+			const projectsResponse = await requestJson<RuntimeReposResponse>({
 				baseUrl: `http://127.0.0.1:${port}`,
-				procedure: "projects.list",
+				procedure: "repos.list",
 				type: "query",
 			});
 			expect(projectsResponse.status).toBe(200);
-			expect(projectsResponse.payload.currentProjectId).toBeNull();
-			expect(projectsResponse.payload.projects).toEqual([]);
+			expect(projectsResponse.payload.currentRepoId).toBeNull();
+			expect(projectsResponse.payload.repos).toEqual([]);
 
 			stream = await connectRuntimeStream(`ws://127.0.0.1:${port}/api/runtime/ws`);
 			const snapshot = (await stream.waitForMessage(
 				(message): message is RuntimeStateStreamSnapshotMessage => message.type === "snapshot",
 			)) as RuntimeStateStreamSnapshotMessage;
-			expect(snapshot.currentProjectId).toBeNull();
+			expect(snapshot.currentRepoId).toBeNull();
 			expect(snapshot.workspaceState).toBeNull();
-			expect(snapshot.projects).toEqual([]);
+			expect(snapshot.repos).toEqual([]);
 		} finally {
 			if (stream) {
 				await stream.close();
@@ -540,7 +540,7 @@ describe.sequential("runtime state stream integration", () => {
 		}
 	}, 30_000);
 
-	it("launches outside git using the first indexed project", async () => {
+	it("launches outside git with no auto-selected repo; explicit workspace request activates it", async () => {
 		const { path: tempHome, cleanup: cleanupHome } = createTempDir("kanban-home-first-project-");
 		const { path: tempRoot, cleanup: cleanupRoot } = createTempDir("kanban-first-project-");
 
@@ -566,9 +566,9 @@ describe.sequential("runtime state stream integration", () => {
 			workspaceAId = decodeURIComponent(firstRuntimeUrl.pathname.slice(1));
 			expect(workspaceAId).not.toBe("");
 
-			const addProjectResponse = await requestJson<RuntimeProjectAddResponse>({
+			const addProjectResponse = await requestJson<RuntimeRepoAddResponse>({
 				baseUrl: `http://127.0.0.1:${firstPort}`,
-				procedure: "projects.add",
+				procedure: "repos.add",
 				type: "mutation",
 				workspaceId: workspaceAId,
 				payload: {
@@ -588,34 +588,53 @@ describe.sequential("runtime state stream integration", () => {
 			port: secondPort,
 		});
 
-		let secondStream: RuntimeStreamClient | null = null;
+		let unselectedStream: RuntimeStreamClient | null = null;
+		let selectedStream: RuntimeStreamClient | null = null;
 		try {
-			const secondRuntimeUrl = new URL(secondServer.runtimeUrl);
 			expect(workspaceAId).not.toBeNull();
 			if (!workspaceAId) {
 				throw new Error("Missing workspace id for project A.");
 			}
-			const secondWorkspaceId = decodeURIComponent(secondRuntimeUrl.pathname.slice(1));
-			expect(secondWorkspaceId).toBe(workspaceAId);
-			const expectedProjectAPath = await realpath(projectAPath).catch(() => resolve(projectAPath));
 
-			const projectsResponse = await requestJson<RuntimeProjectsResponse>({
+			// Launched outside git: runtimeUrl must be the plain origin (no slug).
+			const secondRuntimeUrl = new URL(secondServer.runtimeUrl);
+			expect(secondRuntimeUrl.pathname).toBe("/");
+
+			// repos.list with no preferred workspace returns currentRepoId: null.
+			const projectsResponse = await requestJson<RuntimeReposResponse>({
 				baseUrl: `http://127.0.0.1:${secondPort}`,
-				procedure: "projects.list",
+				procedure: "repos.list",
 				type: "query",
 			});
 			expect(projectsResponse.status).toBe(200);
-			expect(projectsResponse.payload.currentProjectId).toBe(workspaceAId);
+			expect(projectsResponse.payload.currentRepoId).toBeNull();
+			expect(projectsResponse.payload.repos.length).toBe(2);
 
-			secondStream = await connectRuntimeStream(`ws://127.0.0.1:${secondPort}/api/runtime/ws`);
-			const snapshot = (await secondStream.waitForMessage(
+			// Websocket snapshot without workspaceId → currentRepoId null, no workspaceState.
+			unselectedStream = await connectRuntimeStream(`ws://127.0.0.1:${secondPort}/api/runtime/ws`);
+			const unselectedSnapshot = (await unselectedStream.waitForMessage(
 				(message): message is RuntimeStateStreamSnapshotMessage => message.type === "snapshot",
 			)) as RuntimeStateStreamSnapshotMessage;
-			expect(snapshot.currentProjectId).toBe(workspaceAId);
-			expect(snapshot.workspaceState?.repoPath).toBe(expectedProjectAPath);
+			expect(unselectedSnapshot.currentRepoId).toBeNull();
+			expect(unselectedSnapshot.workspaceState).toBeNull();
+			expect(unselectedSnapshot.repos.length).toBe(2);
+
+			// Websocket snapshot with explicit workspaceId → activates that workspace.
+			const expectedProjectAPath = await realpath(projectAPath).catch(() => resolve(projectAPath));
+			selectedStream = await connectRuntimeStream(
+				`ws://127.0.0.1:${secondPort}/api/runtime/ws?workspaceId=${encodeURIComponent(workspaceAId)}`,
+			);
+			const selectedSnapshot = (await selectedStream.waitForMessage(
+				(message): message is RuntimeStateStreamSnapshotMessage => message.type === "snapshot",
+			)) as RuntimeStateStreamSnapshotMessage;
+			expect(selectedSnapshot.currentRepoId).toBe(workspaceAId);
+			expect(selectedSnapshot.workspaceState?.repoPath).toBe(expectedProjectAPath);
 		} finally {
-			if (secondStream) {
-				await secondStream.close();
+			if (unselectedStream) {
+				await unselectedStream.close();
+			}
+			if (selectedStream) {
+				await selectedStream.close();
 			}
 			await secondServer.stop();
 			cleanupRoot();
@@ -646,9 +665,9 @@ describe.sequential("runtime state stream integration", () => {
 			workspaceAId = decodeURIComponent(runtimeUrl.pathname.slice(1));
 			expect(workspaceAId).not.toBe("");
 
-			const addWithoutInitResponse = await requestJson<RuntimeProjectAddResponse>({
+			const addWithoutInitResponse = await requestJson<RuntimeRepoAddResponse>({
 				baseUrl: `http://127.0.0.1:${port}`,
-				procedure: "projects.add",
+				procedure: "repos.add",
 				type: "mutation",
 				workspaceId: workspaceAId,
 				payload: {
@@ -660,18 +679,18 @@ describe.sequential("runtime state stream integration", () => {
 			expect(addWithoutInitResponse.payload.requiresGitInitialization).toBe(true);
 			expect(existsSync(join(nonGitPath, ".git"))).toBe(false);
 
-			const projectsAfterDeclinedInit = await requestJson<RuntimeProjectsResponse>({
+			const projectsAfterDeclinedInit = await requestJson<RuntimeReposResponse>({
 				baseUrl: `http://127.0.0.1:${port}`,
-				procedure: "projects.list",
+				procedure: "repos.list",
 				type: "query",
 				workspaceId: workspaceAId,
 			});
 			expect(projectsAfterDeclinedInit.status).toBe(200);
-			expect(projectsAfterDeclinedInit.payload.projects).toHaveLength(1);
+			expect(projectsAfterDeclinedInit.payload.repos).toHaveLength(1);
 
-			const addWithInitResponse = await requestJson<RuntimeProjectAddResponse>({
+			const addWithInitResponse = await requestJson<RuntimeRepoAddResponse>({
 				baseUrl: `http://127.0.0.1:${port}`,
-				procedure: "projects.add",
+				procedure: "repos.add",
 				type: "mutation",
 				workspaceId: workspaceAId,
 				payload: {
@@ -681,7 +700,7 @@ describe.sequential("runtime state stream integration", () => {
 			});
 			expect(addWithInitResponse.status).toBe(200);
 			expect(addWithInitResponse.payload.ok).toBe(true);
-			expect(addWithInitResponse.payload.project).not.toBeNull();
+			expect(addWithInitResponse.payload.repo).not.toBeNull();
 			expect(existsSync(join(nonGitPath, ".git"))).toBe(true);
 		} finally {
 			await server.stop();
@@ -718,9 +737,9 @@ describe.sequential("runtime state stream integration", () => {
 			const expectedProjectAPath = await realpath(projectAPath).catch(() => resolve(projectAPath));
 			const expectedProjectBPath = await realpath(projectBPath).catch(() => resolve(projectBPath));
 
-			const addProjectResponse = await requestJson<RuntimeProjectAddResponse>({
+			const addProjectResponse = await requestJson<RuntimeRepoAddResponse>({
 				baseUrl: `http://127.0.0.1:${port}`,
-				procedure: "projects.add",
+				procedure: "repos.add",
 				type: "mutation",
 				workspaceId: workspaceAId,
 				payload: {
@@ -729,7 +748,7 @@ describe.sequential("runtime state stream integration", () => {
 			});
 			expect(addProjectResponse.status).toBe(200);
 			expect(addProjectResponse.payload.ok).toBe(true);
-			const workspaceBId = addProjectResponse.payload.project?.id ?? null;
+			const workspaceBId = addProjectResponse.payload.repo?.id ?? null;
 			expect(workspaceBId).not.toBeNull();
 			if (!workspaceBId) {
 				throw new Error("Missing project id for added workspace.");
@@ -741,9 +760,9 @@ describe.sequential("runtime state stream integration", () => {
 			const snapshotA = (await streamA.waitForMessage(
 				(message): message is RuntimeStateStreamSnapshotMessage => message.type === "snapshot",
 			)) as RuntimeStateStreamSnapshotMessage;
-			expect(snapshotA.currentProjectId).toBe(workspaceAId);
+			expect(snapshotA.currentRepoId).toBe(workspaceAId);
 			expect(snapshotA.workspaceState?.repoPath).toBe(expectedProjectAPath);
-			expect(snapshotA.projects.map((project) => project.id).sort()).toEqual([workspaceAId, workspaceBId].sort());
+			expect(snapshotA.repos.map((project) => project.id).sort()).toEqual([workspaceAId, workspaceBId].sort());
 
 			streamB = await connectRuntimeStream(
 				`ws://127.0.0.1:${port}/api/runtime/ws?workspaceId=${encodeURIComponent(workspaceBId)}`,
@@ -751,7 +770,7 @@ describe.sequential("runtime state stream integration", () => {
 			const snapshotB = (await streamB.waitForMessage(
 				(message): message is RuntimeStateStreamSnapshotMessage => message.type === "snapshot",
 			)) as RuntimeStateStreamSnapshotMessage;
-			expect(snapshotB.currentProjectId).toBe(workspaceBId);
+			expect(snapshotB.currentRepoId).toBe(workspaceBId);
 			expect(snapshotB.workspaceState?.repoPath).toBe(expectedProjectBPath);
 
 			const currentWorkspaceBState = await requestJson<RuntimeWorkspaceStateResponse>({
@@ -789,14 +808,14 @@ describe.sequential("runtime state stream integration", () => {
 				),
 			).toBe(false);
 
-			const projectsAfterUpdate = await requestJson<RuntimeProjectsResponse>({
+			const projectsAfterUpdate = await requestJson<RuntimeReposResponse>({
 				baseUrl: `http://127.0.0.1:${port}`,
-				procedure: "projects.list",
+				procedure: "repos.list",
 				type: "query",
 				workspaceId: workspaceAId,
 			});
 			expect(projectsAfterUpdate.status).toBe(200);
-			const projectB = projectsAfterUpdate.payload.projects.find((project) => project.id === workspaceBId) ?? null;
+			const projectB = projectsAfterUpdate.payload.repos.find((project) => project.id === workspaceBId) ?? null;
 			expect(projectB?.taskCounts.backlog).toBe(1);
 		} finally {
 			if (streamA) {
@@ -1401,9 +1420,9 @@ describe.sequential("runtime state stream integration", () => {
 			expect(workspaceAId).not.toBe("");
 			const expectedProjectBPath = await realpath(projectBPath).catch(() => resolve(projectBPath));
 
-			const addProjectResponse = await requestJson<RuntimeProjectAddResponse>({
+			const addProjectResponse = await requestJson<RuntimeRepoAddResponse>({
 				baseUrl: `http://127.0.0.1:${port}`,
-				procedure: "projects.add",
+				procedure: "repos.add",
 				type: "mutation",
 				workspaceId: workspaceAId,
 				payload: {
@@ -1412,7 +1431,7 @@ describe.sequential("runtime state stream integration", () => {
 			});
 			expect(addProjectResponse.status).toBe(200);
 			expect(addProjectResponse.payload.ok).toBe(true);
-			const workspaceBId = addProjectResponse.payload.project?.id ?? null;
+			const workspaceBId = addProjectResponse.payload.repo?.id ?? null;
 			expect(workspaceBId).not.toBeNull();
 			if (!workspaceBId) {
 				throw new Error("Missing project id for added workspace.");
@@ -1424,26 +1443,26 @@ describe.sequential("runtime state stream integration", () => {
 			const initialSnapshot = (await streamA.waitForMessage(
 				(message): message is RuntimeStateStreamSnapshotMessage => message.type === "snapshot",
 			)) as RuntimeStateStreamSnapshotMessage;
-			expect(initialSnapshot.currentProjectId).toBe(workspaceAId);
+			expect(initialSnapshot.currentRepoId).toBe(workspaceAId);
 
-			const removeResponse = await requestJson<RuntimeProjectRemoveResponse>({
+			const removeResponse = await requestJson<RuntimeRepoRemoveResponse>({
 				baseUrl: `http://127.0.0.1:${port}`,
-				procedure: "projects.remove",
+				procedure: "repos.remove",
 				type: "mutation",
 				workspaceId: workspaceAId,
 				payload: {
-					projectId: workspaceAId,
+					repoId: workspaceAId,
 				},
 			});
 			expect(removeResponse.status).toBe(200);
 			expect(removeResponse.payload.ok).toBe(true);
 
 			const projectsUpdated = (await streamA.waitForMessage(
-				(message): message is RuntimeStateStreamProjectsMessage =>
-					message.type === "projects_updated" && message.currentProjectId === workspaceBId,
-			)) as RuntimeStateStreamProjectsMessage;
-			expect(projectsUpdated.currentProjectId).toBe(workspaceBId);
-			expect(projectsUpdated.projects.map((project) => project.id)).toEqual([workspaceBId]);
+				(message): message is RuntimeStateStreamReposMessage =>
+					message.type === "repos_updated" && message.currentRepoId === workspaceBId,
+			)) as RuntimeStateStreamReposMessage;
+			expect(projectsUpdated.currentRepoId).toBe(workspaceBId);
+			expect(projectsUpdated.repos.map((project) => project.id)).toEqual([workspaceBId]);
 
 			streamB = await connectRuntimeStream(
 				`ws://127.0.0.1:${port}/api/runtime/ws?workspaceId=${encodeURIComponent(workspaceBId)}`,
@@ -1451,18 +1470,18 @@ describe.sequential("runtime state stream integration", () => {
 			const fallbackSnapshot = (await streamB.waitForMessage(
 				(message): message is RuntimeStateStreamSnapshotMessage => message.type === "snapshot",
 			)) as RuntimeStateStreamSnapshotMessage;
-			expect(fallbackSnapshot.currentProjectId).toBe(workspaceBId);
+			expect(fallbackSnapshot.currentRepoId).toBe(workspaceBId);
 			expect(fallbackSnapshot.workspaceState?.repoPath).toBe(expectedProjectBPath);
 
-			const projectsAfterRemoval = await requestJson<RuntimeProjectsResponse>({
+			const projectsAfterRemoval = await requestJson<RuntimeReposResponse>({
 				baseUrl: `http://127.0.0.1:${port}`,
-				procedure: "projects.list",
+				procedure: "repos.list",
 				type: "query",
 				workspaceId: workspaceBId,
 			});
 			expect(projectsAfterRemoval.status).toBe(200);
-			expect(projectsAfterRemoval.payload.currentProjectId).toBe(workspaceBId);
-			expect(projectsAfterRemoval.payload.projects.map((project) => project.id)).toEqual([workspaceBId]);
+			expect(projectsAfterRemoval.payload.currentRepoId).toBe(workspaceBId);
+			expect(projectsAfterRemoval.payload.repos.map((project) => project.id)).toEqual([workspaceBId]);
 		} finally {
 			if (streamA) {
 				await streamA.close();

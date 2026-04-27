@@ -1,16 +1,34 @@
 import { GitPullRequest, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { ColumnIndicator } from "@/components/ui/column-indicator";
 import { Spinner } from "@/components/ui/spinner";
 import type { UseJiraBoardResult } from "@/hooks/use-jira-board";
-import type { JiraCard, JiraCardStatus } from "@/types/jira";
+import type { JiraCard, JiraCardStatus, JiraPullRequest } from "@/types/jira";
 
 const COLUMNS: Array<{ id: JiraCardStatus; label: string }> = [
 	{ id: "todo", label: "To-Do" },
 	{ id: "in_progress", label: "In-Progress" },
 	{ id: "done", label: "Trash" },
 ];
+
+type PrAggregate = { count: number; state: "open" | "draft" | "merged" };
+
+const PILL_CLASSES: Record<PrAggregate["state"], string> = {
+	open: "bg-status-green/15 text-status-green",
+	draft: "bg-text-secondary/15 text-text-secondary",
+	merged: "bg-status-purple/15 text-status-purple",
+};
+
+function aggregatePrState(pullRequests: JiraPullRequest[]): PrAggregate {
+	const prPullRequests = pullRequests.filter((s) => s.prUrl !== undefined);
+	const count = prPullRequests.length;
+	if (count === 0) return { count: 0, state: "open" };
+
+	const states = prPullRequests.map((s) => s.prState ?? "open");
+	if (states.some((s) => s === "open")) return { count, state: "open" };
+	if (states.some((s) => s === "draft")) return { count, state: "draft" };
+	return { count, state: "merged" };
+}
 
 interface JiraBoardViewProps {
 	onCardClick: (jiraKey: string) => void;
@@ -19,7 +37,7 @@ interface JiraBoardViewProps {
 }
 
 export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraBoardViewProps): React.ReactElement {
-	const { board, subtasks, isLoading, isImporting, moveCard, deleteCard, scanPRs, prScanning } = jiraBoard;
+	const { board, pullRequests, isLoading, isImporting, moveCard, deleteCard } = jiraBoard;
 
 	if (isLoading) {
 		return <div className="flex h-full flex-1 items-center justify-center text-text-secondary text-sm">Loading…</div>;
@@ -27,17 +45,6 @@ export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraB
 
 	return (
 		<div className="flex h-full flex-1 flex-col overflow-hidden">
-			<div className="flex items-center justify-end gap-1 px-2 pt-2 shrink-0">
-				<Button
-					variant="ghost"
-					size="sm"
-					icon={prScanning ? <Spinner size={12} /> : <GitPullRequest size={14} />}
-					disabled={prScanning}
-					onClick={() => void scanPRs()}
-				>
-					Sync PRs
-				</Button>
-			</div>
 			<div className="flex flex-1 gap-2 overflow-x-auto p-2 min-h-0">
 				{COLUMNS.map((col) => {
 					const cards = board.cards.filter((c) => c.status === col.id);
@@ -47,11 +54,14 @@ export function JiraBoardView({ onCardClick, selectedJiraKey, jiraBoard }: JiraB
 							columnId={col.id}
 							label={col.label}
 							cards={cards}
-							subtaskCounts={Object.fromEntries(cards.map((c) => [c.jiraKey, c.subtaskIds.length]))}
-							prCounts={Object.fromEntries(
+							prAggregates={Object.fromEntries(
 								cards.map((c) => [
 									c.jiraKey,
-									c.subtaskIds.filter((id) => subtasks[id]?.prUrl !== undefined).length,
+									aggregatePrState(
+										(c.pullRequestIds ?? [])
+											.map((id) => pullRequests[id])
+											.filter((s): s is JiraPullRequest => Boolean(s)),
+									),
 								]),
 							)}
 							selectedJiraKey={selectedJiraKey}
@@ -76,8 +86,7 @@ function JiraBoardColumn({
 	columnId,
 	label,
 	cards,
-	subtaskCounts,
-	prCounts,
+	prAggregates,
 	selectedJiraKey,
 	onCardClick,
 	onDrop,
@@ -86,8 +95,7 @@ function JiraBoardColumn({
 	columnId: string;
 	label: string;
 	cards: JiraCard[];
-	subtaskCounts: Record<string, number>;
-	prCounts: Record<string, number>;
+	prAggregates: Record<string, PrAggregate>;
 	selectedJiraKey: string | null;
 	onCardClick: (jiraKey: string) => void;
 	onDrop: (jiraKey: string) => void;
@@ -121,8 +129,7 @@ function JiraBoardColumn({
 					<JiraBoardCard
 						key={card.jiraKey}
 						card={card}
-						subtaskCount={subtaskCounts[card.jiraKey] ?? 0}
-						prCount={prCounts[card.jiraKey] ?? 0}
+						prAggregate={prAggregates[card.jiraKey] ?? { count: 0, state: "open" }}
 						isSelected={selectedJiraKey === card.jiraKey}
 						onClick={() => onCardClick(card.jiraKey)}
 						onDelete={card.status === "done" ? () => onDelete(card.jiraKey) : undefined}
@@ -135,15 +142,13 @@ function JiraBoardColumn({
 
 function JiraBoardCard({
 	card,
-	subtaskCount,
-	prCount,
+	prAggregate,
 	isSelected,
 	onClick,
 	onDelete,
 }: {
 	card: JiraCard;
-	subtaskCount: number;
-	prCount: number;
+	prAggregate: PrAggregate;
 	isSelected: boolean;
 	onClick: () => void;
 	onDelete?: () => void;
@@ -176,15 +181,15 @@ function JiraBoardCard({
 					{card.jiraKey}
 				</span>
 				<div className="flex items-center gap-1">
-					{prCount > 0 && (
-						<span className="flex items-center gap-1 rounded-full bg-status-purple/15 px-2 py-0.5 text-xs text-status-purple">
+					{prAggregate.count > 0 && (
+						<span
+							className={cn(
+								"flex items-center gap-1 rounded-full px-2 py-0.5 text-xs",
+								PILL_CLASSES[prAggregate.state],
+							)}
+						>
 							<GitPullRequest size={10} />
-							{prCount}
-						</span>
-					)}
-					{subtaskCount > 0 && (
-						<span className="rounded-full bg-accent/20 px-2 py-0.5 text-xs text-accent">
-							{subtaskCount} {subtaskCount === 1 ? "subtask" : "subtasks"}
+							{prAggregate.count} {prAggregate.count === 1 ? "pull request" : "pull requests"}
 						</span>
 					)}
 					{onDelete !== undefined && (

@@ -18,7 +18,7 @@ function createRuntimeConfigResponse(
 		agentAutonomousModeEnabled: true,
 		effectiveCommand: selectedAgentId,
 		globalConfigPath: "/tmp/global-config.json",
-		projectConfigPath: "/tmp/project/.kanban/config.json",
+		repoConfigPath: "/tmp/repo/.kanban/config.json",
 		readyForReviewNotificationsEnabled: true,
 		detectedCommands: ["claude"],
 		agents: [

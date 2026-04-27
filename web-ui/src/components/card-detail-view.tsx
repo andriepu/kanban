@@ -332,7 +332,7 @@ function DiffToolbar({
 
 export function CardDetailView({
 	selection,
-	currentProjectId,
+	currentRepoId,
 	workspacePath,
 	selectedAgentId: _selectedAgentId = null,
 	runtimeConfig: _runtimeConfig = null,
@@ -383,7 +383,7 @@ export function CardDetailView({
 	isDocumentVisible = true,
 }: {
 	selection: CardSelection;
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	workspacePath?: string | null;
 	selectedAgentId?: RuntimeAgentId | null;
 	runtimeConfig?: RuntimeConfigResponse | null;
@@ -489,7 +489,7 @@ export function CardDetailView({
 			: null;
 	const { changes: workspaceChanges, isRuntimeAvailable } = useRuntimeWorkspaceChanges(
 		selection.card.id,
-		currentProjectId,
+		currentRepoId,
 		selection.card.baseRef,
 		diffMode,
 		taskWorkspaceStateVersion,
@@ -625,7 +625,7 @@ export function CardDetailView({
 	const agentChatPanel = (
 		<AgentTerminalPanel
 			taskId={selection.card.id}
-			workspaceId={currentProjectId}
+			workspaceId={currentRepoId}
 			terminalEnabled={isTaskTerminalEnabled}
 			summary={sessionSummary}
 			onSummary={onSessionSummary}
@@ -722,7 +722,7 @@ export function CardDetailView({
 						<div className="absolute bottom-0 left-0 right-0 z-20">
 							<BottomTerminalSection
 								taskId={bottomTerminalTaskId}
-								workspaceId={currentProjectId}
+								workspaceId={currentRepoId}
 								summary={bottomTerminalSummary}
 								onSummary={onSessionSummary}
 								onClose={onBottomTerminalClose}
@@ -871,7 +871,7 @@ export function CardDetailView({
 						{bottomTerminalOpen && bottomTerminalTaskId ? (
 							<BottomTerminalSection
 								taskId={bottomTerminalTaskId}
-								workspaceId={currentProjectId}
+								workspaceId={currentRepoId}
 								summary={bottomTerminalSummary}
 								onSummary={onSessionSummary}
 								onClose={onBottomTerminalClose}

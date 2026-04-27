@@ -3,21 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import type { RepoOption } from "@/types/jira";
-import { deriveSubtaskBranchName } from "@/utils/jira-utils";
+import { derivePullRequestBranchName } from "@/utils/jira-utils";
 
-interface SubtaskCreateDialogProps {
+interface PullRequestCreateDialogProps {
 	jiraKey: string;
 	open: boolean;
 	onClose: () => void;
 	onCreated: () => void;
 }
 
-export function SubtaskCreateDialog({
+export function PullRequestCreateDialog({
 	jiraKey,
 	open,
 	onClose,
 	onCreated,
-}: SubtaskCreateDialogProps): React.ReactElement {
+}: PullRequestCreateDialogProps): React.ReactElement {
 	const trpc = getRuntimeTrpcClient(null);
 
 	const [repos, setRepos] = useState<RepoOption[]>([]);
@@ -39,7 +39,7 @@ export function SubtaskCreateDialog({
 
 	useEffect(() => {
 		if (!branchEdited && jiraKey && title) {
-			setBranchName(deriveSubtaskBranchName(jiraKey, title));
+			setBranchName(derivePullRequestBranchName(jiraKey, title));
 		}
 	}, [jiraKey, title, branchEdited]);
 
@@ -67,7 +67,7 @@ export function SubtaskCreateDialog({
 		if (!repoId || !repoPath || !branchName || !prompt) return;
 		setIsPending(true);
 		try {
-			await trpc.jira.createSubtask.mutate({
+			await trpc.jira.createPullRequest.mutate({
 				jiraKey,
 				repoId,
 				repoPath,
@@ -90,14 +90,14 @@ export function SubtaskCreateDialog({
 				if (!o) handleClose();
 			}}
 		>
-			<DialogHeader title={`Add Subtask — ${jiraKey}`} />
+			<DialogHeader title={`Add Pull Request — ${jiraKey}`} />
 			<DialogBody className="flex flex-col gap-4 p-4">
 				<div className="flex flex-col gap-1.5">
-					<label htmlFor="subtask-title" className="text-xs font-medium text-text-secondary">
+					<label htmlFor="pull-request-title" className="text-xs font-medium text-text-secondary">
 						Title
 					</label>
 					<input
-						id="subtask-title"
+						id="pull-request-title"
 						type="text"
 						value={title}
 						onChange={(e) => setTitle(e.target.value)}
@@ -106,11 +106,11 @@ export function SubtaskCreateDialog({
 					/>
 				</div>
 				<div className="flex flex-col gap-1.5">
-					<label htmlFor="subtask-repo" className="text-xs font-medium text-text-secondary">
+					<label htmlFor="pull-request-repo" className="text-xs font-medium text-text-secondary">
 						Repository
 					</label>
 					<select
-						id="subtask-repo"
+						id="pull-request-repo"
 						value={repoId}
 						onChange={(e) => handleRepoChange(e.target.value)}
 						className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text-primary focus:border-border-focus focus:outline-none"
@@ -124,11 +124,11 @@ export function SubtaskCreateDialog({
 					</select>
 				</div>
 				<div className="flex flex-col gap-1.5">
-					<label htmlFor="subtask-branch" className="text-xs font-medium text-text-secondary">
+					<label htmlFor="pull-request-branch" className="text-xs font-medium text-text-secondary">
 						Branch Name
 					</label>
 					<input
-						id="subtask-branch"
+						id="pull-request-branch"
 						type="text"
 						value={branchName}
 						onChange={(e) => {
@@ -139,11 +139,11 @@ export function SubtaskCreateDialog({
 					/>
 				</div>
 				<div className="flex flex-col gap-1.5">
-					<label htmlFor="subtask-baseref" className="text-xs font-medium text-text-secondary">
+					<label htmlFor="pull-request-baseref" className="text-xs font-medium text-text-secondary">
 						Base Ref
 					</label>
 					<input
-						id="subtask-baseref"
+						id="pull-request-baseref"
 						type="text"
 						value={baseRef}
 						onChange={(e) => setBaseRef(e.target.value)}
@@ -151,11 +151,11 @@ export function SubtaskCreateDialog({
 					/>
 				</div>
 				<div className="flex flex-col gap-1.5">
-					<label htmlFor="subtask-prompt" className="text-xs font-medium text-text-secondary">
+					<label htmlFor="pull-request-prompt" className="text-xs font-medium text-text-secondary">
 						Prompt
 					</label>
 					<textarea
-						id="subtask-prompt"
+						id="pull-request-prompt"
 						value={prompt}
 						onChange={(e) => setPrompt(e.target.value)}
 						rows={5}
@@ -174,7 +174,7 @@ export function SubtaskCreateDialog({
 					disabled={!repoId || !branchName || !prompt || isPending}
 					onClick={() => void handleSubmit()}
 				>
-					{isPending ? "Creating…" : "Create Subtask"}
+					{isPending ? "Creating…" : "Create Pull Request"}
 				</Button>
 			</DialogFooter>
 		</Dialog>

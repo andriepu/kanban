@@ -8,10 +8,10 @@ import { useWindowEvent } from "@/utils/react-use";
 
 interface UseDetailTaskNavigationInput {
 	board: BoardData;
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	isAwaitingWorkspaceSnapshot: boolean;
 	isInitialRuntimeLoad: boolean;
-	isProjectSwitching: boolean;
+	isRepoSwitching: boolean;
 	isWorkspaceMetadataPending: boolean;
 	onDetailClosed?: () => void;
 }
@@ -25,10 +25,10 @@ export interface UseDetailTaskNavigationResult {
 
 export function useDetailTaskNavigation({
 	board,
-	currentProjectId,
+	currentRepoId,
 	isAwaitingWorkspaceSnapshot,
 	isInitialRuntimeLoad,
-	isProjectSwitching,
+	isRepoSwitching,
 	isWorkspaceMetadataPending,
 	onDetailClosed,
 }: UseDetailTaskNavigationInput): UseDetailTaskNavigationResult {
@@ -38,7 +38,7 @@ export function useDetailTaskNavigation({
 		}
 		return parseDetailTaskIdFromSearch(window.location.search);
 	});
-	const previousProjectIdRef = useRef<string | null | undefined>(undefined);
+	const previousRepoIdRef = useRef<string | null | undefined>(undefined);
 	const onDetailClosedRef = useRef(onDetailClosed);
 	const selectedCard = useMemo(() => {
 		if (!selectedTaskId) {
@@ -57,21 +57,21 @@ export function useDetailTaskNavigation({
 	}, []);
 
 	useEffect(() => {
-		const previousProjectId = previousProjectIdRef.current;
-		previousProjectIdRef.current = currentProjectId;
-		if (previousProjectId === undefined) {
+		const previousRepoId = previousRepoIdRef.current;
+		previousRepoIdRef.current = currentRepoId;
+		if (previousRepoId === undefined) {
 			return;
 		}
-		if (previousProjectId === currentProjectId) {
+		if (previousRepoId === currentRepoId) {
 			return;
 		}
 		closeDetail();
-	}, [closeDetail, currentProjectId]);
+	}, [closeDetail, currentRepoId]);
 
 	useEffect(() => {
 		if (
 			selectedTaskId &&
-			(isInitialRuntimeLoad || isProjectSwitching || isAwaitingWorkspaceSnapshot || isWorkspaceMetadataPending)
+			(isInitialRuntimeLoad || isRepoSwitching || isAwaitingWorkspaceSnapshot || isWorkspaceMetadataPending)
 		) {
 			return;
 		}
@@ -82,7 +82,7 @@ export function useDetailTaskNavigation({
 		closeDetail,
 		isAwaitingWorkspaceSnapshot,
 		isInitialRuntimeLoad,
-		isProjectSwitching,
+		isRepoSwitching,
 		isWorkspaceMetadataPending,
 		selectedCard,
 		selectedTaskId,

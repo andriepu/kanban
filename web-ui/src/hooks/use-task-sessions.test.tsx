@@ -41,7 +41,7 @@ function createTask(): BoardCard {
 
 function HookHarness({ onSnapshot }: { onSnapshot: (snapshot: HookSnapshot) => void }): null {
 	const sessions = useTaskSessions({
-		currentProjectId: "project-1",
+		currentRepoId: "project-1",
 		setSessions: () => {},
 	});
 

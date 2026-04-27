@@ -26,10 +26,10 @@ interface TaskGitActionLoadingState {
 }
 
 interface UseGitActionsInput {
-	currentProjectId: string | null;
+	currentRepoId: string | null;
 	board: BoardData;
 	selectedCard: CardSelection | null;
-	runtimeProjectConfig: RuntimeConfigResponse | null;
+	runtimeRepoConfig: RuntimeConfigResponse | null;
 	sendTaskSessionInput: (
 		taskId: string,
 		text: string,
@@ -79,10 +79,10 @@ function matchesWorkspaceInfoSelection(
 }
 
 export function useGitActions({
-	currentProjectId,
+	currentRepoId,
 	board,
 	selectedCard,
-	runtimeProjectConfig,
+	runtimeRepoConfig,
 	sendTaskSessionInput,
 	fetchTaskWorkspaceInfo,
 	isGitHistoryOpen,
@@ -134,7 +134,7 @@ export function useGitActions({
 	const gitHistoryStateVersion = selectedCard ? selectedTaskWorkspaceStateVersion : homeGitStateVersion;
 
 	const gitHistory = useGitHistoryData({
-		workspaceId: currentProjectId,
+		workspaceId: currentRepoId,
 		taskScope: gitHistoryTaskScope,
 		gitSummary: gitHistorySummary,
 		stateVersion: gitHistoryStateVersion,
@@ -266,12 +266,12 @@ export function useGitActions({
 				const prompt = buildTaskGitActionPrompt({
 					action,
 					workspaceInfo,
-					templates: runtimeProjectConfig
+					templates: runtimeRepoConfig
 						? {
-								commitPromptTemplate: runtimeProjectConfig.commitPromptTemplate,
-								openPrPromptTemplate: runtimeProjectConfig.openPrPromptTemplate,
-								commitPromptTemplateDefault: runtimeProjectConfig.commitPromptTemplateDefault,
-								openPrPromptTemplateDefault: runtimeProjectConfig.openPrPromptTemplateDefault,
+								commitPromptTemplate: runtimeRepoConfig.commitPromptTemplate,
+								openPrPromptTemplate: runtimeRepoConfig.openPrPromptTemplate,
+								commitPromptTemplateDefault: runtimeRepoConfig.commitPromptTemplateDefault,
+								openPrPromptTemplateDefault: runtimeRepoConfig.openPrPromptTemplateDefault,
 							}
 						: null,
 				});
@@ -306,7 +306,7 @@ export function useGitActions({
 		[
 			board,
 			fetchTaskWorkspaceInfo,
-			runtimeProjectConfig,
+			runtimeRepoConfig,
 			sendTaskSessionInput,
 			setTaskGitActionLoading,
 			taskGitActionLoadingByTaskId,
@@ -343,12 +343,12 @@ export function useGitActions({
 
 	const runGitAction = useCallback(
 		async (action: RuntimeGitSyncAction) => {
-			if (!currentProjectId || runningGitAction || isSwitchingHomeBranch) {
+			if (!currentRepoId || runningGitAction || isSwitchingHomeBranch) {
 				return;
 			}
 			setRunningGitAction(action);
 			try {
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
 				const payload = await trpcClient.workspace.runGitSyncAction.mutate({ action });
 				if (!payload.ok || !payload.summary) {
 					const errorMessage = payload.error ?? `${action} failed.`;
@@ -377,19 +377,19 @@ export function useGitActions({
 				setRunningGitAction(null);
 			}
 		},
-		[currentProjectId, isSwitchingHomeBranch, refreshGitHistory, runningGitAction],
+		[currentRepoId, isSwitchingHomeBranch, refreshGitHistory, runningGitAction],
 	);
 
 	const switchHomeBranch = useCallback(
 		async (branch: string) => {
 			const normalizedBranch = branch.trim();
 			const currentBranch = homeGitSummary?.currentBranch ?? null;
-			if (!currentProjectId || isSwitchingHomeBranch || !normalizedBranch || normalizedBranch === currentBranch) {
+			if (!currentRepoId || isSwitchingHomeBranch || !normalizedBranch || normalizedBranch === currentBranch) {
 				return;
 			}
 			setIsSwitchingHomeBranch(true);
 			try {
-				const trpcClient = getRuntimeTrpcClient(currentProjectId);
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
 				const payload = await trpcClient.workspace.checkoutGitBranch.mutate({
 					branch: normalizedBranch,
 				});
@@ -422,22 +422,16 @@ export function useGitActions({
 				setIsSwitchingHomeBranch(false);
 			}
 		},
-		[
-			currentProjectId,
-			homeGitSummary?.currentBranch,
-			isSwitchingHomeBranch,
-			refreshGitHistory,
-			refreshWorkspaceState,
-		],
+		[currentRepoId, homeGitSummary?.currentBranch, isSwitchingHomeBranch, refreshGitHistory, refreshWorkspaceState],
 	);
 
 	const discardHomeWorkingChanges = useCallback(async () => {
-		if (!currentProjectId || isDiscardingHomeWorkingChanges) {
+		if (!currentRepoId || isDiscardingHomeWorkingChanges) {
 			return;
 		}
 		setIsDiscardingHomeWorkingChanges(true);
 		try {
-			const trpcClient = getRuntimeTrpcClient(currentProjectId);
+			const trpcClient = getRuntimeTrpcClient(currentRepoId);
 			const payload = await trpcClient.workspace.discardGitChanges.mutate(null);
 			if (!payload.ok) {
 				if (payload.summary) {
@@ -470,7 +464,7 @@ export function useGitActions({
 		} finally {
 			setIsDiscardingHomeWorkingChanges(false);
 		}
-	}, [currentProjectId, isDiscardingHomeWorkingChanges, refreshGitHistory]);
+	}, [currentRepoId, isDiscardingHomeWorkingChanges, refreshGitHistory]);
 
 	const runAutoReviewGitAction = useCallback(
 		async (taskId: string, action: TaskGitAction) => {

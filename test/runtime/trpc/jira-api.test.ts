@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { jiraPullRequestSchema } from "../../../src/core/api-contract";
 import { type CreateJiraApiDependencies, createJiraApi } from "../../../src/trpc/jira-api";
 
 const fsMocks = vi.hoisted(() => ({
@@ -13,8 +14,10 @@ function createMockDeps(): CreateJiraApiDependencies {
 	return {
 		loadJiraBoard: vi.fn().mockResolvedValue({ cards: [] }),
 		saveJiraBoard: vi.fn().mockResolvedValue(undefined),
-		loadJiraSubtasks: vi.fn().mockResolvedValue({}),
-		createJiraSubtask: vi.fn().mockResolvedValue({
+		loadJiraPullRequests: vi.fn().mockResolvedValue({}),
+		loadJiraDetails: vi.fn().mockResolvedValue({}),
+		saveJiraDetail: vi.fn().mockResolvedValue(undefined),
+		createJiraPullRequest: vi.fn().mockResolvedValue({
 			id: "sub-1",
 			jiraKey: "POL-1",
 			repoId: "repo",
@@ -27,30 +30,31 @@ function createMockDeps(): CreateJiraApiDependencies {
 			status: "review",
 			prUrl: "https://github.com/a/b/pull/1",
 			prNumber: 1,
-			isDraft: false,
+			prState: "open",
 			createdAt: 1,
 			updatedAt: 1,
 		}),
-		deleteJiraSubtask: vi.fn().mockResolvedValue(undefined),
+		deleteJiraPullRequest: vi.fn().mockResolvedValue(undefined),
 		searchJiraIssues: vi.fn().mockResolvedValue([]),
 		fetchIssue: vi.fn().mockResolvedValue({ key: "POL-1", summary: "Summary", description: null }),
 		transitionIssue: vi.fn().mockResolvedValue(undefined),
 		setApiToken: vi.fn().mockResolvedValue(undefined),
 		scanRepos: vi.fn().mockResolvedValue([{ id: "my-repo", path: "/repos/my-repo" }]),
-		createSubtaskWorktree: vi.fn().mockResolvedValue(undefined),
-		removeSubtaskWorktree: vi.fn().mockResolvedValue(undefined),
+		createPullRequestWorktree: vi.fn().mockResolvedValue(undefined),
+		removePullRequestWorktree: vi.fn().mockResolvedValue(undefined),
 		startTaskSession: vi.fn().mockResolvedValue({ started: true }),
 		stopTaskSession: vi.fn().mockResolvedValue({ stopped: true }),
 		addWorkspace: vi.fn().mockResolvedValue("ws-id"),
 		getWorktreesRoot: vi.fn().mockReturnValue("/work"),
 		getReposRoot: vi.fn().mockReturnValue("/repos"),
-		listOpenAuthoredGhPullRequests: vi.fn().mockResolvedValue([]),
+		listAuthoredGhPullRequestsForProject: vi.fn().mockResolvedValue([]),
 		getJiraProjectKey: vi.fn().mockReturnValue("POL"),
+		broadcastRuntimeReposUpdated: vi.fn(),
 	};
 }
 
 describe("jira-api", () => {
-	it("loadBoard returns board and subtasks", async () => {
+	it("loadBoard returns board and pullRequests", async () => {
 		const deps = createMockDeps();
 		(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
 			cards: [
@@ -58,7 +62,7 @@ describe("jira-api", () => {
 					jiraKey: "POL-1",
 					summary: "Fix",
 					status: "todo",
-					subtaskIds: [],
+					pullRequestIds: [],
 					createdAt: 1,
 					updatedAt: 1,
 				},
@@ -67,7 +71,7 @@ describe("jira-api", () => {
 		const api = createJiraApi(deps);
 		const result = await api.loadBoard();
 		expect(result.board.cards[0]?.jiraKey).toBe("POL-1");
-		expect(result.subtasks).toBeDefined();
+		expect(result.pullRequests).toBeDefined();
 	});
 
 	it("scanRepos returns repo list", async () => {
@@ -77,10 +81,10 @@ describe("jira-api", () => {
 		expect(result.repos).toEqual([{ id: "my-repo", path: "/repos/my-repo" }]);
 	});
 
-	it("createSubtask derives worktreePath and creates worktree", async () => {
+	it("createPullRequest derives worktreePath and creates worktree", async () => {
 		const deps = createMockDeps();
 		const api = createJiraApi(deps);
-		await api.createSubtask({
+		await api.createPullRequest({
 			jiraKey: "POL-1",
 			repoId: "my-repo",
 			repoPath: "/repos/my-repo",
@@ -89,10 +93,48 @@ describe("jira-api", () => {
 			baseRef: "main",
 			branchName: "POL-1-fix-login-bug",
 		});
-		expect(deps.createSubtaskWorktree).toHaveBeenCalledWith(
+		expect(deps.createPullRequestWorktree).toHaveBeenCalledWith(
 			expect.objectContaining({ repoPath: "/repos/my-repo", branchName: "POL-1-fix-login-bug" }),
 		);
-		expect(deps.createJiraSubtask).toHaveBeenCalled();
+		expect(deps.createJiraPullRequest).toHaveBeenCalled();
+	});
+
+	it("createPullRequest broadcasts runtime repos updated", async () => {
+		const deps = createMockDeps();
+		const api = createJiraApi(deps);
+		await api.createPullRequest({
+			jiraKey: "POL-1",
+			repoId: "my-repo",
+			repoPath: "/repos/my-repo",
+			prompt: "Fix login",
+			title: "Fix Login Bug",
+			baseRef: "main",
+			branchName: "POL-1-fix-login-bug",
+		});
+		expect(deps.broadcastRuntimeReposUpdated).toHaveBeenCalledTimes(1);
+	});
+
+	it("deletePullRequest broadcasts runtime repos updated", async () => {
+		const deps = createMockDeps();
+		(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({
+			"sub-1": {
+				id: "sub-1",
+				jiraKey: "POL-1",
+				repoId: "my-repo",
+				repoPath: "/repos/my-repo",
+				worktreePath: "/work/POL-1",
+				status: "backlog",
+				prompt: "",
+				title: "t",
+				baseRef: "main",
+				branchName: "POL-1-t",
+				createdAt: 1,
+				updatedAt: 1,
+			},
+		});
+		const api = createJiraApi(deps);
+		await api.deletePullRequest("sub-1");
+		expect(deps.broadcastRuntimeReposUpdated).toHaveBeenCalledTimes(1);
 	});
 
 	it("importFromJira maps Todo status to todo column", async () => {
@@ -141,7 +183,9 @@ describe("jira-api", () => {
 	it("importFromJira updates status of existing card", async () => {
 		const deps = createMockDeps();
 		(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
-			cards: [{ jiraKey: "POL-1", summary: "Fix bug", status: "todo", subtaskIds: [], createdAt: 1, updatedAt: 1 }],
+			cards: [
+				{ jiraKey: "POL-1", summary: "Fix bug", status: "todo", pullRequestIds: [], createdAt: 1, updatedAt: 1 },
+			],
 		});
 		(deps.searchJiraIssues as ReturnType<typeof vi.fn>).mockResolvedValue([
 			{ key: "POL-1", summary: "Fix bug", status: "In-Progress" },
@@ -154,7 +198,9 @@ describe("jira-api", () => {
 	it("importFromJira removes existing card with unmapped status", async () => {
 		const deps = createMockDeps();
 		(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
-			cards: [{ jiraKey: "POL-1", summary: "Fix bug", status: "todo", subtaskIds: [], createdAt: 1, updatedAt: 1 }],
+			cards: [
+				{ jiraKey: "POL-1", summary: "Fix bug", status: "todo", pullRequestIds: [], createdAt: 1, updatedAt: 1 },
+			],
 		});
 		(deps.searchJiraIssues as ReturnType<typeof vi.fn>).mockResolvedValue([
 			{ key: "POL-1", summary: "Fix bug", status: "Closed" },
@@ -167,7 +213,9 @@ describe("jira-api", () => {
 	it("importFromJira leaves existing card untouched when not returned by Jira", async () => {
 		const deps = createMockDeps();
 		(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
-			cards: [{ jiraKey: "POL-5", summary: "Old card", status: "done", subtaskIds: [], createdAt: 1, updatedAt: 1 }],
+			cards: [
+				{ jiraKey: "POL-5", summary: "Old card", status: "done", pullRequestIds: [], createdAt: 1, updatedAt: 1 },
+			],
 		});
 		(deps.searchJiraIssues as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 		const api = createJiraApi(deps);
@@ -195,7 +243,7 @@ describe("jira-api", () => {
 					jiraKey: "POL-11",
 					summary: "Was active",
 					status: "in_progress",
-					subtaskIds: [],
+					pullRequestIds: [],
 					createdAt: 1,
 					updatedAt: 1,
 				},
@@ -219,13 +267,14 @@ describe("jira-api", () => {
 
 		it("skips PRs with no matching jira key in title", async () => {
 			const deps = createMockDeps();
-			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue([
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
 				{
 					number: 1,
 					title: "Add dark mode",
 					url: "https://github.com/a/b/pull/1",
 					headRefName: "feature/dark-mode",
 					isDraft: false,
+					state: "OPEN" as const,
 					repository: { nameWithOwner: "a/b" },
 				},
 			]);
@@ -237,13 +286,14 @@ describe("jira-api", () => {
 
 		it("skips PRs whose jira key is not on board", async () => {
 			const deps = createMockDeps();
-			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue([
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
 				{
 					number: 2,
 					title: "POL-999 fix something",
 					url: "https://github.com/a/b/pull/2",
 					headRefName: "POL-999-fix",
 					isDraft: false,
+					state: "OPEN" as const,
 					repository: { nameWithOwner: "a/b" },
 				},
 			]);
@@ -254,21 +304,29 @@ describe("jira-api", () => {
 			expect(result.attached).toBe(0);
 		});
 
-		it("creates new subtask for matched PR that is not yet imported", async () => {
+		it("creates new pullRequest for matched PR that is not yet imported", async () => {
 			const deps = createMockDeps();
-			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue([
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
 				{
 					number: 3,
 					title: "POL-1 fix login",
 					url: "https://github.com/a/b/pull/3",
 					headRefName: "POL-1-fix-login",
 					isDraft: false,
+					state: "OPEN" as const,
 					repository: { nameWithOwner: "a/b" },
 				},
 			]);
 			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
 				cards: [
-					{ jiraKey: "POL-1", summary: "Fix login", status: "todo", subtaskIds: [], createdAt: 1, updatedAt: 1 },
+					{
+						jiraKey: "POL-1",
+						summary: "Fix login",
+						status: "todo",
+						pullRequestIds: [],
+						createdAt: 1,
+						updatedAt: 1,
+					},
 				],
 			});
 			const api = createJiraApi(deps);
@@ -277,55 +335,62 @@ describe("jira-api", () => {
 			expect(result.skipped).toBe(0);
 			expect(deps.saveJiraBoard).toHaveBeenCalled();
 			const savedBoard = (deps.saveJiraBoard as ReturnType<typeof vi.fn>).mock.calls[0][0];
-			expect(savedBoard.cards[0].subtaskIds).toHaveLength(1);
+			expect(savedBoard.cards[0].pullRequestIds).toHaveLength(1);
+			expect(result.board.cards[0]?.pullRequestIds).toHaveLength(1);
 		});
 
 		it("sets status to review for non-draft PR", async () => {
 			const deps = createMockDeps();
-			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue([
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
 				{
 					number: 4,
 					title: "POL-1 fix login",
 					url: "https://github.com/a/b/pull/4",
 					headRefName: "POL-1-fix",
 					isDraft: false,
+					state: "OPEN" as const,
 					repository: { nameWithOwner: "a/b" },
 				},
 			]);
 			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
-				cards: [{ jiraKey: "POL-1", summary: "Fix", status: "todo", subtaskIds: [], createdAt: 1, updatedAt: 1 }],
+				cards: [
+					{ jiraKey: "POL-1", summary: "Fix", status: "todo", pullRequestIds: [], createdAt: 1, updatedAt: 1 },
+				],
 			});
 			const api = createJiraApi(deps);
 			const result = await api.scanAndAttachPRs();
-			const newSubtask = Object.values(result.subtasks)[0];
-			expect(newSubtask?.status).toBe("review");
-			expect(newSubtask?.isDraft).toBe(false);
+			const newPullRequest = Object.values(result.pullRequests)[0];
+			expect(newPullRequest?.status).toBe("review");
+			expect(newPullRequest?.prState).toBe("open");
 		});
 
 		it("sets status to in_progress for draft PR", async () => {
 			const deps = createMockDeps();
-			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue([
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
 				{
 					number: 5,
 					title: "POL-1 wip",
 					url: "https://github.com/a/b/pull/5",
 					headRefName: "POL-1-wip",
 					isDraft: true,
+					state: "OPEN" as const,
 					repository: { nameWithOwner: "a/b" },
 				},
 			]);
 			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
-				cards: [{ jiraKey: "POL-1", summary: "Fix", status: "todo", subtaskIds: [], createdAt: 1, updatedAt: 1 }],
+				cards: [
+					{ jiraKey: "POL-1", summary: "Fix", status: "todo", pullRequestIds: [], createdAt: 1, updatedAt: 1 },
+				],
 			});
 			const api = createJiraApi(deps);
 			const result = await api.scanAndAttachPRs();
-			const newSubtask = Object.values(result.subtasks)[0];
-			expect(newSubtask?.status).toBe("in_progress");
-			expect(newSubtask?.isDraft).toBe(true);
+			const newPullRequest = Object.values(result.pullRequests)[0];
+			expect(newPullRequest?.status).toBe("in_progress");
+			expect(newPullRequest?.prState).toBe("draft");
 		});
 
-		it("updates draft status of existing PR-backed subtask (draft → ready bumps to review)", async () => {
-			const existingSubtask = {
+		it("updates draft status of existing PR-backed pullRequest (draft → ready bumps to review)", async () => {
+			const existingPullRequest = {
 				id: "existing-sub",
 				jiraKey: "POL-1",
 				repoId: "b",
@@ -338,19 +403,22 @@ describe("jira-api", () => {
 				status: "in_progress" as const,
 				prUrl: "https://github.com/a/b/pull/5",
 				prNumber: 5,
-				isDraft: true,
+				prState: "draft" as const,
 				createdAt: 1,
 				updatedAt: 1,
 			};
 			const deps = createMockDeps();
-			(deps.loadJiraSubtasks as ReturnType<typeof vi.fn>).mockResolvedValue({ "existing-sub": existingSubtask });
-			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue([
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({
+				"existing-sub": existingPullRequest,
+			});
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
 				{
 					number: 5,
 					title: "POL-1 wip",
 					url: "https://github.com/a/b/pull/5",
 					headRefName: "POL-1-wip",
 					isDraft: false,
+					state: "OPEN" as const,
 					repository: { nameWithOwner: "a/b" },
 				},
 			]);
@@ -360,7 +428,7 @@ describe("jira-api", () => {
 						jiraKey: "POL-1",
 						summary: "Fix",
 						status: "todo",
-						subtaskIds: ["existing-sub"],
+						pullRequestIds: ["existing-sub"],
 						createdAt: 1,
 						updatedAt: 1,
 					},
@@ -368,13 +436,13 @@ describe("jira-api", () => {
 			});
 			const api = createJiraApi(deps);
 			const result = await api.scanAndAttachPRs();
-			expect(result.subtasks["existing-sub"]?.status).toBe("review");
-			expect(result.subtasks["existing-sub"]?.isDraft).toBe(false);
+			expect(result.pullRequests["existing-sub"]?.status).toBe("review");
+			expect(result.pullRequests["existing-sub"]?.prState).toBe("open");
 			expect(result.attached).toBe(0);
 		});
 
-		it("does not update status of done subtask on rescan", async () => {
-			const existingSubtask = {
+		it("does not update status of done pullRequest on rescan", async () => {
+			const existingPullRequest = {
 				id: "done-sub",
 				jiraKey: "POL-1",
 				repoId: "b",
@@ -387,19 +455,20 @@ describe("jira-api", () => {
 				status: "done" as const,
 				prUrl: "https://github.com/a/b/pull/6",
 				prNumber: 6,
-				isDraft: false,
+				prState: "open" as const,
 				createdAt: 1,
 				updatedAt: 1,
 			};
 			const deps = createMockDeps();
-			(deps.loadJiraSubtasks as ReturnType<typeof vi.fn>).mockResolvedValue({ "done-sub": existingSubtask });
-			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue([
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "done-sub": existingPullRequest });
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
 				{
 					number: 6,
 					title: "POL-1 done",
 					url: "https://github.com/a/b/pull/6",
 					headRefName: "POL-1-done",
 					isDraft: true,
+					state: "OPEN" as const,
 					repository: { nameWithOwner: "a/b" },
 				},
 			]);
@@ -409,7 +478,7 @@ describe("jira-api", () => {
 						jiraKey: "POL-1",
 						summary: "Fix",
 						status: "todo",
-						subtaskIds: ["done-sub"],
+						pullRequestIds: ["done-sub"],
 						createdAt: 1,
 						updatedAt: 1,
 					},
@@ -417,12 +486,174 @@ describe("jira-api", () => {
 			});
 			const api = createJiraApi(deps);
 			const result = await api.scanAndAttachPRs();
-			expect(result.subtasks["done-sub"]?.status).toBe("done");
+			expect(result.pullRequests["done-sub"]?.status).toBe("done");
+		});
+
+		it("sets prState to merged when PR state is MERGED", async () => {
+			const deps = createMockDeps();
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
+				{
+					number: 10,
+					title: "POL-1 merged feature",
+					url: "https://github.com/a/b/pull/10",
+					headRefName: "POL-1-feature",
+					isDraft: false,
+					state: "MERGED" as const,
+					repository: { nameWithOwner: "a/b" },
+				},
+			]);
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
+				cards: [
+					{ jiraKey: "POL-1", summary: "Fix", status: "todo", pullRequestIds: [], createdAt: 1, updatedAt: 1 },
+				],
+			});
+			const api = createJiraApi(deps);
+			const result = await api.scanAndAttachPRs();
+			const newPullRequest = Object.values(result.pullRequests)[0];
+			expect(newPullRequest?.prState).toBe("merged");
+		});
+
+		it("updates prState to merged on rescan when existing PR transitions to merged", async () => {
+			const existingPullRequest = {
+				id: "merging-sub",
+				jiraKey: "POL-1",
+				repoId: "b",
+				repoPath: "",
+				prompt: "",
+				title: "POL-1 feature",
+				baseRef: "main",
+				branchName: "POL-1-feature",
+				worktreePath: "",
+				status: "review" as const,
+				prUrl: "https://github.com/a/b/pull/11",
+				prNumber: 11,
+				prState: "open" as const,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			const deps = createMockDeps();
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({
+				"merging-sub": existingPullRequest,
+			});
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
+				{
+					number: 11,
+					title: "POL-1 feature",
+					url: "https://github.com/a/b/pull/11",
+					headRefName: "POL-1-feature",
+					isDraft: false,
+					state: "MERGED" as const,
+					repository: { nameWithOwner: "a/b" },
+				},
+			]);
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
+				cards: [
+					{
+						jiraKey: "POL-1",
+						summary: "Fix",
+						status: "todo",
+						pullRequestIds: ["merging-sub"],
+						createdAt: 1,
+						updatedAt: 1,
+					},
+				],
+			});
+			const api = createJiraApi(deps);
+			const result = await api.scanAndAttachPRs();
+			expect(result.pullRequests["merging-sub"]?.prState).toBe("merged");
+		});
+
+		it("preserves merged prState when gh returns stale non-MERGED state", async () => {
+			const existingPullRequest = {
+				id: "stale-merged-sub",
+				jiraKey: "POL-1",
+				repoId: "b",
+				repoPath: "",
+				prompt: "",
+				title: "POL-1 feature",
+				baseRef: "main",
+				branchName: "POL-1-feature",
+				worktreePath: "",
+				status: "review" as const,
+				prUrl: "https://github.com/a/b/pull/20",
+				prNumber: 20,
+				prState: "merged" as const,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			const deps = createMockDeps();
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({
+				"stale-merged-sub": existingPullRequest,
+			});
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
+				{
+					number: 20,
+					title: "POL-1 feature",
+					url: "https://github.com/a/b/pull/20",
+					headRefName: "POL-1-feature",
+					isDraft: false,
+					state: "OPEN" as const, // stale gh search index — PR was merged but is:open still returns it
+					repository: { nameWithOwner: "a/b" },
+				},
+			]);
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
+				cards: [
+					{
+						jiraKey: "POL-1",
+						summary: "Fix",
+						status: "todo",
+						pullRequestIds: ["stale-merged-sub"],
+						createdAt: 1,
+						updatedAt: 1,
+					},
+				],
+			});
+			const api = createJiraApi(deps);
+			const result = await api.scanAndAttachPRs();
+			expect(result.pullRequests["stale-merged-sub"]?.prState).toBe("merged");
+		});
+
+		it("backfills prState='open' for orphan pullRequest with prUrl but no prState not returned by scan", async () => {
+			const orphanPullRequest = {
+				id: "orphan-sub",
+				jiraKey: "POL-1",
+				repoId: "b",
+				repoPath: "",
+				prompt: "",
+				title: "Orphan PR",
+				baseRef: "main",
+				branchName: "POL-1-orphan",
+				worktreePath: "",
+				status: "review" as const,
+				prUrl: "https://github.com/a/b/pull/99",
+				prNumber: 99,
+				// prState intentionally absent
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			const deps = createMockDeps();
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "orphan-sub": orphanPullRequest });
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({
+				cards: [
+					{
+						jiraKey: "POL-1",
+						summary: "Fix",
+						status: "todo",
+						pullRequestIds: ["orphan-sub"],
+						createdAt: 1,
+						updatedAt: 1,
+					},
+				],
+			});
+			const api = createJiraApi(deps);
+			const result = await api.scanAndAttachPRs();
+			expect(result.pullRequests["orphan-sub"]?.prState).toBe("open");
 		});
 
 		it("re-throws gh CLI error with context", async () => {
 			const deps = createMockDeps();
-			(deps.listOpenAuthoredGhPullRequests as ReturnType<typeof vi.fn>).mockRejectedValue(
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockRejectedValue(
 				new Error("gh CLI not found. Install GitHub CLI (gh) to use PR scan."),
 			);
 			const api = createJiraApi(deps);
@@ -430,10 +661,34 @@ describe("jira-api", () => {
 		});
 	});
 
-	describe("startSubtaskSession", () => {
+	describe("jiraPullRequestSchema", () => {
+		it("preserves prState through zod validation (guards against schema-strip regression)", () => {
+			const pullRequest = {
+				id: "x",
+				jiraKey: "POL-1",
+				repoId: "r",
+				repoPath: "",
+				prompt: "",
+				title: "t",
+				baseRef: "main",
+				branchName: "b",
+				worktreePath: "",
+				status: "review" as const,
+				prUrl: "https://github.com/a/b/pull/1",
+				prNumber: 1,
+				prState: "merged" as const,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			const parsed = jiraPullRequestSchema.parse(pullRequest);
+			expect(parsed.prState).toBe("merged");
+		});
+	});
+
+	describe("startPullRequestSession", () => {
 		it("starts agent session when worktreePath exists on disk", async () => {
 			const deps = createMockDeps();
-			const subtask = {
+			const pullRequest = {
 				id: "sub-with-tree",
 				jiraKey: "POL-1",
 				repoId: "repo",
@@ -447,20 +702,20 @@ describe("jira-api", () => {
 				createdAt: 1,
 				updatedAt: 1,
 			};
-			(deps.loadJiraSubtasks as ReturnType<typeof vi.fn>).mockResolvedValue({ "sub-with-tree": subtask });
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "sub-with-tree": pullRequest });
 			(deps.addWorkspace as ReturnType<typeof vi.fn>).mockResolvedValue("ws-id-1");
 			(deps.startTaskSession as ReturnType<typeof vi.fn>).mockResolvedValue({ started: true });
 			fsMocks.access.mockResolvedValueOnce(undefined);
 			const api = createJiraApi(deps);
-			const result = await api.startSubtaskSession("sub-with-tree");
+			const result = await api.startPullRequestSession("sub-with-tree");
 			expect(result.started).toBe(true);
 			expect(result.workspaceId).toBe("ws-id-1");
 			expect(result.openUrl).toBeUndefined();
 		});
 
-		it("returns openUrl when subtask has prUrl and no worktreePath set", async () => {
+		it("returns openUrl when pullRequest has prUrl and no worktreePath set", async () => {
 			const deps = createMockDeps();
-			const subtask = {
+			const pullRequest = {
 				id: "pr-sub",
 				jiraKey: "POL-1",
 				repoId: "repo",
@@ -473,13 +728,13 @@ describe("jira-api", () => {
 				status: "review" as const,
 				prUrl: "https://github.com/a/b/pull/42",
 				prNumber: 42,
-				isDraft: false,
+				prState: "open" as const,
 				createdAt: 1,
 				updatedAt: 1,
 			};
-			(deps.loadJiraSubtasks as ReturnType<typeof vi.fn>).mockResolvedValue({ "pr-sub": subtask });
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "pr-sub": pullRequest });
 			const api = createJiraApi(deps);
-			const result = await api.startSubtaskSession("pr-sub");
+			const result = await api.startPullRequestSession("pr-sub");
 			expect(result.openUrl).toBe("https://github.com/a/b/pull/42");
 			expect(result.started).toBe(false);
 			expect(result.workspaceId).toBe("");
@@ -488,7 +743,7 @@ describe("jira-api", () => {
 
 		it("returns openUrl when worktreePath is set but inaccessible and prUrl is present", async () => {
 			const deps = createMockDeps();
-			const subtask = {
+			const pullRequest = {
 				id: "stale-tree-sub",
 				jiraKey: "POL-1",
 				repoId: "repo",
@@ -501,22 +756,22 @@ describe("jira-api", () => {
 				status: "review" as const,
 				prUrl: "https://github.com/a/b/pull/55",
 				prNumber: 55,
-				isDraft: false,
+				prState: "open" as const,
 				createdAt: 1,
 				updatedAt: 1,
 			};
-			(deps.loadJiraSubtasks as ReturnType<typeof vi.fn>).mockResolvedValue({ "stale-tree-sub": subtask });
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "stale-tree-sub": pullRequest });
 			fsMocks.access.mockRejectedValueOnce(new Error("ENOENT: no such file or directory"));
 			const api = createJiraApi(deps);
-			const result = await api.startSubtaskSession("stale-tree-sub");
+			const result = await api.startPullRequestSession("stale-tree-sub");
 			expect(result.openUrl).toBe("https://github.com/a/b/pull/55");
 			expect(result.started).toBe(false);
 			expect(deps.startTaskSession).not.toHaveBeenCalled();
 		});
 
-		it("throws when subtask has no worktreePath and no prUrl", async () => {
+		it("throws when pullRequest has no worktreePath and no prUrl", async () => {
 			const deps = createMockDeps();
-			const subtask = {
+			const pullRequest = {
 				id: "no-tree-no-pr",
 				jiraKey: "POL-1",
 				repoId: "repo",
@@ -530,9 +785,9 @@ describe("jira-api", () => {
 				createdAt: 1,
 				updatedAt: 1,
 			};
-			(deps.loadJiraSubtasks as ReturnType<typeof vi.fn>).mockResolvedValue({ "no-tree-no-pr": subtask });
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "no-tree-no-pr": pullRequest });
 			const api = createJiraApi(deps);
-			await expect(api.startSubtaskSession("no-tree-no-pr")).rejects.toThrow(/no worktree path and no PR URL/i);
+			await expect(api.startPullRequestSession("no-tree-no-pr")).rejects.toThrow(/no worktree path and no PR URL/i);
 		});
 	});
 });

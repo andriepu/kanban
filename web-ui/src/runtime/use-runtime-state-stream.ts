@@ -1,9 +1,9 @@
 import { useEffect, useReducer } from "react";
 
 import type {
-	RuntimeProjectSummary,
+	RuntimeRepoSummary,
 	RuntimeStateStreamMessage,
-	RuntimeStateStreamProjectsMessage,
+	RuntimeStateStreamReposMessage,
 	RuntimeStateStreamSnapshotMessage,
 	RuntimeStateStreamTaskChatClearedMessage,
 	RuntimeStateStreamTaskChatMessage,
@@ -44,8 +44,8 @@ function getRuntimeStreamUrl(workspaceId: string | null): string {
 }
 
 export interface UseRuntimeStateStreamResult {
-	currentProjectId: string | null;
-	projects: RuntimeProjectSummary[];
+	currentRepoId: string | null;
+	repos: RuntimeRepoSummary[];
 	workspaceState: RuntimeWorkspaceStateResponse | null;
 	workspaceMetadata: RuntimeWorkspaceMetadata | null;
 	latestTaskChatMessage: RuntimeStateStreamTaskChatMessage | null;
@@ -57,8 +57,8 @@ export interface UseRuntimeStateStreamResult {
 }
 
 interface RuntimeStateStreamStore {
-	currentProjectId: string | null;
-	projects: RuntimeProjectSummary[];
+	currentRepoId: string | null;
+	repos: RuntimeRepoSummary[];
 	workspaceState: RuntimeWorkspaceStateResponse | null;
 	workspaceMetadata: RuntimeWorkspaceMetadata | null;
 	latestTaskChatMessage: RuntimeStateStreamTaskChatMessage | null;
@@ -74,9 +74,9 @@ type RuntimeStateStreamAction =
 	| { type: "stream_connected" }
 	| { type: "snapshot"; payload: RuntimeStateStreamSnapshotMessage }
 	| {
-			type: "projects_updated";
-			payload: RuntimeStateStreamProjectsMessage;
-			nextProjectId: string | null;
+			type: "repos_updated";
+			payload: RuntimeStateStreamReposMessage;
+			nextRepoId: string | null;
 	  }
 	| { type: "task_chat_message"; payload: RuntimeStateStreamTaskChatMessage }
 	| { type: "task_chat_cleared"; payload: RuntimeStateStreamTaskChatClearedMessage }
@@ -89,8 +89,8 @@ type RuntimeStateStreamAction =
 
 function createInitialRuntimeStateStreamStore(requestedWorkspaceId: string | null): RuntimeStateStreamStore {
 	return {
-		currentProjectId: requestedWorkspaceId,
-		projects: [],
+		currentRepoId: requestedWorkspaceId,
+		repos: [],
 		workspaceState: null,
 		workspaceMetadata: null,
 		latestTaskChatMessage: null,
@@ -125,14 +125,14 @@ function upsertTaskChatMessage(
 	return nextMessages;
 }
 
-function resolveProjectIdAfterProjectsUpdate(
-	currentProjectId: string | null,
-	payload: RuntimeStateStreamProjectsMessage,
+function resolveRepoIdAfterReposUpdate(
+	currentRepoId: string | null,
+	payload: RuntimeStateStreamReposMessage,
 ): string | null {
-	if (currentProjectId && payload.projects.some((project) => project.id === currentProjectId)) {
-		return currentProjectId;
+	if (currentRepoId && payload.repos.some((repo) => repo.id === currentRepoId)) {
+		return currentRepoId;
 	}
-	return payload.currentProjectId;
+	return payload.currentRepoId;
 }
 
 function runtimeStateStreamReducer(
@@ -169,8 +169,8 @@ function runtimeStateStreamReducer(
 				}
 			: null;
 		return {
-			currentProjectId: action.payload.currentProjectId,
-			projects: action.payload.projects,
+			currentRepoId: action.payload.currentRepoId,
+			repos: action.payload.repos,
 			workspaceState: nextWorkspaceState,
 			workspaceMetadata: action.payload.workspaceMetadata,
 			latestTaskChatMessage: null,
@@ -181,17 +181,17 @@ function runtimeStateStreamReducer(
 			hasReceivedSnapshot: true,
 		};
 	}
-	if (action.type === "projects_updated") {
-		const didProjectChange = action.nextProjectId !== state.currentProjectId;
+	if (action.type === "repos_updated") {
+		const didRepoChange = action.nextRepoId !== state.currentRepoId;
 		return {
 			...state,
-			currentProjectId: action.nextProjectId,
-			projects: action.payload.projects,
-			workspaceState: didProjectChange ? null : state.workspaceState,
-			workspaceMetadata: didProjectChange ? null : state.workspaceMetadata,
-			latestTaskChatMessage: didProjectChange ? null : state.latestTaskChatMessage,
-			taskChatMessagesByTaskId: didProjectChange ? {} : state.taskChatMessagesByTaskId,
-			latestTaskReadyForReview: didProjectChange ? null : state.latestTaskReadyForReview,
+			currentRepoId: action.nextRepoId,
+			repos: action.payload.repos,
+			workspaceState: didRepoChange ? null : state.workspaceState,
+			workspaceMetadata: didRepoChange ? null : state.workspaceMetadata,
+			latestTaskChatMessage: didRepoChange ? null : state.latestTaskChatMessage,
+			taskChatMessagesByTaskId: didRepoChange ? {} : state.taskChatMessagesByTaskId,
+			latestTaskReadyForReview: didRepoChange ? null : state.latestTaskReadyForReview,
 			hasReceivedSnapshot: true,
 		};
 	}
@@ -338,21 +338,21 @@ export function useRuntimeStateStream(requestedWorkspaceId: string | null): UseR
 				try {
 					const payload = JSON.parse(String(event.data)) as RuntimeStateStreamMessage;
 					if (payload.type === "snapshot") {
-						activeWorkspaceId = payload.currentProjectId;
+						activeWorkspaceId = payload.currentRepoId;
 						dispatch({ type: "snapshot", payload });
 						return;
 					}
-					if (payload.type === "projects_updated") {
+					if (payload.type === "repos_updated") {
 						const previousWorkspaceId = activeWorkspaceId;
-						const nextProjectId = resolveProjectIdAfterProjectsUpdate(activeWorkspaceId, payload);
-						activeWorkspaceId = nextProjectId;
+						const nextRepoId = resolveRepoIdAfterReposUpdate(activeWorkspaceId, payload);
+						activeWorkspaceId = nextRepoId;
 						dispatch({
-							type: "projects_updated",
+							type: "repos_updated",
 							payload,
-							nextProjectId,
+							nextRepoId,
 						});
-						if (nextProjectId && nextProjectId !== previousWorkspaceId) {
-							requestedWorkspaceForConnection = nextProjectId;
+						if (nextRepoId && nextRepoId !== previousWorkspaceId) {
+							requestedWorkspaceForConnection = nextRepoId;
 							dispatch({ type: "requested_workspace_changed" });
 							connect();
 						}
@@ -461,8 +461,8 @@ export function useRuntimeStateStream(requestedWorkspaceId: string | null): UseR
 	}, [requestedWorkspaceId]);
 
 	return {
-		currentProjectId: state.currentProjectId,
-		projects: state.projects,
+		currentRepoId: state.currentRepoId,
+		repos: state.repos,
 		workspaceState: state.workspaceState,
 		workspaceMetadata: state.workspaceMetadata,
 		latestTaskChatMessage: state.latestTaskChatMessage,

@@ -12,7 +12,7 @@ const mockJiraBoard: UseJiraBoardResult = {
 				jiraKey: "POL-1",
 				summary: "Fix login",
 				status: "todo",
-				subtaskIds: ["s1"],
+				pullRequestIds: ["s1"],
 				createdAt: 1,
 				updatedAt: 1,
 			},
@@ -20,13 +20,13 @@ const mockJiraBoard: UseJiraBoardResult = {
 				jiraKey: "POL-2",
 				summary: "Add dashboard",
 				status: "in_progress",
-				subtaskIds: [],
+				pullRequestIds: [],
 				createdAt: 2,
 				updatedAt: 2,
 			},
 		],
 	},
-	subtasks: {
+	pullRequests: {
 		s1: {
 			id: "s1",
 			jiraKey: "POL-1",
@@ -38,6 +38,7 @@ const mockJiraBoard: UseJiraBoardResult = {
 			branchName: "b",
 			worktreePath: "/w",
 			status: "backlog",
+			prUrl: "https://github.com/example/repo/pull/1",
 			createdAt: 1,
 			updatedAt: 1,
 		},
@@ -46,9 +47,12 @@ const mockJiraBoard: UseJiraBoardResult = {
 	isImporting: false,
 	moveCard: vi.fn(),
 	deleteCard: vi.fn(),
+	details: {},
 	refetch: vi.fn(),
+	importFromJira: vi.fn().mockResolvedValue(undefined),
 	scanPRs: vi.fn().mockResolvedValue(undefined),
 	prScanning: false,
+	fetchDetail: vi.fn(),
 };
 
 describe("JiraBoardView", () => {
@@ -121,11 +125,11 @@ describe("JiraBoardView", () => {
 		expect(container.textContent).toContain("Syncing JIRA tasks");
 	});
 
-	it("shows subtask count chip on card", async () => {
+	it("shows pull request count chip on card", async () => {
 		await act(async () => {
 			root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={mockJiraBoard} />);
 		});
-		expect(container.textContent).toContain("1 subtask");
+		expect(container.textContent).toContain("1 pull request");
 	});
 
 	it("renders a column indicator SVG for each column header", async () => {
@@ -148,7 +152,7 @@ describe("JiraBoardView", () => {
 						jiraKey: "POL-9",
 						summary: "Done issue",
 						status: "done",
-						subtaskIds: [],
+						pullRequestIds: [],
 						createdAt: 1,
 						updatedAt: 1,
 					},
@@ -170,37 +174,113 @@ describe("JiraBoardView", () => {
 		expect(localDeleteCard).toHaveBeenCalledWith("POL-9");
 	});
 
-	it("Sync PRs button click calls scanPRs", async () => {
-		const scanPRsMock = vi.fn().mockResolvedValue(undefined);
-		const boardWithScan: UseJiraBoardResult = { ...mockJiraBoard, scanPRs: scanPRsMock };
+	describe("PR pill aggregation color", () => {
+		function makeBoardWithPrSubtasks(
+			subtaskList: Array<{ id: string; prUrl?: string; prState?: "open" | "draft" | "merged" }>,
+		): UseJiraBoardResult {
+			const pullRequestIds = subtaskList.map((s) => s.id);
+			const subtasksMap = Object.fromEntries(
+				subtaskList.map((s) => [
+					s.id,
+					{
+						id: s.id,
+						jiraKey: "POL-1",
+						repoId: "r",
+						repoPath: "/r",
+						prompt: "",
+						title: "t",
+						baseRef: "main",
+						branchName: "b",
+						worktreePath: "",
+						status: "review" as const,
+						prUrl: s.prUrl,
+						prState: s.prState,
+						createdAt: 1,
+						updatedAt: 1,
+					},
+				]),
+			);
+			return {
+				...mockJiraBoard,
+				board: {
+					cards: [
+						{ jiraKey: "POL-1", summary: "Fix", status: "todo", pullRequestIds, createdAt: 1, updatedAt: 1 },
+					],
+				},
+				pullRequests: subtasksMap,
+			};
+		}
 
-		await act(async () => {
-			root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={boardWithScan} />);
+		function getPillClass(): string | null | undefined {
+			// The pill is a span whose text content includes "pull request"
+			const pill = Array.from(container.querySelectorAll("span")).find((el) =>
+				el.textContent?.includes("pull request"),
+			);
+			return pill?.getAttribute("class");
+		}
+
+		it("green pill when all pull requests are open", async () => {
+			const board = makeBoardWithPrSubtasks([
+				{ id: "s1", prUrl: "https://github.com/a/b/pull/1", prState: "open" },
+				{ id: "s2", prUrl: "https://github.com/a/b/pull/2", prState: "open" },
+			]);
+			await act(async () => {
+				root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={board} />);
+			});
+			expect(getPillClass()).toContain("text-status-green");
 		});
 
-		const syncBtn = Array.from(container.querySelectorAll("button")).find((btn) =>
-			btn.textContent?.includes("Sync PRs"),
-		);
-		expect(syncBtn).toBeDefined();
-
-		await act(async () => {
-			syncBtn?.click();
+		it("gray pill when all pull requests are draft", async () => {
+			const board = makeBoardWithPrSubtasks([
+				{ id: "s1", prUrl: "https://github.com/a/b/pull/1", prState: "draft" },
+			]);
+			await act(async () => {
+				root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={board} />);
+			});
+			expect(getPillClass()).toContain("text-text-secondary");
 		});
 
-		expect(scanPRsMock).toHaveBeenCalledTimes(1);
-	});
-
-	it("Sync PRs button is disabled while prScanning", async () => {
-		const scanningBoard: UseJiraBoardResult = { ...mockJiraBoard, prScanning: true };
-
-		await act(async () => {
-			root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={scanningBoard} />);
+		it("purple pill when all pull requests are merged", async () => {
+			const board = makeBoardWithPrSubtasks([
+				{ id: "s1", prUrl: "https://github.com/a/b/pull/1", prState: "merged" },
+				{ id: "s2", prUrl: "https://github.com/a/b/pull/2", prState: "merged" },
+			]);
+			await act(async () => {
+				root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={board} />);
+			});
+			expect(getPillClass()).toContain("text-status-purple");
 		});
 
-		const syncBtn = Array.from(container.querySelectorAll("button")).find((btn) =>
-			btn.textContent?.includes("Sync PRs"),
-		);
-		expect(syncBtn).toBeDefined();
-		expect((syncBtn as HTMLButtonElement).disabled).toBe(true);
+		it("green pill when mixed open + merged (any open wins)", async () => {
+			const board = makeBoardWithPrSubtasks([
+				{ id: "s1", prUrl: "https://github.com/a/b/pull/1", prState: "merged" },
+				{ id: "s2", prUrl: "https://github.com/a/b/pull/2", prState: "open" },
+			]);
+			await act(async () => {
+				root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={board} />);
+			});
+			expect(getPillClass()).toContain("text-status-green");
+		});
+
+		it("gray pill when mixed draft + merged (no open)", async () => {
+			const board = makeBoardWithPrSubtasks([
+				{ id: "s1", prUrl: "https://github.com/a/b/pull/1", prState: "draft" },
+				{ id: "s2", prUrl: "https://github.com/a/b/pull/2", prState: "merged" },
+			]);
+			await act(async () => {
+				root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={board} />);
+			});
+			expect(getPillClass()).toContain("text-text-secondary");
+		});
+
+		it("green pill for legacy pull request with prUrl but no prState (defaults to open)", async () => {
+			const board = makeBoardWithPrSubtasks([
+				{ id: "s1", prUrl: "https://github.com/a/b/pull/1" }, // no prState
+			]);
+			await act(async () => {
+				root.render(<JiraBoardView onCardClick={vi.fn()} selectedJiraKey={null} jiraBoard={board} />);
+			});
+			expect(getPillClass()).toContain("text-status-green");
+		});
 	});
 });

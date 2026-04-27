@@ -6,15 +6,15 @@ import type { RuntimeRepoSummary } from "@/runtime/types";
 
 export function PrRepoList({
 	repos,
-	repoFilter,
+	currentRepoId,
 	removingRepoId,
 	onSelect,
 	onRemove,
 }: {
 	repos: RuntimeRepoSummary[];
-	repoFilter: string | null;
+	currentRepoId: string | null;
 	removingRepoId: string | null;
-	onSelect: (repoPath: string) => void;
+	onSelect: (repoId: string, repoPath: string) => void;
 	onRemove: (repoId: string) => void;
 }): React.ReactElement {
 	const sorted = [...repos].sort((a, b) => a.path.localeCompare(b.path));
@@ -32,9 +32,9 @@ export function PrRepoList({
 						<RepoRow
 							key={repo.id}
 							repo={repo}
-							isCurrent={repoFilter === repo.path}
+							isCurrent={currentRepoId === repo.id}
 							removingRepoId={removingRepoId}
-							onSelect={() => onSelect(repo.path)}
+							onSelect={() => onSelect(repo.id, repo.path)}
 							onRemove={onRemove}
 						/>
 					))}
@@ -55,9 +55,9 @@ export function PrRepoList({
 							<RepoRow
 								key={repo.id}
 								repo={repo}
-								isCurrent={repoFilter === repo.path}
+								isCurrent={currentRepoId === repo.id}
 								removingRepoId={removingRepoId}
-								onSelect={() => onSelect(repo.path)}
+								onSelect={() => onSelect(repo.id, repo.path)}
 								onRemove={onRemove}
 							/>
 						))}

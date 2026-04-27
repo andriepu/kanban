@@ -18,7 +18,7 @@ import {
 function createRuntimeConfigState(overrides: Partial<RuntimeConfigState> = {}): RuntimeConfigState {
 	return {
 		globalConfigPath: "/tmp/global-config.json",
-		projectConfigPath: "/tmp/project-config.json",
+		repoConfigPath: "/tmp/project-config.json",
 		selectedAgentId: "claude",
 		selectedShortcutLabel: null,
 		agentAutonomousModeEnabled: true,

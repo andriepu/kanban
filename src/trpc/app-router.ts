@@ -28,12 +28,12 @@ import type {
 	RuntimeHookIngestResponse,
 	RuntimeOpenFileRequest,
 	RuntimeOpenFileResponse,
-	RuntimeProjectAddRequest,
-	RuntimeProjectAddResponse,
-	RuntimeProjectDirectoryPickerResponse,
-	RuntimeProjectRemoveRequest,
-	RuntimeProjectRemoveResponse,
-	RuntimeProjectsResponse,
+	RuntimeRepoAddRequest,
+	RuntimeRepoAddResponse,
+	RuntimeRepoDirectoryPickerResponse,
+	RuntimeRepoRemoveRequest,
+	RuntimeRepoRemoveResponse,
+	RuntimeReposResponse,
 	RuntimeShellSessionStartRequest,
 	RuntimeShellSessionStartResponse,
 	RuntimeTaskChatAbortRequest,
@@ -70,12 +70,15 @@ import {
 	jiraBoardSaveRequestSchema,
 	jiraFetchIssueRequestSchema,
 	jiraImportRequestSchema,
+	jiraLoadDetailsResponseSchema,
+	jiraPullRequestCreateRequestSchema,
+	jiraPullRequestDeleteRequestSchema,
+	jiraPullRequestSessionStartRequestSchema,
+	jiraPullRequestSessionStopRequestSchema,
+	jiraPullRequestUpdateStatusRequestSchema,
 	jiraScanAndAttachPrsResponseSchema,
-	jiraSubtaskCreateRequestSchema,
-	jiraSubtaskDeleteRequestSchema,
-	jiraSubtaskSessionStartRequestSchema,
-	jiraSubtaskSessionStopRequestSchema,
-	jiraSubtaskUpdateStatusRequestSchema,
+	jiraSetApiTokenRequestSchema,
+	jiraSetApiTokenResponseSchema,
 	jiraTransitionRequestSchema,
 	runtimeCommandRunRequestSchema,
 	runtimeCommandRunResponseSchema,
@@ -99,12 +102,12 @@ import {
 	runtimeHookIngestResponseSchema,
 	runtimeOpenFileRequestSchema,
 	runtimeOpenFileResponseSchema,
-	runtimeProjectAddRequestSchema,
-	runtimeProjectAddResponseSchema,
-	runtimeProjectDirectoryPickerResponseSchema,
-	runtimeProjectRemoveRequestSchema,
-	runtimeProjectRemoveResponseSchema,
-	runtimeProjectsResponseSchema,
+	runtimeRepoAddRequestSchema,
+	runtimeRepoAddResponseSchema,
+	runtimeRepoDirectoryPickerResponseSchema,
+	runtimeRepoRemoveRequestSchema,
+	runtimeRepoRemoveResponseSchema,
+	runtimeReposResponseSchema,
 	runtimeShellSessionStartRequestSchema,
 	runtimeShellSessionStartResponseSchema,
 	runtimeTaskChatAbortRequestSchema,
@@ -250,17 +253,14 @@ export interface RuntimeTrpcContext {
 			input: RuntimeGitCommitDiffRequest,
 		) => Promise<RuntimeGitCommitDiffResponse>;
 	};
-	projectsApi: {
-		listProjects: (preferredWorkspaceId: string | null) => Promise<RuntimeProjectsResponse>;
-		addProject: (
+	reposApi: {
+		listRepos: (preferredWorkspaceId: string | null) => Promise<RuntimeReposResponse>;
+		addRepo: (preferredWorkspaceId: string | null, input: RuntimeRepoAddRequest) => Promise<RuntimeRepoAddResponse>;
+		removeRepo: (
 			preferredWorkspaceId: string | null,
-			input: RuntimeProjectAddRequest,
-		) => Promise<RuntimeProjectAddResponse>;
-		removeProject: (
-			preferredWorkspaceId: string | null,
-			input: RuntimeProjectRemoveRequest,
-		) => Promise<RuntimeProjectRemoveResponse>;
-		pickProjectDirectory: (preferredWorkspaceId: string | null) => Promise<RuntimeProjectDirectoryPickerResponse>;
+			input: RuntimeRepoRemoveRequest,
+		) => Promise<RuntimeRepoRemoveResponse>;
+		pickRepoDirectory: (preferredWorkspaceId: string | null) => Promise<RuntimeRepoDirectoryPickerResponse>;
 		listDirectoryContents: (
 			preferredWorkspaceId: string | null,
 			input: RuntimeDirectoryListRequest,
@@ -499,35 +499,35 @@ export const runtimeAppRouter = t.router({
 				return await ctx.workspaceApi.loadCommitDiff(ctx.workspaceScope, input);
 			}),
 	}),
-	projects: t.router({
-		list: t.procedure.output(runtimeProjectsResponseSchema).query(async ({ ctx }) => {
-			return await ctx.projectsApi.listProjects(ctx.requestedWorkspaceId);
+	repos: t.router({
+		list: t.procedure.output(runtimeReposResponseSchema).query(async ({ ctx }) => {
+			return await ctx.reposApi.listRepos(ctx.requestedWorkspaceId);
 		}),
 		add: t.procedure
-			.input(runtimeProjectAddRequestSchema)
-			.output(runtimeProjectAddResponseSchema)
+			.input(runtimeRepoAddRequestSchema)
+			.output(runtimeRepoAddResponseSchema)
 			.mutation(async ({ ctx, input }) => {
-				return await ctx.projectsApi.addProject(ctx.requestedWorkspaceId, input);
+				return await ctx.reposApi.addRepo(ctx.requestedWorkspaceId, input);
 			}),
 		remove: t.procedure
-			.input(runtimeProjectRemoveRequestSchema)
-			.output(runtimeProjectRemoveResponseSchema)
+			.input(runtimeRepoRemoveRequestSchema)
+			.output(runtimeRepoRemoveResponseSchema)
 			.mutation(async ({ ctx, input }) => {
-				return await ctx.projectsApi.removeProject(ctx.requestedWorkspaceId, input);
+				return await ctx.reposApi.removeRepo(ctx.requestedWorkspaceId, input);
 			}),
-		pickDirectory: t.procedure.output(runtimeProjectDirectoryPickerResponseSchema).mutation(async ({ ctx }) => {
-			return await ctx.projectsApi.pickProjectDirectory(ctx.requestedWorkspaceId);
+		pickDirectory: t.procedure.output(runtimeRepoDirectoryPickerResponseSchema).mutation(async ({ ctx }) => {
+			return await ctx.reposApi.pickRepoDirectory(ctx.requestedWorkspaceId);
 		}),
 		listDirectoryContents: t.procedure
 			.input(runtimeDirectoryListRequestSchema)
 			.output(runtimeDirectoryListResponseSchema)
 			.query(async ({ ctx, input }) => {
-				return await ctx.projectsApi.listDirectoryContents(ctx.requestedWorkspaceId, input);
+				return await ctx.reposApi.listDirectoryContents(ctx.requestedWorkspaceId, input);
 			}),
 		syncFromReposRoot: t.procedure
 			.output(z.object({ added: z.number(), skipped: z.number() }))
 			.mutation(async ({ ctx }) => {
-				return await ctx.projectsApi.syncFromReposRoot();
+				return await ctx.reposApi.syncFromReposRoot();
 			}),
 	}),
 	hooks: t.router({
@@ -540,16 +540,17 @@ export const runtimeAppRouter = t.router({
 	}),
 	jira: t.router({
 		loadBoard: t.procedure.query(({ ctx }) => ctx.jiraApi.loadBoard()),
+		loadDetails: t.procedure.output(jiraLoadDetailsResponseSchema).query(({ ctx }) => ctx.jiraApi.loadDetails()),
 		saveBoard: t.procedure
 			.input(jiraBoardSaveRequestSchema)
 			.mutation(({ ctx, input }) => ctx.jiraApi.saveBoard(input.board)),
 		scanRepos: t.procedure.query(({ ctx }) => ctx.jiraApi.scanRepos()),
-		createSubtask: t.procedure
-			.input(jiraSubtaskCreateRequestSchema)
-			.mutation(({ ctx, input }) => ctx.jiraApi.createSubtask(input)),
-		deleteSubtask: t.procedure
-			.input(jiraSubtaskDeleteRequestSchema)
-			.mutation(({ ctx, input }) => ctx.jiraApi.deleteSubtask(input.subtaskId)),
+		createPullRequest: t.procedure
+			.input(jiraPullRequestCreateRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.createPullRequest(input)),
+		deletePullRequest: t.procedure
+			.input(jiraPullRequestDeleteRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.deletePullRequest(input.pullRequestId)),
 		importFromJira: t.procedure
 			.input(jiraImportRequestSchema)
 			.mutation(({ ctx, input }) => ctx.jiraApi.importFromJira(input.jql)),
@@ -559,18 +560,22 @@ export const runtimeAppRouter = t.router({
 		fetchIssue: t.procedure
 			.input(jiraFetchIssueRequestSchema)
 			.query(({ ctx, input }) => ctx.jiraApi.fetchIssue(input.jiraKey)),
-		startSubtaskSession: t.procedure
-			.input(jiraSubtaskSessionStartRequestSchema)
-			.mutation(({ ctx, input }) => ctx.jiraApi.startSubtaskSession(input.subtaskId)),
-		stopSubtaskSession: t.procedure
-			.input(jiraSubtaskSessionStopRequestSchema)
-			.mutation(({ ctx, input }) => ctx.jiraApi.stopSubtaskSession(input.subtaskId, input.workspacePath)),
-		updateSubtaskStatus: t.procedure
-			.input(jiraSubtaskUpdateStatusRequestSchema)
-			.mutation(({ ctx, input }) => ctx.jiraApi.updateSubtaskStatus(input.subtaskId, input.status)),
+		startPullRequestSession: t.procedure
+			.input(jiraPullRequestSessionStartRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.startPullRequestSession(input.pullRequestId)),
+		stopPullRequestSession: t.procedure
+			.input(jiraPullRequestSessionStopRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.stopPullRequestSession(input.pullRequestId, input.workspacePath)),
+		updatePullRequestStatus: t.procedure
+			.input(jiraPullRequestUpdateStatusRequestSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.updatePullRequestStatus(input.pullRequestId, input.status)),
 		scanAndAttachPRs: t.procedure
 			.output(jiraScanAndAttachPrsResponseSchema)
 			.mutation(({ ctx }) => ctx.jiraApi.scanAndAttachPRs()),
+		setApiToken: t.procedure
+			.input(jiraSetApiTokenRequestSchema)
+			.output(jiraSetApiTokenResponseSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.setApiToken(input.token)),
 	}),
 });
 

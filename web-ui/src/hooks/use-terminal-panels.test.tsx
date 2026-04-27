@@ -100,7 +100,7 @@ function HookHarness({
 	selectedCard: CardSelection | null;
 }): null {
 	const result = useTerminalPanels({
-		currentProjectId: "project-1",
+		currentRepoId: "project-1",
 		selectedCard,
 		workspaceGit: null,
 		agentCommand: null,

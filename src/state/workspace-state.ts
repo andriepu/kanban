@@ -607,7 +607,7 @@ export async function loadWorkspaceContext(
 		const index = await readWorkspaceIndex();
 		const existingEntry = findWorkspaceEntry(index, repoPath);
 		if (!existingEntry) {
-			throw new Error(`Project ${repoPath} is not added to Kanban yet.`);
+			throw new Error(`Repo ${repoPath} is not added to Kanban yet.`);
 		}
 		return {
 			repoPath,
