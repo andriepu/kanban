@@ -67,6 +67,9 @@ export interface UseRepoNavigationResult {
 	setRepoFilter: (path: string | null) => void;
 	sidebarTab: "task" | "pr";
 	setSidebarTab: (tab: "task" | "pr") => void;
+	selectedPrBranch: string | null;
+	openPullRequestModal: (branchName: string, repoPath: string) => void;
+	closePullRequestModal: () => void;
 }
 
 export function useRepoNavigation({ onRepoSwitchStart }: UseRepoNavigationInput): UseRepoNavigationResult {
@@ -78,6 +81,11 @@ export function useRepoNavigation({ onRepoSwitchStart }: UseRepoNavigationInput)
 		if (typeof window === "undefined") return null;
 		const route = parseRoute(window.location.pathname);
 		return route?.kind === "pr" ? route.repoName : null;
+	});
+	const [selectedPrBranch, setSelectedPrBranch] = useState<string | null>(() => {
+		if (typeof window === "undefined") return null;
+		const route = parseRoute(window.location.pathname);
+		return route?.kind === "pr" ? (route.prBranch ?? null) : null;
 	});
 	const [requestedRepoId, setRequestedRepoId] = useState<string | null>(null);
 	const [pendingAddedRepoId, setPendingAddedRepoId] = useState<string | null>(null);
@@ -93,6 +101,7 @@ export function useRepoNavigation({ onRepoSwitchStart }: UseRepoNavigationInput)
 	const setSidebarTab = useCallback((tab: "task" | "pr") => {
 		setSidebarTabRaw(tab);
 		setRepoFilter(null);
+		setSelectedPrBranch(null);
 	}, []);
 
 	const {
@@ -224,8 +233,10 @@ export function useRepoNavigation({ onRepoSwitchStart }: UseRepoNavigationInput)
 			} else {
 				setRepoFilter(null);
 			}
+			setSelectedPrBranch(route.prBranch ?? null);
 		} else {
 			setRepoFilter(null);
+			setSelectedPrBranch(null);
 		}
 	}, []);
 	useWindowEvent("popstate", handlePopState);
@@ -249,7 +260,7 @@ export function useRepoNavigation({ onRepoSwitchStart }: UseRepoNavigationInput)
 		setPrRepoNameFromUrl(null);
 	}, [prRepoNameFromUrl, repos]);
 
-	// Sync (sidebarTab, repoFilter) → URL pathname.
+	// Sync (sidebarTab, repoFilter, selectedPrBranch) → URL pathname.
 	useEffect(() => {
 		if (typeof window === "undefined") return;
 		if (prRepoNameFromUrl !== null) return; // Still resolving initial URL repo
@@ -263,7 +274,8 @@ export function useRepoNavigation({ onRepoSwitchStart }: UseRepoNavigationInput)
 			sidebarTabRaw === "pr" && repoFilter
 				? (reposRef.current.find((r) => r.path === repoFilter)?.name ?? null)
 				: null;
-		const route: Route = sidebarTabRaw === "task" ? { kind: "task" } : { kind: "pr", repoName };
+		const route: Route =
+			sidebarTabRaw === "task" ? { kind: "task" } : { kind: "pr", repoName, prBranch: selectedPrBranch };
 		const nextPathname = buildPathname(route);
 		const nextUrl = new URL(window.location.href);
 
@@ -276,7 +288,7 @@ export function useRepoNavigation({ onRepoSwitchStart }: UseRepoNavigationInput)
 			}
 		}
 		prevTabRef.current = sidebarTabRaw;
-	}, [sidebarTabRaw, repoFilter, prRepoNameFromUrl]);
+	}, [sidebarTabRaw, repoFilter, selectedPrBranch, prRepoNameFromUrl]);
 
 	useEffect(() => {
 		if (!pendingAddedRepoId) {
@@ -302,6 +314,26 @@ export function useRepoNavigation({ onRepoSwitchStart }: UseRepoNavigationInput)
 		}
 		setRequestedRepoId(currentRepoId);
 	}, [currentRepoId, pendingAddedRepoId, repos, requestedRepoId]);
+
+	const openPullRequestModal = useCallback((branchName: string, repoPath: string) => {
+		const repoName = reposRef.current.find((r) => r.path === repoPath)?.name ?? null;
+		setSelectedPrBranch(branchName);
+		setRepoFilter(repoPath);
+		setSidebarTabRaw("pr");
+		const route: Route = { kind: "pr", repoName, prBranch: branchName };
+		const nextPathname = buildPathname(route);
+		const nextUrl = new URL(window.location.href);
+		window.history.pushState({}, "", `${nextPathname}${nextUrl.search}${nextUrl.hash}`);
+	}, []);
+
+	const closePullRequestModal = useCallback(() => {
+		const repoName = repoFilter ? (reposRef.current.find((r) => r.path === repoFilter)?.name ?? null) : null;
+		setSelectedPrBranch(null);
+		const route: Route = { kind: "pr", repoName };
+		const nextPathname = buildPathname(route);
+		const nextUrl = new URL(window.location.href);
+		window.history.replaceState({}, "", `${nextPathname}${nextUrl.search}${nextUrl.hash}`);
+	}, [repoFilter]);
 
 	const resetRepoNavigationState = useCallback(() => {
 		setRemovingRepoId(null);
@@ -337,5 +369,8 @@ export function useRepoNavigation({ onRepoSwitchStart }: UseRepoNavigationInput)
 		setRepoFilter,
 		sidebarTab: sidebarTabRaw,
 		setSidebarTab,
+		selectedPrBranch,
+		openPullRequestModal,
+		closePullRequestModal,
 	};
 }

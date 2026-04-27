@@ -87,19 +87,57 @@ export async function scanReposInRoot(reposRoot: string, options?: ScanReposOpti
 	return results;
 }
 
+async function listExistingWorktrees(repoPath: string): Promise<Array<{ path: string; branch: string | null }>> {
+	let stdout: string;
+	try {
+		({ stdout } = await execFile("git", ["-C", repoPath, "worktree", "list", "--porcelain"]));
+	} catch {
+		return [];
+	}
+
+	const results: Array<{ path: string; branch: string | null }> = [];
+	let currentPath: string | null = null;
+	let currentBranch: string | null = null;
+
+	for (const line of stdout.split("\n")) {
+		if (line.startsWith("worktree ")) {
+			if (currentPath !== null) {
+				results.push({ path: currentPath, branch: currentBranch });
+			}
+			currentPath = line.slice("worktree ".length);
+			currentBranch = null;
+		} else if (line.startsWith("branch refs/heads/")) {
+			currentBranch = line.slice("branch refs/heads/".length);
+		}
+	}
+	if (currentPath !== null) {
+		results.push({ path: currentPath, branch: currentBranch });
+	}
+
+	return results;
+}
+
 /**
  * Create a git worktree for a Jira pull request.
- * - Fetches from origin (non-fatal if it fails)
- * - Creates the worktree on a new branch from baseRef
- * - Symlinks .env from the repo root if it exists
+ * - If the branch is already checked out in an existing worktree, returns that path.
+ * - Otherwise fetches from origin and creates the worktree.
+ * - Symlinks .env from the repo root if it exists (only for newly created worktrees).
+ * Returns the resolved worktree path (may differ from requested path if reusing existing).
  */
 export async function createPullRequestWorktree(options: {
 	repoPath: string;
 	worktreePath: string;
 	branchName: string;
 	baseRef: string;
-}): Promise<void> {
+}): Promise<{ worktreePath: string }> {
 	const { repoPath, worktreePath, branchName, baseRef } = options;
+
+	// If the branch is already checked out somewhere, reuse that worktree.
+	const existing = await listExistingWorktrees(repoPath);
+	const match = existing.find((e) => e.branch === branchName);
+	if (match) {
+		return { worktreePath: match.path };
+	}
 
 	// Fetch from origin — failure is non-fatal
 	try {
@@ -108,8 +146,12 @@ export async function createPullRequestWorktree(options: {
 		// Ignore: no remote, offline, etc.
 	}
 
-	// Create the worktree on a new branch
-	await execFile("git", ["-C", repoPath, "worktree", "add", worktreePath, "-b", branchName, baseRef]);
+	// Check out existing local branch, or create a new one from baseRef if it doesn't exist yet.
+	try {
+		await execFile("git", ["-C", repoPath, "worktree", "add", worktreePath, branchName]);
+	} catch {
+		await execFile("git", ["-C", repoPath, "worktree", "add", worktreePath, "-b", branchName, baseRef]);
+	}
 
 	// Symlink .env if it exists in the repo root
 	const repoEnvPath = join(repoPath, ".env");
@@ -122,10 +164,14 @@ export async function createPullRequestWorktree(options: {
 	}
 
 	if (envExists) {
-		await symlink(repoEnvPath, join(worktreePath, ".env"));
-		// Note: let symlink errors propagate — a failed .env symlink leaves
-		// the worktree in an inconsistent state that the caller must handle.
+		try {
+			await symlink(repoEnvPath, join(worktreePath, ".env"));
+		} catch {
+			// Symlink already exists or permission error — non-fatal, worktree is usable.
+		}
 	}
+
+	return { worktreePath };
 }
 
 /**

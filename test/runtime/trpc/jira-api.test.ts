@@ -40,7 +40,9 @@ function createMockDeps(): CreateJiraApiDependencies {
 		transitionIssue: vi.fn().mockResolvedValue(undefined),
 		setApiToken: vi.fn().mockResolvedValue(undefined),
 		scanRepos: vi.fn().mockResolvedValue([{ id: "my-repo", path: "/repos/my-repo" }]),
-		createPullRequestWorktree: vi.fn().mockResolvedValue(undefined),
+		createPullRequestWorktree: vi
+			.fn()
+			.mockResolvedValue({ worktreePath: "/work/POL-1/my-repo__POL-1-fix-login-bug" }),
 		removePullRequestWorktree: vi.fn().mockResolvedValue(undefined),
 		startTaskSession: vi.fn().mockResolvedValue({ started: true }),
 		stopTaskSession: vi.fn().mockResolvedValue({ stopped: true }),
@@ -933,7 +935,9 @@ describe("jira-api", () => {
 			};
 			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "auto-sub": pullRequest });
 			(deps.getWorktreesRoot as ReturnType<typeof vi.fn>).mockReturnValue("/work");
-			(deps.createPullRequestWorktree as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+			(deps.createPullRequestWorktree as ReturnType<typeof vi.fn>).mockResolvedValue({
+				worktreePath: "/work/POL-2/myrepo__POL-2-feature",
+			});
 			(deps.addWorkspace as ReturnType<typeof vi.fn>).mockResolvedValue("ws-auto");
 			(deps.startTaskSession as ReturnType<typeof vi.fn>).mockResolvedValue({ started: true });
 			fsMocks.access.mockRejectedValueOnce(new Error("ENOENT"));

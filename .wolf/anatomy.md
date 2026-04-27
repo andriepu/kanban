@@ -1,23 +1,27 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-27T11:33:35.448Z
-> Files: 635 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-27T13:07:41.755Z
+> Files: 640 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
 
 - `1-api-trpc-jira-importfromjira-batch-1-i-quirky-pancake.md` — Speed up `/api/trpc/jira.importFromJira` + Syncing status polish (~2277 tok)
 - `1-merged-pr-on-enumerated-brooks.md` — Plan: Sticky-Merged PR State + Two-Line Subtask Row (~1003 tok)
+- `1-when-pr-card-prancy-blum.md` — PR Card Click → Floating Fullscreen Modal + URL Routing (~1986 tok)
 - `again-merged-pr-is-smooth-bentley.md` — Plan: Fix merged PR icon flipping purple → green after auto-scan (~1456 tok)
 - `also-read-the-current-zany-garden.md` — Plan: Scan Open GitHub PRs → Attach as Subtasks on Matching Jira Cards (~1630 tok)
 - `collapsed-tab-sidebar-styling-cryptic-kitten.md` — Restore collapsed project-tab sidebar button styling (~877 tok)
+- `continue-zippy-diffie.md` — Plan: Reuse existing worktree when branch already exists (~870 tok)
 - `create-onboarding-to-always-happy-platypus.md` — Startup Onboarding Dialog (Always-On When Config Incomplete) (~2025 tok)
 - `create-onboarding-to-always-keen-creek.md` — Mount Startup Onboarding Dialog in App.tsx (~1122 tok)
 - `create-toats-error-to-nested-mccarthy.md` — Missing Jira Credentials — Toast + Open Settings Action (~1445 tok)
+- `error-message-on-terminal-mossy-horizon.md` — Plan: PR Detail Modal — Terminal Pane Renders Blank After Error Removal (~1412 tok)
 - `fetching-jira-details-should-iterative-fiddle.md` — Plan: Background-prefetch Jira card details after board load (~1404 tok)
 - `how-could-api-trpc-jira-importfromjira-b-snappy-wreath.md` — Fix: Jira ops silently succeed when credentials missing (~1237 tok)
 - `i-feel-statusline-not-modular-pancake.md` — Delete SyncStatusLine Entirely (~904 tok)
 - `i-got-zippy-allen.md` — Fix: Jira MCP import hits `Reached maximum number of turns (5)` (~1628 tok)
 - `i-see-jira-for-shimmying-lovelace.md` — Fix inconsistent gaps in Jira & Repos settings fields (~435 tok)
+- `i-still-cannot-see-silly-thimble.md` — Plan: Investigate Empty `workspaceId` on PR-Card-Click → Terminal (~1882 tok)
 - `improve-pr-icon-color-expressive-church.md` — Improve PR Icon Color (Card + Sidebar) (~2196 tok)
 - `improve-ux-1-when-idempotent-blum.md` — Jira Detail UX Improvements (~1854 tok)
 - `in-project-tab-list-encapsulated-steele.md` — Plan: Gray out repos in Projects tab when no Jira subtasks (~1441 tok)
@@ -610,7 +614,7 @@
 - `jira-board-state.ts` — Exports JiraCard, JiraBoard, JiraDetail, JiraPullRequest + 7 more (~2347 tok)
 - `jira-pr-scan.ts` — listAuthoredGhPullRequestsForProject(projectKey): dual-alias GraphQL (open + closed in:title KEY), GhPullRequest has state field (~750 tok)
 - `jira-rest.ts` — Exports JiraRestCredentials, JiraIssueRaw, JiraRestAuthError, searchJiraIssuesViaRest + 2 more (~1839 tok)
-- `jira-worktree.ts` — Exports RepoInfo, deriveSubtaskBranchName, buildSubtaskWorktreePath, scanReposInRoot, createSubtaskWorktree, removeSubtaskWorktree. Git worktree operations and repo scanning for Jira subtasks. (~350 tok)
+- `jira-worktree.ts` — Derive a kebab branch name: "{jiraKey}-{slug}" — max 63 chars total. (~1624 tok)
 
 ## src/projects/
 
@@ -665,7 +669,7 @@
 
 - `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. (~6483 tok)
 - `hooks-api.ts` — Exports CreateHooksApiDependencies, createHooksApi (~1298 tok)
-- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~3856 tok)
+- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~4653 tok)
 - `projects-api.ts` — Exports CreateProjectsApiDependencies, createProjectsApi (~3949 tok)
 - `runtime-api.ts` — Coordinates the runtime-side TRPC handlers used by the browser. (~3797 tok)
 - `workspace-api.ts` — Exports CreateWorkspaceApiDependencies, createWorkspaceApi (~3436 tok)
@@ -762,7 +766,7 @@
 ## test/runtime/trpc/
 
 - `hooks-api.test.ts` — Declares createSummary (~1268 tok)
-- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~7418 tok)
+- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~9702 tok)
 - `projects-api.test.ts` — actual: createTestCwd, createDefaultDeps (~4823 tok)
 - `runtime-api.test.ts` — agentRegistryMocks: createSummary, createRuntimeConfigState (~2718 tok)
 - `workspace-api.test.ts` — workspaceTaskWorktreeMocks: createSummary, createChangesResponse (~1748 tok)
@@ -805,7 +809,7 @@
 
 ## web-ui/src/
 
-- `App.tsx` — Main React composition root for the browser app. (~11036 tok)
+- `App.tsx` — Main React composition root for the browser app. (~11066 tok)
 - `main.tsx` — _savedTheme (~441 tok)
 - `vite-env.d.ts` — / <reference types="vite/client" /> (~66 tok)
 
@@ -830,6 +834,7 @@
 - `jira-board.tsx` — COLUMNS (~1808 tok)
 - `jira-card-detail-view.test.tsx` — mockFetchIssue (~3034 tok)
 - `jira-card-detail-view.tsx` — SUBTASK_STATUS_COLORS (~2120 tok)
+- `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1601 tok)
 - `kanban-board.test.tsx` — dndMock — uses useEffect (~1704 tok)
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
 - `markdown-text.tsx` — MarkdownText (~489 tok)
@@ -916,8 +921,8 @@
 
 ## web-ui/src/hooks/
 
-- `app-utils.test.tsx` — route (~760 tok)
-- `app-utils.tsx` — TASK_START_IN_PLAN_MODE_STORAGE_KEY (~1252 tok)
+- `app-utils.test.tsx` — route (~970 tok)
+- `app-utils.tsx` — TASK_START_IN_PLAN_MODE_STORAGE_KEY (~1368 tok)
 - `home-sidebar-agent-panel-session-summary.ts` — Exports selectNewestTaskSessionSummary (~104 tok)
 - `kanban-access-blocked-fallback.tsx` — KanbanAccessBlockedFallback (~229 tok)
 - `runtime-disconnected-fallback.tsx` — RuntimeDisconnectedFallback (~195 tok)
@@ -949,7 +954,7 @@
 - `use-project-ui-state.ts` — Exports useProjectUiState (~716 tok)
 - `use-repo-navigation.test.ts` — Root: HookHarness (~1164 tok)
 - `use-repo-navigation.test.tsx` — HookHarness (~1158 tok)
-- `use-repo-navigation.ts` — Exports REMOVED_REPO_ERROR_PREFIX, parseRemovedRepoPathFromStreamError, UseRepoNavigationResult, use (~3217 tok)
+- `use-repo-navigation.ts` — Exports REMOVED_REPO_ERROR_PREFIX, parseRemovedRepoPathFromStreamError, UseRepoNavigationResult, use (~3677 tok)
 - `use-repo-ui-state.test.tsx` — createBoard (~848 tok)
 - `use-repo-ui-state.ts` — Exports useRepoUiState (~672 tok)
 - `use-review-auto-actions.test.tsx` — createBoard (~1050 tok)

@@ -52,7 +52,7 @@ export function countTasksByColumn(board: BoardData): {
 	return counts;
 }
 
-export type Route = { kind: "task" } | { kind: "pr"; repoName: string | null };
+export type Route = { kind: "task" } | { kind: "pr"; repoName: string | null; prBranch?: string | null };
 
 export function parseRoute(pathname: string): Route | null {
 	const segments = pathname.split("/").filter((s) => s.length > 0);
@@ -68,6 +68,17 @@ export function parseRoute(pathname: string): Route | null {
 				return { kind: "pr", repoName: null };
 			}
 		}
+		if (segments.length === 3 && segments[1] && segments[2]) {
+			try {
+				return {
+					kind: "pr",
+					repoName: decodeURIComponent(segments[1]),
+					prBranch: decodeURIComponent(segments[2]),
+				};
+			} catch {
+				return { kind: "pr", repoName: null };
+			}
+		}
 	}
 	return null;
 }
@@ -75,6 +86,7 @@ export function parseRoute(pathname: string): Route | null {
 export function buildPathname(route: Route): string {
 	if (route.kind === "task") return "/task";
 	if (route.repoName == null) return "/pr";
+	if (route.prBranch) return `/pr/${encodeURIComponent(route.repoName)}/${encodeURIComponent(route.prBranch)}`;
 	return `/pr/${encodeURIComponent(route.repoName)}`;
 }
 

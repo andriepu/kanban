@@ -1,3 +1,4 @@
+import * as RadixDialog from "@radix-ui/react-dialog";
 import { ArrowLeft } from "lucide-react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -28,11 +29,15 @@ interface JiraPullRequestDetailViewProps {
 	onClose: () => void;
 }
 
-export function JiraPullRequestDetailView({ pullRequest, onClose }: JiraPullRequestDetailViewProps): React.ReactElement {
+export function JiraPullRequestDetailView({
+	pullRequest,
+	onClose,
+}: JiraPullRequestDetailViewProps): React.ReactElement {
 	const trpc = getRuntimeTrpcClient(null);
 
 	const [activeSession, setActiveSession] = useState<{ workspaceId: string } | null>(null);
 	const [isStartingSession, setIsStartingSession] = useState(false);
+	const [sessionError, setSessionError] = useState<string | null>(null);
 	const [sessionSummary, setSessionSummary] = useState<RuntimeTaskSessionSummary | null>(null);
 	const [sidebarRatio, setSidebarRatioState] = useState(() => loadResizePreference(SIDEBAR_RATIO_PREFERENCE));
 
@@ -42,29 +47,27 @@ export function JiraPullRequestDetailView({ pullRequest, onClose }: JiraPullRequ
 	useEffect(() => {
 		setIsStartingSession(true);
 		setActiveSession(null);
+		setSessionError(null);
 		setSessionSummary(null);
 		trpc.jira.startPullRequestSession
 			.mutate({ pullRequestId: pullRequest.id })
 			.then((result) => {
-				if (result.workspaceId) {
+				if (result.openUrl) {
+					window.open(result.openUrl, "_blank", "noopener,noreferrer");
+					onClose();
+				} else if (result.workspaceId) {
 					setActiveSession({ workspaceId: result.workspaceId });
+				} else {
+					setSessionError("Session not available — no workspace or PR URL was returned.");
 				}
 			})
-			.catch(() => {
-				// Session start failed — terminal panel will show disconnected state
+			.catch((err: unknown) => {
+				setSessionError(err instanceof Error ? err.message : "Failed to start session.");
 			})
 			.finally(() => {
 				setIsStartingSession(false);
 			});
-	}, [pullRequest.id, trpc]);
-
-	useEffect(() => {
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") onClose();
-		};
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [onClose]);
+	}, [pullRequest.id, trpc, onClose]);
 
 	const setSidebarRatio = useCallback((ratio: number) => {
 		setSidebarRatioState(persistResizePreference(SIDEBAR_RATIO_PREFERENCE, ratio));
@@ -88,47 +91,71 @@ export function JiraPullRequestDetailView({ pullRequest, onClose }: JiraPullRequ
 	);
 
 	return (
-		<div className="absolute inset-0 z-40 flex flex-col bg-surface-0">
-			{/* Top bar */}
-			<div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2">
-				<Button variant="ghost" size="sm" icon={<ArrowLeft size={16} />} onClick={onClose} />
-				<span className="rounded bg-surface-2 px-2 py-0.5 font-mono text-xs text-text-secondary">
-					{pullRequest.jiraKey}
-				</span>
-				<span className="min-w-0 truncate text-sm text-text-primary">{pullRequest.title}</span>
-			</div>
+		<RadixDialog.Root
+			open
+			onOpenChange={(next) => {
+				if (!next) onClose();
+			}}
+		>
+			<RadixDialog.Portal>
+				<RadixDialog.Overlay className="fixed inset-0 z-50 bg-black/60 touch-none" />
+				<RadixDialog.Content
+					className="fixed inset-0 z-50 flex flex-col bg-surface-0 focus:outline-none"
+					style={{ transform: "none" }}
+					onEscapeKeyDown={onClose}
+					aria-describedby={undefined}
+				>
+					<RadixDialog.Title className="sr-only">{pullRequest.title}</RadixDialog.Title>
 
-			{/* Body */}
-			<div ref={containerRef} className="flex min-h-0 flex-1 overflow-hidden">
-				{/* Sidebar */}
-				<div className="min-w-0 overflow-hidden" style={{ flexBasis: `${sidebarRatio * 100}%`, flexShrink: 0 }}>
-					<JiraPullRequestDetailSidebar pullRequestId={pullRequest.id} />
-				</div>
+					{/* Top bar */}
+					<div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2">
+						<Button variant="ghost" size="sm" icon={<ArrowLeft size={16} />} onClick={onClose} />
+						<span className="rounded bg-surface-2 px-2 py-0.5 font-mono text-xs text-text-secondary">
+							{pullRequest.jiraKey}
+						</span>
+						<span className="min-w-0 truncate text-sm text-text-primary">{pullRequest.title}</span>
+					</div>
 
-				{/* Resize divider */}
-				<div
-					className="w-1 shrink-0 cursor-ew-resize bg-border hover:bg-border-bright"
-					onMouseDown={handleDividerMouseDown}
-				/>
-
-				{/* Terminal */}
-				<div className="min-w-0 flex-1 overflow-hidden">
-					{isStartingSession ? (
-						<div className="flex h-full items-center justify-center">
-							<Spinner size={20} />
+					{/* Body */}
+					<div ref={containerRef} className="flex min-h-0 flex-1 overflow-hidden">
+						{/* Sidebar */}
+						<div
+							className="min-w-0 overflow-hidden"
+							style={{ flexBasis: `${sidebarRatio * 100}%`, flexShrink: 0 }}
+						>
+							<JiraPullRequestDetailSidebar pullRequestId={pullRequest.id} />
 						</div>
-					) : (
-						<AgentTerminalPanel
-							taskId={pullRequest.id}
-							workspaceId={activeSession?.workspaceId ?? null}
-							summary={sessionSummary}
-							onSummary={setSessionSummary}
-							showSessionToolbar={false}
-							showMoveToTrash={false}
+
+						{/* Resize divider */}
+						<div
+							className="w-1 shrink-0 cursor-ew-resize bg-border hover:bg-border-bright"
+							onMouseDown={handleDividerMouseDown}
 						/>
-					)}
-				</div>
-			</div>
-		</div>
+
+						{/* Terminal */}
+						<div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+							{isStartingSession ? (
+								<div className="flex h-full items-center justify-center">
+									<Spinner size={20} />
+								</div>
+							) : sessionError ? (
+								<div className="flex h-full items-center justify-center p-6">
+									<p className="max-w-sm text-center text-sm text-status-red">{sessionError}</p>
+								</div>
+							) : activeSession ? (
+								<AgentTerminalPanel
+									taskId={pullRequest.id}
+									workspaceId={activeSession.workspaceId}
+									summary={sessionSummary}
+									onSummary={setSessionSummary}
+									showSessionToolbar={false}
+									showMoveToTrash={false}
+								/>
+							) : null}
+						</div>
+					</div>
+				</RadixDialog.Content>
+			</RadixDialog.Portal>
+		</RadixDialog.Root>
 	);
 }

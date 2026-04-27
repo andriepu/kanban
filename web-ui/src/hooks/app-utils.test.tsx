@@ -39,8 +39,20 @@ describe("parseRoute", () => {
 		expect(parseRoute("/unknown")).toBeNull();
 	});
 
-	it("returns null for /pr with extra segments", () => {
-		expect(parseRoute("/pr/foo/bar")).toBeNull();
+	it("parses /pr/<repo>/<branch>", () => {
+		expect(parseRoute("/pr/my-repo/feature-x")).toEqual({ kind: "pr", repoName: "my-repo", prBranch: "feature-x" });
+	});
+
+	it("parses encoded branch names", () => {
+		expect(parseRoute("/pr/my-repo/feature%2Ffoo")).toEqual({
+			kind: "pr",
+			repoName: "my-repo",
+			prBranch: "feature/foo",
+		});
+	});
+
+	it("returns null for /pr with 4+ segments", () => {
+		expect(parseRoute("/pr/foo/bar/baz")).toBeNull();
 	});
 });
 
@@ -63,6 +75,16 @@ describe("buildPathname", () => {
 	it("encodes repo names with special characters", () => {
 		const route: Route = { kind: "pr", repoName: "my repo" };
 		expect(buildPathname(route)).toBe("/pr/my%20repo");
+	});
+
+	it("builds /pr/<repo>/<branch> route", () => {
+		const route: Route = { kind: "pr", repoName: "my-repo", prBranch: "feature-x" };
+		expect(buildPathname(route)).toBe("/pr/my-repo/feature-x");
+	});
+
+	it("encodes branch names with slashes", () => {
+		const route: Route = { kind: "pr", repoName: "my-repo", prBranch: "feature/foo" };
+		expect(buildPathname(route)).toBe("/pr/my-repo/feature%2Ffoo");
 	});
 });
 

@@ -90,7 +90,6 @@ export default function App(): ReactElement {
 	const [pendingTaskStartAfterEditId, setPendingTaskStartAfterEditId] = useState<string | null>(null);
 	const taskEditorResetRef = useRef<() => void>(() => {});
 	const lastStreamErrorRef = useRef<string | null>(null);
-	const [selectedPullRequestModal, setSelectedPullRequestModal] = useState<JiraPullRequest | null>(null);
 	const handleRepoSwitchStart = useCallback(() => {
 		setCanPersistWorkspaceState(false);
 		setIsGitHistoryOpen(false);
@@ -122,6 +121,9 @@ export default function App(): ReactElement {
 		setRepoFilter,
 		sidebarTab,
 		setSidebarTab,
+		selectedPrBranch,
+		openPullRequestModal,
+		closePullRequestModal,
 	} = useRepoNavigation({
 		onRepoSwitchStart: handleRepoSwitchStart,
 	});
@@ -413,6 +415,15 @@ export default function App(): ReactElement {
 		syncIntervalMs: jiraSyncIntervalMs,
 	});
 
+	const resolvedPullRequest = useMemo((): JiraPullRequest | null => {
+		if (!selectedPrBranch || !repoFilter) return null;
+		return (
+			Object.values(jiraBoard.pullRequests).find(
+				(pr) => pr.branchName === selectedPrBranch && pr.repoPath === repoFilter,
+			) ?? null
+		);
+	}, [selectedPrBranch, repoFilter, jiraBoard.pullRequests]);
+
 	const persistWorkspaceStateAsync = useCallback(
 		async (input: { workspaceId: string; payload: Parameters<typeof saveWorkspaceState>[1] }) =>
 			await saveWorkspaceState(input.workspaceId, input.payload),
@@ -553,9 +564,12 @@ export default function App(): ReactElement {
 		runAutoReviewGitAction,
 	});
 
-	const handlePullRequestClick = useCallback((pullRequest: JiraPullRequest) => {
-		setSelectedPullRequestModal(pullRequest);
-	}, []);
+	const handlePullRequestClick = useCallback(
+		(pullRequest: JiraPullRequest) => {
+			openPullRequestModal(pullRequest.branchName, pullRequest.repoPath);
+		},
+		[openPullRequestModal],
+	);
 
 	const {
 		handleCreateAndStartTask,
@@ -1005,11 +1019,8 @@ export default function App(): ReactElement {
 								/>
 							</div>
 						) : null}
-						{selectedPullRequestModal ? (
-							<JiraPullRequestDetailView
-								pullRequest={selectedPullRequestModal}
-								onClose={() => setSelectedPullRequestModal(null)}
-							/>
+						{resolvedPullRequest ? (
+							<JiraPullRequestDetailView pullRequest={resolvedPullRequest} onClose={closePullRequestModal} />
 						) : null}
 					</div>
 				</div>

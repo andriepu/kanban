@@ -28,7 +28,7 @@ export interface CreateJiraApiDependencies {
 		worktreePath: string;
 		branchName: string;
 		baseRef: string;
-	}) => Promise<void>;
+	}) => Promise<{ worktreePath: string }>;
 	removePullRequestWorktree: (options: { repoPath: string; worktreePath: string }) => Promise<void>;
 	startTaskSession: (
 		workspacePath: string,
@@ -101,7 +101,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 				input.branchName,
 			);
 
-			await deps.createPullRequestWorktree({
+			const { worktreePath: resolvedWorktreePath } = await deps.createPullRequestWorktree({
 				repoPath: input.repoPath,
 				worktreePath,
 				branchName: input.branchName,
@@ -110,7 +110,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 
 			const pullRequest = await deps.createJiraPullRequest({
 				...input,
-				worktreePath,
+				worktreePath: resolvedWorktreePath,
 				status: "backlog",
 			});
 
@@ -213,7 +213,9 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			return { configured: token !== null };
 		},
 
-		async fetchPullRequestDetail(pullRequestId: string): Promise<{ body: string; threads: GhPullRequestReviewThread[] }> {
+		async fetchPullRequestDetail(
+			pullRequestId: string,
+		): Promise<{ body: string; threads: GhPullRequestReviewThread[] }> {
 			const pullRequests = await deps.loadJiraPullRequests();
 			const pullRequest = pullRequests[pullRequestId];
 			if (!pullRequest) throw new Error(`Pull request ${pullRequestId} not found`);
@@ -271,18 +273,27 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 							pullRequest.repoId,
 							pullRequest.branchName,
 						);
-						await deps.createPullRequestWorktree({
+						const { worktreePath: resolvedWorktreePath } = await deps.createPullRequestWorktree({
 							repoPath: pullRequest.repoPath,
 							worktreePath: derivedPath,
 							branchName: pullRequest.branchName,
 							baseRef: pullRequest.baseRef,
 						});
-						const updatedPr: JiraPullRequest = { ...pullRequest, worktreePath: derivedPath, updatedAt: Date.now() };
+						const updatedPr: JiraPullRequest = {
+							...pullRequest,
+							worktreePath: resolvedWorktreePath,
+							updatedAt: Date.now(),
+						};
 						pullRequests[pullRequestId] = updatedPr;
 						await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
 
 						const workspaceId = await deps.addWorkspace(updatedPr.repoPath);
-						const result = await deps.startTaskSession(updatedPr.repoPath, updatedPr.id, updatedPr.prompt, derivedPath);
+						const result = await deps.startTaskSession(
+							updatedPr.repoPath,
+							updatedPr.id,
+							updatedPr.prompt,
+							resolvedWorktreePath,
+						);
 						pullRequests[pullRequestId] = { ...updatedPr, status: "in_progress", updatedAt: Date.now() };
 						await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
 						return { started: result.started, workspacePath: updatedPr.repoPath, workspaceId };
