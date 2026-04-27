@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-27T13:07:41.755Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-27T13:10:05.300Z
 > Files: 640 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
@@ -102,7 +102,7 @@
 
 ## .husky/
 
-- `pre-commit` — Declares checking (~136 tok)
+- `pre-commit` — Declares checking (~145 tok)
 
 ## .husky/_/
 
