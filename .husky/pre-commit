@@ -3,7 +3,7 @@
 STAGED_FILES=$(git diff --cached --name-only)
 
 echo "Running biome check on staged files..."
-npx biome check --staged --no-errors-on-unmatched --files-ignore-unknown=true
+./node_modules/.bin/biome check --staged --no-errors-on-unmatched --files-ignore-unknown=true
 if [ $? -ne 0 ]; then
 	echo "Biome check failed."
 	exit 1

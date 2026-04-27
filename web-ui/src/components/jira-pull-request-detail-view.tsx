@@ -16,6 +16,7 @@ import { useResizeDrag } from "@/resize/use-resize-drag";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
 import { LocalStorageKey } from "@/storage/local-storage-store";
+import { useTerminalThemeColors } from "@/terminal/theme-colors";
 import type { JiraPullRequest } from "@/types/jira";
 
 const SIDEBAR_RATIO_PREFERENCE: ResizeNumberPreference = {
@@ -34,6 +35,7 @@ export function JiraPullRequestDetailView({
 	onClose,
 }: JiraPullRequestDetailViewProps): React.ReactElement {
 	const trpc = getRuntimeTrpcClient(null);
+	const terminalThemeColors = useTerminalThemeColors();
 
 	const [activeSession, setActiveSession] = useState<{ workspaceId: string } | null>(null);
 	const [isStartingSession, setIsStartingSession] = useState(false);
@@ -133,7 +135,7 @@ export function JiraPullRequestDetailView({
 						/>
 
 						{/* Terminal */}
-						<div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+						<div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-surface-1">
 							{isStartingSession ? (
 								<div className="flex h-full items-center justify-center">
 									<Spinner size={20} />
@@ -143,14 +145,27 @@ export function JiraPullRequestDetailView({
 									<p className="max-w-sm text-center text-sm text-status-red">{sessionError}</p>
 								</div>
 							) : activeSession ? (
-								<AgentTerminalPanel
-									taskId={pullRequest.id}
-									workspaceId={activeSession.workspaceId}
-									summary={sessionSummary}
-									onSummary={setSessionSummary}
-									showSessionToolbar={false}
-									showMoveToTrash={false}
-								/>
+								<div
+									style={{
+										display: "flex",
+										flex: "1 1 0",
+										minWidth: 0,
+										paddingLeft: 12,
+										paddingRight: 12,
+									}}
+								>
+									<AgentTerminalPanel
+										taskId={pullRequest.id}
+										workspaceId={activeSession.workspaceId}
+										summary={sessionSummary}
+										onSummary={setSessionSummary}
+										showSessionToolbar={false}
+										showMoveToTrash={false}
+										panelBackgroundColor="var(--color-surface-1)"
+										terminalBackgroundColor={terminalThemeColors.surfaceRaised}
+										cursorColor={terminalThemeColors.textPrimary}
+									/>
+								</div>
 							) : null}
 						</div>
 					</div>

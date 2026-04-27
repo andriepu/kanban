@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-27T13:10:05.300Z
-> Files: 640 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-27T13:42:20.240Z
+> Files: 642 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
 
@@ -10,6 +10,7 @@
 - `1-when-pr-card-prancy-blum.md` — PR Card Click → Floating Fullscreen Modal + URL Routing (~1986 tok)
 - `again-merged-pr-is-smooth-bentley.md` — Plan: Fix merged PR icon flipping purple → green after auto-scan (~1456 tok)
 - `also-read-the-current-zany-garden.md` — Plan: Scan Open GitHub PRs → Attach as Subtasks on Matching Jira Cards (~1630 tok)
+- `click-pr-list-on-flickering-crane.md` — Plan: Task-tab PR-row click opens PR detail modal (parity with PR card click) (~1209 tok)
 - `collapsed-tab-sidebar-styling-cryptic-kitten.md` — Restore collapsed project-tab sidebar button styling (~877 tok)
 - `continue-zippy-diffie.md` — Plan: Reuse existing worktree when branch already exists (~870 tok)
 - `create-onboarding-to-always-happy-platypus.md` — Startup Onboarding Dialog (Always-On When Config Incomplete) (~2025 tok)
@@ -32,6 +33,7 @@
 - `remove-kanban-agent-from-synchronous-bentley.md` — Remove Kanban Agent Panel from Project-Tab Sidebar (~1241 tok)
 - `rename-sidebar-tab-to-bubbly-goose.md` — Rename: Project → Repo, Subtask → PullRequest (~7386 tok)
 - `statusline-should-always-been-wobbly-donut.md` — Make JIRA sync statusline globally visible (~1505 tok)
+- `use-same-style-for-indexed-dahl.md` — PR Terminal: Style Parity + Auto-On on PR Tab (~1817 tok)
 - `when-card-in-pr-bright-deer.md` — PR Board Card Click → Fullscreen PR Detail Modal (~1972 tok)
 - `when-first-jira-card-cozy-puddle.md` — Fix: PR icon missing on first Jira card click after board load (~1737 tok)
 - `when-i-first-load-curried-scroll.md` — Plan: Stay on `/` when no repo selected; redirect to `/<repo>` only on user action (~1926 tok)
@@ -102,7 +104,7 @@
 
 ## .husky/
 
-- `pre-commit` — Declares checking (~145 tok)
+- `pre-commit` — Declares checking (~149 tok)
 
 ## .husky/_/
 
@@ -809,7 +811,7 @@
 
 ## web-ui/src/
 
-- `App.tsx` — Main React composition root for the browser app. (~11066 tok)
+- `App.tsx` — Main React composition root for the browser app. (~11210 tok)
 - `main.tsx` — _savedTheme (~441 tok)
 - `vite-env.d.ts` — / <reference types="vite/client" /> (~66 tok)
 
@@ -832,9 +834,9 @@
 - `inline-completion-picker.tsx` — InlineCompletionPicker — uses useRef, useCallback, useEffect (~1125 tok)
 - `jira-board.test.tsx` — mockJiraBoard (~2549 tok)
 - `jira-board.tsx` — COLUMNS (~1808 tok)
-- `jira-card-detail-view.test.tsx` — mockFetchIssue (~3034 tok)
-- `jira-card-detail-view.tsx` — SUBTASK_STATUS_COLORS (~2120 tok)
-- `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1601 tok)
+- `jira-card-detail-view.test.tsx` — mockScanPRs (~3024 tok)
+- `jira-card-detail-view.tsx` — PULL_REQUEST_STATUS_COLORS (~1635 tok)
+- `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1762 tok)
 - `kanban-board.test.tsx` — dndMock — uses useEffect (~1704 tok)
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
 - `markdown-text.tsx` — MarkdownText (~489 tok)

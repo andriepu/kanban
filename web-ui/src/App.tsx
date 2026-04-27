@@ -507,6 +507,22 @@ export default function App(): ReactElement {
 			return;
 		}
 	}, [closeHomeTerminal, currentRepoId, hasNoRepos, isHomeTerminalOpen, selectedCard]);
+
+	const previousSidebarTabRef = useRef(sidebarTab);
+	useEffect(() => {
+		const previous = previousSidebarTabRef.current;
+		previousSidebarTabRef.current = sidebarTab;
+		if (sidebarTab !== "pr" || previous === "pr") {
+			return;
+		}
+		if (selectedCard || hasNoRepos || !currentRepoId) {
+			return;
+		}
+		if (!isHomeTerminalOpen) {
+			void handleToggleHomeTerminal();
+		}
+	}, [sidebarTab, selectedCard, hasNoRepos, currentRepoId, isHomeTerminalOpen, handleToggleHomeTerminal]);
+
 	const showHomeBottomTerminal = !selectedCard && !hasNoRepos && isHomeTerminalOpen;
 	const homeTerminalSubtitle = useMemo(
 		() => workspacePath ?? navigationRepoPath ?? null,
@@ -740,6 +756,7 @@ export default function App(): ReactElement {
 				fetchDetail={jiraBoard.fetchDetail}
 				scanPRs={jiraBoard.scanPRs}
 				onPullRequestCreated={jiraBoard.refetch}
+				onPullRequestClick={handlePullRequestClick}
 			/>
 		) : undefined;
 

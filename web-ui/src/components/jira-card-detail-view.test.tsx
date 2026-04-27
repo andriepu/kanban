@@ -5,27 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { JiraBoard, JiraPullRequest } from "@/types/jira";
 import { JiraCardDetailView } from "./jira-card-detail-view";
 
-const mockFetchIssue = vi.hoisted(() => vi.fn());
-const mockStartPullRequestSession = vi.hoisted(() => vi.fn());
-
 const mockScanPRs = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockFetchDetail = vi.hoisted(() => vi.fn());
-
-const mockTrpcClient = {
-	jira: {
-		fetchIssue: { query: mockFetchIssue },
-		startPullRequestSession: { mutate: mockStartPullRequestSession },
-	},
-};
-
-vi.mock("@/runtime/trpc-client", () => ({
-	getRuntimeTrpcClient: () => mockTrpcClient,
-}));
-
-// AgentTerminalPanel requires heavy terminal setup — stub it out
-vi.mock("@/components/detail-panels/agent-terminal-panel", () => ({
-	AgentTerminalPanel: () => null,
-}));
 
 // PullRequestCreateDialog is not under test here
 vi.mock("@/components/pull-request-create-dialog", () => ({
@@ -39,9 +20,6 @@ describe("JiraCardDetailView", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		// Prevent unhandled promise rejections — fetchIssue resolves immediately
-		mockFetchIssue.mockResolvedValue({ jiraKey: "POL-1", summary: "Fix login", description: null });
-
 		previousActEnvironment = (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
 			.IS_REACT_ACT_ENVIRONMENT;
 		(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -106,6 +84,7 @@ describe("JiraCardDetailView", () => {
 					fetchDetail={mockFetchDetail}
 					scanPRs={mockScanPRs}
 					onPullRequestCreated={vi.fn()}
+					onPullRequestClick={vi.fn()}
 				/>,
 			);
 		});
@@ -181,6 +160,7 @@ describe("JiraCardDetailView", () => {
 						fetchDetail={mockFetchDetail}
 						scanPRs={mockScanPRs}
 						onPullRequestCreated={vi.fn()}
+						onPullRequestClick={vi.fn()}
 					/>,
 				);
 			});
@@ -202,6 +182,7 @@ describe("JiraCardDetailView", () => {
 						fetchDetail={mockFetchDetail}
 						scanPRs={mockScanPRs}
 						onPullRequestCreated={vi.fn()}
+						onPullRequestClick={vi.fn()}
 					/>,
 				);
 			});
@@ -223,6 +204,7 @@ describe("JiraCardDetailView", () => {
 						fetchDetail={mockFetchDetail}
 						scanPRs={mockScanPRs}
 						onPullRequestCreated={vi.fn()}
+						onPullRequestClick={vi.fn()}
 					/>,
 				);
 			});
@@ -244,6 +226,7 @@ describe("JiraCardDetailView", () => {
 						fetchDetail={mockFetchDetail}
 						scanPRs={mockScanPRs}
 						onPullRequestCreated={vi.fn()}
+						onPullRequestClick={vi.fn()}
 					/>,
 				);
 			});
@@ -297,6 +280,7 @@ describe("JiraCardDetailView", () => {
 					fetchDetail={mockFetchDetail}
 					scanPRs={mockScanPRs}
 					onPullRequestCreated={vi.fn()}
+					onPullRequestClick={vi.fn()}
 				/>,
 			);
 		});
@@ -355,6 +339,7 @@ describe("JiraCardDetailView", () => {
 					fetchDetail={mockFetchDetail}
 					scanPRs={mockScanPRs}
 					onPullRequestCreated={vi.fn()}
+					onPullRequestClick={vi.fn()}
 				/>,
 			);
 		});

@@ -1,14 +1,11 @@
 import { GitPullRequest, Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { AgentTerminalPanel } from "@/components/detail-panels/agent-terminal-panel";
+import { useEffect, useState } from "react";
 import { MarkdownText } from "@/components/markdown-text";
 import { PullRequestCreateDialog } from "@/components/pull-request-create-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Spinner } from "@/components/ui/spinner";
 import type { IssueData } from "@/hooks/use-jira-board";
-import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
-import type { RuntimeTaskSessionSummary } from "@/runtime/types";
 import type { JiraBoard, JiraPullRequest } from "@/types/jira";
 
 interface JiraCardDetailViewProps {
@@ -20,6 +17,7 @@ interface JiraCardDetailViewProps {
 	fetchDetail: (jiraKey: string) => void;
 	scanPRs: () => Promise<void>;
 	onPullRequestCreated: () => void;
+	onPullRequestClick: (pullRequest: JiraPullRequest) => void;
 }
 
 const PULL_REQUEST_STATUS_COLORS: Record<JiraPullRequest["status"], string> = {
@@ -44,14 +42,9 @@ export function JiraCardDetailView({
 	fetchDetail,
 	scanPRs,
 	onPullRequestCreated,
+	onPullRequestClick,
 }: JiraCardDetailViewProps): React.ReactElement {
-	const trpc = getRuntimeTrpcClient(null);
-
 	const [createDialogOpen, setCreateDialogOpen] = useState(false);
-	const [selectedPullRequestId, setSelectedPullRequestId] = useState<string | null>(null);
-	const [activeSession, setActiveSession] = useState<{ pullRequestId: string; workspaceId: string } | null>(null);
-	const [sessionSummary, setSessionSummary] = useState<RuntimeTaskSessionSummary | null>(null);
-	const [isStartingSession, setIsStartingSession] = useState(false);
 	const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
 	const card = board.cards.find((c) => c.jiraKey === jiraKey);
@@ -71,36 +64,8 @@ export function JiraCardDetailView({
 
 	// Reset local state when switching cards
 	useEffect(() => {
-		setSelectedPullRequestId(null);
-		setActiveSession(null);
-		setSessionSummary(null);
 		setIsDescriptionExpanded(false);
 	}, [jiraKey]);
-
-	const handlePullRequestClick = useCallback(
-		async (pullRequest: JiraPullRequest) => {
-			if (selectedPullRequestId === pullRequest.id) {
-				setSelectedPullRequestId(null);
-				setActiveSession(null);
-				setSessionSummary(null);
-				return;
-			}
-			setSelectedPullRequestId(pullRequest.id);
-			setIsStartingSession(true);
-			try {
-				const result = await trpc.jira.startPullRequestSession.mutate({ pullRequestId: pullRequest.id });
-				if (result.openUrl) {
-					window.open(result.openUrl, "_blank", "noopener,noreferrer");
-					setSelectedPullRequestId(null);
-				} else {
-					setActiveSession({ pullRequestId: pullRequest.id, workspaceId: result.workspaceId });
-				}
-			} finally {
-				setIsStartingSession(false);
-			}
-		},
-		[selectedPullRequestId, trpc],
-	);
 
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
@@ -159,12 +124,8 @@ export function JiraCardDetailView({
 						<button
 							key={pullRequest.id}
 							type="button"
-							disabled={isStartingSession}
-							onClick={() => void handlePullRequestClick(pullRequest)}
-							className={cn(
-								"flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-60",
-								selectedPullRequestId === pullRequest.id && "bg-surface-2",
-							)}
+							onClick={() => onPullRequestClick(pullRequest)}
+							className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-surface-2"
 						>
 							{!pullRequest.prUrl && (
 								<span
@@ -207,19 +168,6 @@ export function JiraCardDetailView({
 					</Button>
 				</div>
 			</div>
-
-			{activeSession && (
-				<div className="flex-1 overflow-hidden border-t border-border">
-					<AgentTerminalPanel
-						taskId={activeSession.pullRequestId}
-						workspaceId={activeSession.workspaceId}
-						summary={sessionSummary}
-						onSummary={setSessionSummary}
-						showSessionToolbar={false}
-						showMoveToTrash={false}
-					/>
-				</div>
-			)}
 
 			<PullRequestCreateDialog
 				jiraKey={jiraKey}
