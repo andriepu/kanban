@@ -972,6 +972,7 @@ export default function App(): ReactElement {
 													panelBackgroundColor="var(--color-surface-1)"
 													terminalBackgroundColor={terminalThemeColors.surfaceRaised}
 													cursorColor={terminalThemeColors.textPrimary}
+													terminalFontFamily={runtimeRepoConfig?.terminalFontFamily ?? null}
 													onConnectionReady={markTerminalConnectionReady}
 													agentCommand={agentCommand}
 													onSendAgentCommand={handleSendAgentCommandToHomeTerminal}

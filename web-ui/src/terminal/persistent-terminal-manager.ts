@@ -29,6 +29,7 @@ const PARKING_ROOT_ID = "kb-persistent-terminal-parking-root";
 interface PersistentTerminalAppearance {
 	cursorColor: string;
 	terminalBackgroundColor: string;
+	terminalFontFamily?: string | null;
 	themeColors?: ThemeTerminalColors;
 }
 
@@ -183,6 +184,7 @@ class PersistentTerminal {
 				cursorColor: this.appearance.cursorColor,
 				isMacPlatform,
 				terminalBackgroundColor: this.appearance.terminalBackgroundColor,
+				terminalFontFamily: this.appearance.terminalFontFamily,
 				themeColors: this.appearance.themeColors ?? getTerminalThemeColors(),
 			}),
 			cols: initialGeometry.cols,
@@ -490,15 +492,18 @@ class PersistentTerminal {
 
 	private updateAppearance(appearance: PersistentTerminalAppearance): void {
 		this.appearance = appearance;
+		const terminalOptions = createKanbanTerminalOptions({
+			cursorColor: appearance.cursorColor,
+			isMacPlatform,
+			terminalBackgroundColor: appearance.terminalBackgroundColor,
+			terminalFontFamily: appearance.terminalFontFamily,
+			themeColors: appearance.themeColors ?? getTerminalThemeColors(),
+		});
 		this.terminal.options.theme = {
 			...this.terminal.options.theme,
-			...createKanbanTerminalOptions({
-				cursorColor: appearance.cursorColor,
-				isMacPlatform,
-				terminalBackgroundColor: appearance.terminalBackgroundColor,
-				themeColors: appearance.themeColors ?? getTerminalThemeColors(),
-			}).theme,
+			...terminalOptions.theme,
 		};
+		this.terminal.options.fontFamily = terminalOptions.fontFamily;
 	}
 
 	setAppearance(appearance: PersistentTerminalAppearance): void {
@@ -705,6 +710,7 @@ export function ensurePersistentTerminal(input: EnsurePersistentTerminalInput): 
 		terminal = new PersistentTerminal(input.taskId, input.workspaceId, {
 			cursorColor: input.cursorColor,
 			terminalBackgroundColor: input.terminalBackgroundColor,
+			terminalFontFamily: input.terminalFontFamily,
 			themeColors: input.themeColors,
 		});
 		terminals.set(key, terminal);
@@ -713,6 +719,7 @@ export function ensurePersistentTerminal(input: EnsurePersistentTerminalInput): 
 	terminal.setAppearance({
 		cursorColor: input.cursorColor,
 		terminalBackgroundColor: input.terminalBackgroundColor,
+		terminalFontFamily: input.terminalFontFamily,
 		themeColors: input.themeColors,
 	});
 	return terminal;

@@ -16,6 +16,7 @@ interface RuntimeGlobalConfigFileShape {
 	selectedAgentId?: RuntimeAgentId;
 	selectedShortcutLabel?: string;
 	agentAutonomousModeEnabled?: boolean;
+	terminalFontFamily?: string;
 	readyForReviewNotificationsEnabled?: boolean;
 	commitPromptTemplate?: string;
 	openPrPromptTemplate?: string;
@@ -37,6 +38,7 @@ export interface RuntimeConfigState {
 	selectedAgentId: RuntimeAgentId;
 	selectedShortcutLabel: string | null;
 	agentAutonomousModeEnabled: boolean;
+	terminalFontFamily: string | null;
 	readyForReviewNotificationsEnabled: boolean;
 	shortcuts: RuntimeRepoShortcut[];
 	commitPromptTemplate: string;
@@ -56,6 +58,7 @@ export interface RuntimeConfigUpdateInput {
 	selectedAgentId?: RuntimeAgentId;
 	selectedShortcutLabel?: string | null;
 	agentAutonomousModeEnabled?: boolean;
+	terminalFontFamily?: string | null;
 	readyForReviewNotificationsEnabled?: boolean;
 	shortcuts?: RuntimeRepoShortcut[];
 	commitPromptTemplate?: string;
@@ -304,6 +307,7 @@ function toRuntimeConfigState({
 			globalConfig?.agentAutonomousModeEnabled,
 			DEFAULT_AGENT_AUTONOMOUS_MODE_ENABLED,
 		),
+		terminalFontFamily: normalizeOptionalString(globalConfig?.terminalFontFamily),
 		readyForReviewNotificationsEnabled: normalizeBoolean(
 			globalConfig?.readyForReviewNotificationsEnabled,
 			DEFAULT_READY_FOR_REVIEW_NOTIFICATIONS_ENABLED,
@@ -341,6 +345,7 @@ async function writeRuntimeGlobalConfigFile(
 		selectedAgentId?: RuntimeAgentId;
 		selectedShortcutLabel?: string | null;
 		agentAutonomousModeEnabled?: boolean;
+		terminalFontFamily?: string | null;
 		readyForReviewNotificationsEnabled?: boolean;
 		commitPromptTemplate?: string;
 		openPrPromptTemplate?: string;
@@ -366,6 +371,11 @@ async function writeRuntimeGlobalConfigFile(
 		config.agentAutonomousModeEnabled === undefined
 			? DEFAULT_AGENT_AUTONOMOUS_MODE_ENABLED
 			: normalizeBoolean(config.agentAutonomousModeEnabled, DEFAULT_AGENT_AUTONOMOUS_MODE_ENABLED);
+	const terminalFontFamily =
+		config.terminalFontFamily === undefined ? undefined : normalizeOptionalString(config.terminalFontFamily);
+	const existingTerminalFontFamily = hasOwnKey(existing, "terminalFontFamily")
+		? normalizeOptionalString(existing?.terminalFontFamily)
+		: undefined;
 	const readyForReviewNotificationsEnabled =
 		config.readyForReviewNotificationsEnabled === undefined
 			? DEFAULT_READY_FOR_REVIEW_NOTIFICATIONS_ENABLED
@@ -399,6 +409,13 @@ async function writeRuntimeGlobalConfigFile(
 		agentAutonomousModeEnabled !== DEFAULT_AGENT_AUTONOMOUS_MODE_ENABLED
 	) {
 		payload.agentAutonomousModeEnabled = agentAutonomousModeEnabled;
+	}
+	if (terminalFontFamily !== undefined) {
+		if (terminalFontFamily) {
+			payload.terminalFontFamily = terminalFontFamily;
+		}
+	} else if (existingTerminalFontFamily) {
+		payload.terminalFontFamily = existingTerminalFontFamily;
 	}
 	if (
 		hasOwnKey(existing, "readyForReviewNotificationsEnabled") ||
@@ -580,6 +597,7 @@ function createRuntimeConfigStateFromValues(input: {
 	selectedAgentId: RuntimeAgentId;
 	selectedShortcutLabel: string | null;
 	agentAutonomousModeEnabled: boolean;
+	terminalFontFamily: string | null;
 	readyForReviewNotificationsEnabled: boolean;
 	shortcuts: RuntimeRepoShortcut[];
 	commitPromptTemplate: string;
@@ -601,6 +619,7 @@ function createRuntimeConfigStateFromValues(input: {
 			input.agentAutonomousModeEnabled,
 			DEFAULT_AGENT_AUTONOMOUS_MODE_ENABLED,
 		),
+		terminalFontFamily: normalizeOptionalString(input.terminalFontFamily),
 		readyForReviewNotificationsEnabled: normalizeBoolean(
 			input.readyForReviewNotificationsEnabled,
 			DEFAULT_READY_FOR_REVIEW_NOTIFICATIONS_ENABLED,
@@ -627,6 +646,7 @@ export function toGlobalRuntimeConfigState(current: RuntimeConfigState): Runtime
 		selectedAgentId: current.selectedAgentId,
 		selectedShortcutLabel: current.selectedShortcutLabel,
 		agentAutonomousModeEnabled: current.agentAutonomousModeEnabled,
+		terminalFontFamily: current.terminalFontFamily,
 		readyForReviewNotificationsEnabled: current.readyForReviewNotificationsEnabled,
 		shortcuts: [],
 		commitPromptTemplate: current.commitPromptTemplate,
@@ -668,6 +688,7 @@ export async function saveRuntimeConfig(
 		selectedAgentId: RuntimeAgentId;
 		selectedShortcutLabel: string | null;
 		agentAutonomousModeEnabled: boolean;
+		terminalFontFamily?: string | null;
 		readyForReviewNotificationsEnabled: boolean;
 		shortcuts: RuntimeRepoShortcut[];
 		commitPromptTemplate: string;
@@ -683,6 +704,10 @@ export async function saveRuntimeConfig(
 		const jiraProjectKey = normalizeOptionalString(existingGlobal?.jiraProjectKey);
 		const jiraBaseUrl = normalizeOptionalString(existingGlobal?.jiraBaseUrl);
 		const jiraEmail = normalizeOptionalString(existingGlobal?.jiraEmail);
+		const terminalFontFamily =
+			config.terminalFontFamily === undefined
+				? normalizeOptionalString(existingGlobal?.terminalFontFamily)
+				: normalizeOptionalString(config.terminalFontFamily);
 		const jiraSyncIntervalMs = normalizePositiveInteger(
 			existingGlobal?.jiraSyncIntervalMs,
 			DEFAULT_JIRA_SYNC_INTERVAL_MS,
@@ -692,6 +717,7 @@ export async function saveRuntimeConfig(
 			selectedAgentId: config.selectedAgentId,
 			selectedShortcutLabel: config.selectedShortcutLabel,
 			agentAutonomousModeEnabled: config.agentAutonomousModeEnabled,
+			terminalFontFamily,
 			readyForReviewNotificationsEnabled: config.readyForReviewNotificationsEnabled,
 			commitPromptTemplate: config.commitPromptTemplate,
 			openPrPromptTemplate: config.openPrPromptTemplate,
@@ -709,6 +735,7 @@ export async function saveRuntimeConfig(
 			selectedAgentId: config.selectedAgentId,
 			selectedShortcutLabel: config.selectedShortcutLabel,
 			agentAutonomousModeEnabled: config.agentAutonomousModeEnabled,
+			terminalFontFamily,
 			readyForReviewNotificationsEnabled: config.readyForReviewNotificationsEnabled,
 			shortcuts: config.shortcuts,
 			commitPromptTemplate: config.commitPromptTemplate,
@@ -735,6 +762,8 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			selectedShortcutLabel:
 				updates.selectedShortcutLabel === undefined ? current.selectedShortcutLabel : updates.selectedShortcutLabel,
 			agentAutonomousModeEnabled: updates.agentAutonomousModeEnabled ?? current.agentAutonomousModeEnabled,
+			terminalFontFamily:
+				updates.terminalFontFamily === undefined ? current.terminalFontFamily : updates.terminalFontFamily,
 			readyForReviewNotificationsEnabled:
 				updates.readyForReviewNotificationsEnabled ?? current.readyForReviewNotificationsEnabled,
 			shortcuts: repoConfigPath ? (updates.shortcuts ?? current.shortcuts) : current.shortcuts,
@@ -755,6 +784,7 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			nextConfig.selectedAgentId !== current.selectedAgentId ||
 			nextConfig.selectedShortcutLabel !== current.selectedShortcutLabel ||
 			nextConfig.agentAutonomousModeEnabled !== current.agentAutonomousModeEnabled ||
+			nextConfig.terminalFontFamily !== current.terminalFontFamily ||
 			nextConfig.readyForReviewNotificationsEnabled !== current.readyForReviewNotificationsEnabled ||
 			nextConfig.commitPromptTemplate !== current.commitPromptTemplate ||
 			nextConfig.openPrPromptTemplate !== current.openPrPromptTemplate ||
@@ -774,6 +804,7 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			selectedAgentId: nextConfig.selectedAgentId,
 			selectedShortcutLabel: nextConfig.selectedShortcutLabel,
 			agentAutonomousModeEnabled: nextConfig.agentAutonomousModeEnabled,
+			terminalFontFamily: nextConfig.terminalFontFamily,
 			readyForReviewNotificationsEnabled: nextConfig.readyForReviewNotificationsEnabled,
 			commitPromptTemplate: nextConfig.commitPromptTemplate,
 			openPrPromptTemplate: nextConfig.openPrPromptTemplate,
@@ -793,6 +824,7 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			selectedAgentId: nextConfig.selectedAgentId,
 			selectedShortcutLabel: nextConfig.selectedShortcutLabel,
 			agentAutonomousModeEnabled: nextConfig.agentAutonomousModeEnabled,
+			terminalFontFamily: nextConfig.terminalFontFamily,
 			readyForReviewNotificationsEnabled: nextConfig.readyForReviewNotificationsEnabled,
 			shortcuts: nextConfig.shortcuts,
 			commitPromptTemplate: nextConfig.commitPromptTemplate,
@@ -827,6 +859,8 @@ export async function updateGlobalRuntimeConfig(
 						? current.selectedShortcutLabel
 						: updates.selectedShortcutLabel,
 				agentAutonomousModeEnabled: updates.agentAutonomousModeEnabled ?? current.agentAutonomousModeEnabled,
+				terminalFontFamily:
+					updates.terminalFontFamily === undefined ? current.terminalFontFamily : updates.terminalFontFamily,
 				readyForReviewNotificationsEnabled:
 					updates.readyForReviewNotificationsEnabled ?? current.readyForReviewNotificationsEnabled,
 				shortcuts: current.shortcuts,
@@ -847,6 +881,7 @@ export async function updateGlobalRuntimeConfig(
 				nextConfig.selectedAgentId !== current.selectedAgentId ||
 				nextConfig.selectedShortcutLabel !== current.selectedShortcutLabel ||
 				nextConfig.agentAutonomousModeEnabled !== current.agentAutonomousModeEnabled ||
+				nextConfig.terminalFontFamily !== current.terminalFontFamily ||
 				nextConfig.readyForReviewNotificationsEnabled !== current.readyForReviewNotificationsEnabled ||
 				nextConfig.commitPromptTemplate !== current.commitPromptTemplate ||
 				nextConfig.openPrPromptTemplate !== current.openPrPromptTemplate ||
@@ -865,6 +900,7 @@ export async function updateGlobalRuntimeConfig(
 				selectedAgentId: nextConfig.selectedAgentId,
 				selectedShortcutLabel: nextConfig.selectedShortcutLabel,
 				agentAutonomousModeEnabled: nextConfig.agentAutonomousModeEnabled,
+				terminalFontFamily: nextConfig.terminalFontFamily,
 				readyForReviewNotificationsEnabled: nextConfig.readyForReviewNotificationsEnabled,
 				commitPromptTemplate: nextConfig.commitPromptTemplate,
 				openPrPromptTemplate: nextConfig.openPrPromptTemplate,
@@ -882,6 +918,7 @@ export async function updateGlobalRuntimeConfig(
 				selectedAgentId: nextConfig.selectedAgentId,
 				selectedShortcutLabel: nextConfig.selectedShortcutLabel,
 				agentAutonomousModeEnabled: nextConfig.agentAutonomousModeEnabled,
+				terminalFontFamily: nextConfig.terminalFontFamily,
 				readyForReviewNotificationsEnabled: nextConfig.readyForReviewNotificationsEnabled,
 				shortcuts: nextConfig.shortcuts,
 				commitPromptTemplate: nextConfig.commitPromptTemplate,

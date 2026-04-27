@@ -127,6 +127,7 @@ function BottomTerminalSection({
 	onClose,
 	subtitle,
 	terminalThemeColors,
+	terminalFontFamily,
 	onConnectionReady,
 	agentCommand,
 	onSendAgentCommand,
@@ -143,6 +144,7 @@ function BottomTerminalSection({
 	onClose: () => void;
 	subtitle?: string | null;
 	terminalThemeColors: { surfaceRaised: string; textPrimary: string };
+	terminalFontFamily?: string | null;
 	onConnectionReady?: (taskId: string) => void;
 	agentCommand?: string | null;
 	onSendAgentCommand?: () => void;
@@ -174,6 +176,7 @@ function BottomTerminalSection({
 					panelBackgroundColor="var(--color-surface-1)"
 					terminalBackgroundColor={terminalThemeColors.surfaceRaised}
 					cursorColor={terminalThemeColors.textPrimary}
+					terminalFontFamily={terminalFontFamily}
 					onConnectionReady={onConnectionReady}
 					agentCommand={agentCommand}
 					onSendAgentCommand={onSendAgentCommand}
@@ -335,7 +338,7 @@ export function CardDetailView({
 	currentRepoId,
 	workspacePath,
 	selectedAgentId: _selectedAgentId = null,
-	runtimeConfig: _runtimeConfig = null,
+	runtimeConfig = null,
 	sessionSummary,
 	taskSessions,
 	onSessionSummary,
@@ -651,6 +654,7 @@ export function CardDetailView({
 			panelBackgroundColor="var(--color-surface-0)"
 			terminalBackgroundColor={terminalThemeColors.surfacePrimary}
 			cursorColor={terminalThemeColors.textPrimary}
+			terminalFontFamily={runtimeConfig?.terminalFontFamily ?? null}
 			taskColumnId={selection.column.id}
 		/>
 	);
@@ -728,6 +732,7 @@ export function CardDetailView({
 								onClose={onBottomTerminalClose}
 								subtitle={bottomTerminalSubtitle}
 								terminalThemeColors={terminalThemeColors}
+								terminalFontFamily={runtimeConfig?.terminalFontFamily ?? null}
 								onConnectionReady={onBottomTerminalConnectionReady}
 								agentCommand={bottomTerminalAgentCommand}
 								onSendAgentCommand={onBottomTerminalSendAgentCommand}
@@ -877,6 +882,7 @@ export function CardDetailView({
 								onClose={onBottomTerminalClose}
 								subtitle={bottomTerminalSubtitle}
 								terminalThemeColors={terminalThemeColors}
+								terminalFontFamily={runtimeConfig?.terminalFontFamily ?? null}
 								onConnectionReady={onBottomTerminalConnectionReady}
 								agentCommand={bottomTerminalAgentCommand}
 								onSendAgentCommand={onBottomTerminalSendAgentCommand}

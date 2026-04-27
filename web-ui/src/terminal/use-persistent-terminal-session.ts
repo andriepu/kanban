@@ -17,6 +17,7 @@ interface UsePersistentTerminalSessionInput {
 	sessionStartedAt?: number | null;
 	terminalBackgroundColor: string;
 	cursorColor: string;
+	terminalFontFamily?: string | null;
 }
 
 export interface UsePersistentTerminalSessionResult {
@@ -38,6 +39,7 @@ export function usePersistentTerminalSession({
 	sessionStartedAt = null,
 	terminalBackgroundColor,
 	cursorColor,
+	terminalFontFamily,
 }: UsePersistentTerminalSessionInput): UsePersistentTerminalSessionResult {
 	const { themeId } = useTheme();
 	const themeColors = useMemo(() => getTerminalThemeColors(themeId), [themeId]);
@@ -103,6 +105,7 @@ export function usePersistentTerminalSession({
 			workspaceId,
 			cursorColor,
 			terminalBackgroundColor,
+			terminalFontFamily,
 			themeColors,
 		});
 		if (didSessionRestart) {
@@ -128,6 +131,7 @@ export function usePersistentTerminalSession({
 			{
 				cursorColor,
 				terminalBackgroundColor,
+				terminalFontFamily,
 				themeColors,
 			},
 			{
@@ -152,6 +156,7 @@ export function usePersistentTerminalSession({
 		sessionStartedAt,
 		taskId,
 		terminalBackgroundColor,
+		terminalFontFamily,
 		themeColors,
 		workspaceId,
 	]);

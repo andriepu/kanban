@@ -6,19 +6,22 @@ interface CreateKanbanTerminalOptionsInput {
 	cursorColor: string;
 	isMacPlatform: boolean;
 	terminalBackgroundColor: string;
+	terminalFontFamily?: string | null;
 	themeColors: ThemeTerminalColors;
 }
 
 const TERMINAL_WORD_SEPARATOR = " ()[]{}',\"`";
-const TERMINAL_FONT_FAMILY =
+export const DEFAULT_TERMINAL_FONT_FAMILY =
 	"'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'SF Mono', Menlo, Monaco, 'Courier New', monospace";
 
 export function createKanbanTerminalOptions({
 	cursorColor,
 	isMacPlatform,
 	terminalBackgroundColor,
+	terminalFontFamily,
 	themeColors,
 }: CreateKanbanTerminalOptionsInput): ITerminalOptions {
+	const normalizedFontFamily = terminalFontFamily?.trim();
 	return {
 		allowProposedApi: true,
 		allowTransparency: false,
@@ -27,7 +30,8 @@ export function createKanbanTerminalOptions({
 		cursorInactiveStyle: "outline",
 		cursorStyle: "block",
 		disableStdin: false,
-		fontFamily: TERMINAL_FONT_FAMILY,
+		fontFamily:
+			normalizedFontFamily && normalizedFontFamily.length > 0 ? normalizedFontFamily : DEFAULT_TERMINAL_FONT_FAMILY,
 		fontSize: 13,
 		fontWeight: "normal",
 		fontWeightBold: "bold",

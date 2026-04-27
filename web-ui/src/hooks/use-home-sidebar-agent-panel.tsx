@@ -98,6 +98,7 @@ export function useHomeSidebarAgentPanel({
 				panelBackgroundColor="var(--color-surface-1)"
 				terminalBackgroundColor={terminalThemeColors.surfaceRaised}
 				cursorColor={terminalThemeColors.textPrimary}
+				terminalFontFamily={runtimeRepoConfig.terminalFontFamily}
 			/>
 		);
 	}

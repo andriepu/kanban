@@ -514,6 +514,48 @@ describe.sequential("runtime-config auto agent selection", () => {
 		}
 	});
 
+	it("reads terminalFontFamily from global config", async () => {
+		const { path: tempHome, cleanup: cleanupHome } = createTempDir("kanban-home-runtime-config-terminal-font-");
+
+		try {
+			await withTemporaryEnv({ home: tempHome }, async () => {
+				const configPath = getRuntimeGlobalConfigPath();
+				await fs.mkdir(path.dirname(configPath), { recursive: true });
+				await fs.writeFile(configPath, JSON.stringify({ terminalFontFamily: "Monaspace Neon, monospace" }));
+				const config = await loadRuntimeConfig(null);
+				expect(config.terminalFontFamily).toBe("Monaspace Neon, monospace");
+			});
+		} finally {
+			cleanupHome();
+		}
+	});
+
+	it("clears terminalFontFamily when updated to null", async () => {
+		const { path: tempHome, cleanup: cleanupHome } = createTempDir("kanban-home-runtime-config-clear-terminal-font-");
+		const { path: tempProject, cleanup: cleanupProject } = createTempDir(
+			"kanban-project-runtime-config-clear-terminal-font-",
+		);
+
+		try {
+			await withTemporaryEnv({ home: tempHome }, async () => {
+				await updateRuntimeConfig(tempProject, {
+					terminalFontFamily: "Monaspace Neon, monospace",
+				});
+				const setConfig = await loadRuntimeConfig(tempProject);
+				expect(setConfig.terminalFontFamily).toBe("Monaspace Neon, monospace");
+
+				await updateRuntimeConfig(tempProject, {
+					terminalFontFamily: null,
+				});
+				const clearedConfig = await loadRuntimeConfig(tempProject);
+				expect(clearedConfig.terminalFontFamily).toBeNull();
+			});
+		} finally {
+			cleanupProject();
+			cleanupHome();
+		}
+	});
+
 	it("reads jiraProjectKey from global config", async () => {
 		const { path: tempHome, cleanup: cleanupHome } = createTempDir("kanban-home-runtime-config-jira-key-");
 

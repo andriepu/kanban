@@ -46,6 +46,7 @@ import {
 } from "@/runtime/runtime-config-query";
 import type { RuntimeAgentId, RuntimeConfigResponse, RuntimeRepoShortcut } from "@/runtime/types";
 import { useRuntimeConfig } from "@/runtime/use-runtime-config";
+import { DEFAULT_TERMINAL_FONT_FAMILY } from "@/terminal/terminal-options";
 import {
 	type BrowserNotificationPermission,
 	getBrowserNotificationPermission,
@@ -369,6 +370,7 @@ export function RuntimeSettingsDialog({
 	const [worktreesRoot, setWorktreesRoot] = useState(config?.worktreesRoot ?? "");
 	const [reposRoot, setReposRoot] = useState(config?.reposRoot ?? "");
 	const [isSyncingRepos, setIsSyncingRepos] = useState(false);
+	const [terminalFontFamily, setTerminalFontFamily] = useState(config?.terminalFontFamily ?? "");
 	const [jiraProjectKey, setJiraProjectKey] = useState(config?.jiraProjectKey ?? "");
 	const [jiraSyncIntervalMinutes, setJiraSyncIntervalMinutes] = useState(
 		Math.round((config?.jiraSyncIntervalMs ?? 60 * 60 * 1000) / 60000),
@@ -442,6 +444,7 @@ export function RuntimeSettingsDialog({
 	const initialOpenPrPromptTemplate = config?.openPrPromptTemplate ?? "";
 	const initialWorktreesRoot = (config?.worktreesRoot ?? "").trim();
 	const initialReposRoot = (config?.reposRoot ?? "").trim();
+	const initialTerminalFontFamily = (config?.terminalFontFamily ?? "").trim();
 	const initialJiraProjectKey = (config?.jiraProjectKey ?? "").trim();
 	const initialJiraSyncIntervalMinutes = Math.round((config?.jiraSyncIntervalMs ?? 60 * 60 * 1000) / 60000);
 	const initialJiraBaseUrl = (config?.jiraBaseUrl ?? "").trim();
@@ -483,6 +486,9 @@ export function RuntimeSettingsDialog({
 		if (reposRoot.trim() !== initialReposRoot) {
 			return true;
 		}
+		if (terminalFontFamily.trim() !== initialTerminalFontFamily) {
+			return true;
+		}
 		if (jiraProjectKey.trim() !== initialJiraProjectKey) return true;
 		if (jiraSyncIntervalMinutes !== initialJiraSyncIntervalMinutes) return true;
 		if (jiraBaseUrl.trim() !== initialJiraBaseUrl) return true;
@@ -503,6 +509,7 @@ export function RuntimeSettingsDialog({
 		initialReposRoot,
 		initialSelectedAgentId,
 		initialShortcuts,
+		initialTerminalFontFamily,
 		initialThemeId,
 		initialWorktreesRoot,
 		jiraBaseUrl,
@@ -514,6 +521,7 @@ export function RuntimeSettingsDialog({
 		reposRoot,
 		selectedAgentId,
 		shortcuts,
+		terminalFontFamily,
 		worktreesRoot,
 	]);
 
@@ -529,6 +537,7 @@ export function RuntimeSettingsDialog({
 		setOpenPrPromptTemplate(config?.openPrPromptTemplate ?? "");
 		setWorktreesRoot(config?.worktreesRoot ?? "");
 		setReposRoot(config?.reposRoot ?? "");
+		setTerminalFontFamily(config?.terminalFontFamily ?? "");
 		setJiraProjectKey(config?.jiraProjectKey ?? "");
 		setJiraSyncIntervalMinutes(Math.round((config?.jiraSyncIntervalMs ?? 60 * 60 * 1000) / 60000));
 		setJiraBaseUrl(config?.jiraBaseUrl ?? "");
@@ -547,6 +556,7 @@ export function RuntimeSettingsDialog({
 		config?.reposRoot,
 		config?.selectedAgentId,
 		config?.shortcuts,
+		config?.terminalFontFamily,
 		config?.worktreesRoot,
 		fallbackAgentId,
 		open,
@@ -702,6 +712,7 @@ export function RuntimeSettingsDialog({
 			openPrPromptTemplate,
 			worktreesRoot: worktreesRoot.trim() || null,
 			reposRoot: reposRoot.trim() || null,
+			terminalFontFamily: terminalFontFamily.trim() || null,
 			jiraProjectKey: jiraProjectKey.trim() || null,
 			jiraSyncIntervalMs: Math.max(1, jiraSyncIntervalMinutes) * 60000,
 			jiraBaseUrl: jiraBaseUrl.trim() || null,
@@ -1055,6 +1066,35 @@ export function RuntimeSettingsDialog({
 								</RadixSelect.Portal>
 							</RadixSelect.Root>
 						</div>
+
+						<h6 className="text-[12px] font-semibold uppercase tracking-wider text-text-secondary mt-5 mb-2">
+							Terminal Font
+						</h6>
+						<p className="text-text-secondary text-[13px] mt-0 mb-2">
+							Set the terminal font stack (comma-separated CSS font-family list).
+						</p>
+						<div className="flex items-center gap-2">
+							<input
+								id="settings-terminal-font-family"
+								type="text"
+								value={terminalFontFamily}
+								onChange={(event) => setTerminalFontFamily(event.target.value)}
+								placeholder={DEFAULT_TERMINAL_FONT_FAMILY}
+								disabled={controlsDisabled}
+								className="h-9 flex-1 rounded-md border border-border bg-surface-2 px-3 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-border-focus focus:outline-none disabled:opacity-40"
+							/>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setTerminalFontFamily("")}
+								disabled={controlsDisabled || terminalFontFamily.trim().length === 0}
+							>
+								Reset
+							</Button>
+						</div>
+						<p className="text-text-tertiary text-xs mt-2 mb-0">
+							Leave empty to use the default: {DEFAULT_TERMINAL_FONT_FAMILY}
+						</p>
 
 						<h6 className="text-[12px] font-semibold uppercase tracking-wider text-text-secondary mt-5 mb-2">
 							Layout

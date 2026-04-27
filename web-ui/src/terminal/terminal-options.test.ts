@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getTerminalThemeColors } from "@/hooks/use-theme";
-import { createKanbanTerminalOptions } from "@/terminal/terminal-options";
+import { createKanbanTerminalOptions, DEFAULT_TERMINAL_FONT_FAMILY } from "@/terminal/terminal-options";
 
 describe("createKanbanTerminalOptions", () => {
 	it("enables richer terminal capability reporting", () => {
@@ -25,5 +25,18 @@ describe("createKanbanTerminalOptions", () => {
 		});
 		expect(options.theme?.background).toBe("#101112");
 		expect(options.theme?.cursor).toBe("#abcdef");
+		expect(options.fontFamily).toBe(DEFAULT_TERMINAL_FONT_FAMILY);
+	});
+
+	it("uses a custom font family when provided", () => {
+		const options = createKanbanTerminalOptions({
+			cursorColor: "#abcdef",
+			isMacPlatform: false,
+			terminalBackgroundColor: "#101112",
+			terminalFontFamily: "Monaspace Neon, monospace",
+			themeColors: getTerminalThemeColors("default"),
+		});
+
+		expect(options.fontFamily).toBe("Monaspace Neon, monospace");
 	});
 });

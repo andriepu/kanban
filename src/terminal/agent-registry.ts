@@ -103,6 +103,7 @@ export function buildRuntimeConfigResponse(runtimeConfig: RuntimeConfigState): R
 		selectedAgentId: runtimeConfig.selectedAgentId,
 		selectedShortcutLabel: runtimeConfig.selectedShortcutLabel,
 		agentAutonomousModeEnabled: runtimeConfig.agentAutonomousModeEnabled,
+		terminalFontFamily: runtimeConfig.terminalFontFamily,
 		debugModeEnabled: isRuntimeDebugModeEnabled(),
 		effectiveCommand,
 		globalConfigPath: runtimeConfig.globalConfigPath,
