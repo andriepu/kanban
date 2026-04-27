@@ -21,7 +21,7 @@ import {
 	saveJiraBoard,
 	saveJiraDetail,
 } from "../jira/jira-board-state";
-import { listAuthoredGhPullRequestsForProject } from "../jira/jira-pr-scan";
+import { fetchGhPullRequestDetail, listAuthoredGhPullRequestsForProject } from "../jira/jira-pr-scan";
 import type { JiraRestCredentials } from "../jira/jira-rest";
 import { fetchJiraIssueViaRest, searchJiraIssuesViaRest, transitionJiraIssueViaRest } from "../jira/jira-rest";
 import { createPullRequestWorktree, removePullRequestWorktree, scanReposInRoot } from "../jira/jira-worktree";
@@ -234,6 +234,7 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 		getWorktreesRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.worktreesRoot ?? null,
 		getReposRoot: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.reposRoot ?? null,
 		listAuthoredGhPullRequestsForProject,
+		fetchGhPullRequestDetail,
 		getJiraProjectKey: () => deps.workspaceRegistry.getActiveRuntimeConfig?.()?.jiraProjectKey ?? null,
 		broadcastRuntimeReposUpdated: () => {
 			void deps.runtimeStateHub.broadcastRuntimeReposUpdated(null);

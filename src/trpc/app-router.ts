@@ -77,6 +77,8 @@ import {
 	jiraPullRequestSessionStopRequestSchema,
 	jiraPullRequestUpdateStatusRequestSchema,
 	jiraScanAndAttachPrsResponseSchema,
+	jiraPullRequestDetailRequestSchema,
+	jiraPullRequestDetailResponseSchema,
 	jiraSetApiTokenRequestSchema,
 	jiraSetApiTokenResponseSchema,
 	jiraTransitionRequestSchema,
@@ -560,6 +562,10 @@ export const runtimeAppRouter = t.router({
 		fetchIssue: t.procedure
 			.input(jiraFetchIssueRequestSchema)
 			.query(({ ctx, input }) => ctx.jiraApi.fetchIssue(input.jiraKey)),
+		fetchPullRequestDetail: t.procedure
+			.input(jiraPullRequestDetailRequestSchema)
+			.output(jiraPullRequestDetailResponseSchema)
+			.query(({ ctx, input }) => ctx.jiraApi.fetchPullRequestDetail(input.pullRequestId)),
 		startPullRequestSession: t.procedure
 			.input(jiraPullRequestSessionStartRequestSchema)
 			.mutation(({ ctx, input }) => ctx.jiraApi.startPullRequestSession(input.pullRequestId)),

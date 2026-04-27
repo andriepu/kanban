@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { lockedFileSystem } from "../fs/locked-file-system.js";
 import type { JiraBoard, JiraCard, JiraDetail, JiraPullRequest } from "../jira/jira-board-state.js";
 import { extractJiraKey } from "../jira/jira-key-extract.js";
-import type { GhPullRequest } from "../jira/jira-pr-scan.js";
+import type { GhPullRequest, GhPullRequestDetail, GhPullRequestReviewThread } from "../jira/jira-pr-scan.js";
 import type { JiraIssueRaw } from "../jira/jira-rest.js";
 import type { RepoInfo } from "../jira/jira-worktree.js";
 import { buildPullRequestWorktreePath } from "../jira/jira-worktree.js";
@@ -41,6 +41,7 @@ export interface CreateJiraApiDependencies {
 	getWorktreesRoot: () => string | null;
 	getReposRoot: () => string | null;
 	listAuthoredGhPullRequestsForProject: (projectKey: string) => Promise<GhPullRequest[]>;
+	fetchGhPullRequestDetail: (owner: string, repo: string, number: number) => Promise<GhPullRequestDetail>;
 	getJiraProjectKey: () => string | null;
 	broadcastRuntimeReposUpdated?: () => void;
 }
@@ -212,6 +213,25 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			return { configured: token !== null };
 		},
 
+		async fetchPullRequestDetail(pullRequestId: string): Promise<{ body: string; threads: GhPullRequestReviewThread[] }> {
+			const pullRequests = await deps.loadJiraPullRequests();
+			const pullRequest = pullRequests[pullRequestId];
+			if (!pullRequest) throw new Error(`Pull request ${pullRequestId} not found`);
+			if (!pullRequest.prNumber) throw new Error(`Pull request ${pullRequestId} has no PR number`);
+
+			const match = pullRequest.prUrl
+				?.replace(/[?#].*$/, "")
+				.replace(/\/$/, "")
+				.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/\d+$/);
+			if (!match) throw new Error(`Pull request ${pullRequestId} has invalid or missing prUrl`);
+			const [, owner, repo] = match;
+			if (!owner || !repo) throw new Error(`Pull request ${pullRequestId} has invalid or missing prUrl`);
+
+			const detail = await deps.fetchGhPullRequestDetail(owner, repo, pullRequest.prNumber);
+			const unresolvedThreads = detail.reviewThreads.filter((t) => !t.isResolved);
+			return { body: detail.body, threads: unresolvedThreads };
+		},
+
 		async startPullRequestSession(
 			pullRequestId: string,
 		): Promise<{ started: boolean; workspacePath: string; workspaceId: string; openUrl?: string }> {
@@ -237,6 +257,38 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 					pullRequests[pullRequestId] = { ...pullRequest, status: "in_progress", updatedAt: Date.now() };
 					await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
 					return { started: result.started, workspacePath: pullRequest.repoPath, workspaceId };
+				}
+			}
+
+			// Auto-create worktree if branchName and repoPath are set
+			if (pullRequest.branchName && pullRequest.repoPath) {
+				const worktreesRoot = deps.getWorktreesRoot();
+				if (worktreesRoot) {
+					try {
+						const derivedPath = buildPullRequestWorktreePath(
+							worktreesRoot,
+							pullRequest.jiraKey,
+							pullRequest.repoId,
+							pullRequest.branchName,
+						);
+						await deps.createPullRequestWorktree({
+							repoPath: pullRequest.repoPath,
+							worktreePath: derivedPath,
+							branchName: pullRequest.branchName,
+							baseRef: pullRequest.baseRef,
+						});
+						const updatedPr: JiraPullRequest = { ...pullRequest, worktreePath: derivedPath, updatedAt: Date.now() };
+						pullRequests[pullRequestId] = updatedPr;
+						await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
+
+						const workspaceId = await deps.addWorkspace(updatedPr.repoPath);
+						const result = await deps.startTaskSession(updatedPr.repoPath, updatedPr.id, updatedPr.prompt, derivedPath);
+						pullRequests[pullRequestId] = { ...updatedPr, status: "in_progress", updatedAt: Date.now() };
+						await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
+						return { started: result.started, workspacePath: updatedPr.repoPath, workspaceId };
+					} catch {
+						// auto-create failed; fall through to openUrl / error below
+					}
 				}
 			}
 

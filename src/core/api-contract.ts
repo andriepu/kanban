@@ -1031,3 +1031,22 @@ export type RuntimeJiraDetail = z.infer<typeof jiraDetailSchema>;
 export const jiraLoadDetailsResponseSchema = z.object({
 	details: z.record(z.string(), jiraDetailSchema),
 });
+
+export const jiraPullRequestDetailRequestSchema = z.object({ pullRequestId: z.string() });
+export const jiraPullRequestDetailThreadCommentSchema = z.object({
+	author: z.object({ login: z.string() }),
+	body: z.string(),
+	createdAt: z.string(),
+	url: z.string(),
+});
+export const jiraPullRequestDetailThreadSchema = z.object({
+	isResolved: z.boolean(),
+	isOutdated: z.boolean(),
+	path: z.string(),
+	comments: z.array(jiraPullRequestDetailThreadCommentSchema),
+});
+export const jiraPullRequestDetailResponseSchema = z.object({
+	body: z.string(),
+	threads: z.array(jiraPullRequestDetailThreadSchema),
+});
+export type JiraPullRequestDetailResponse = z.infer<typeof jiraPullRequestDetailResponseSchema>;

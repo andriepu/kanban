@@ -48,6 +48,7 @@ function createMockDeps(): CreateJiraApiDependencies {
 		getWorktreesRoot: vi.fn().mockReturnValue("/work"),
 		getReposRoot: vi.fn().mockReturnValue("/repos"),
 		listAuthoredGhPullRequestsForProject: vi.fn().mockResolvedValue([]),
+		fetchGhPullRequestDetail: vi.fn().mockResolvedValue({ body: "", reviewThreads: [] }),
 		getJiraProjectKey: vi.fn().mockReturnValue("POL"),
 		broadcastRuntimeReposUpdated: vi.fn(),
 	};
@@ -788,6 +789,215 @@ describe("jira-api", () => {
 			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "no-tree-no-pr": pullRequest });
 			const api = createJiraApi(deps);
 			await expect(api.startPullRequestSession("no-tree-no-pr")).rejects.toThrow(/no worktree path and no PR URL/i);
+		});
+	});
+
+	describe("fetchPullRequestDetail", () => {
+		it("returns body and only unresolved threads for PR-backed pull request", async () => {
+			const deps = createMockDeps();
+			const pullRequest = {
+				id: "sub-pr",
+				jiraKey: "POL-1",
+				repoId: "repo",
+				repoPath: "/repos/repo",
+				prompt: "",
+				title: "Fix login",
+				baseRef: "main",
+				branchName: "POL-1-fix",
+				worktreePath: "",
+				status: "review" as const,
+				prUrl: "https://github.com/myorg/myrepo/pull/42",
+				prNumber: 42,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "sub-pr": pullRequest });
+			(deps.fetchGhPullRequestDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+				body: "PR description",
+				reviewThreads: [
+					{
+						isResolved: false,
+						isOutdated: false,
+						path: "src/login.ts",
+						comments: [
+							{
+								author: { login: "alice" },
+								body: "Fix this",
+								createdAt: "2024-01-01T00:00:00Z",
+								url: "https://github.com/myorg/myrepo/pull/42#comment-1",
+							},
+						],
+					},
+					{
+						isResolved: true,
+						isOutdated: false,
+						path: "src/old.ts",
+						comments: [
+							{
+								author: { login: "bob" },
+								body: "Already done",
+								createdAt: "2024-01-02T00:00:00Z",
+								url: "https://github.com/myorg/myrepo/pull/42#comment-2",
+							},
+						],
+					},
+				],
+			});
+			const api = createJiraApi(deps);
+			const result = await api.fetchPullRequestDetail("sub-pr");
+			expect(result.body).toBe("PR description");
+			expect(result.threads).toHaveLength(1);
+			expect(result.threads[0]?.path).toBe("src/login.ts");
+			expect(result.threads[0]?.isResolved).toBe(false);
+			expect(deps.fetchGhPullRequestDetail).toHaveBeenCalledWith("myorg", "myrepo", 42);
+		});
+
+		it("throws when pull request is not found", async () => {
+			const deps = createMockDeps();
+			const api = createJiraApi(deps);
+			await expect(api.fetchPullRequestDetail("nonexistent")).rejects.toThrow(/not found/i);
+		});
+
+		it("throws when pull request has no prNumber", async () => {
+			const deps = createMockDeps();
+			const pullRequest = {
+				id: "sub-no-pr",
+				jiraKey: "POL-1",
+				repoId: "repo",
+				repoPath: "/repos/repo",
+				prompt: "",
+				title: "t",
+				baseRef: "main",
+				branchName: "POL-1-fix",
+				worktreePath: "/worktrees/POL-1-fix",
+				status: "in_progress" as const,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "sub-no-pr": pullRequest });
+			const api = createJiraApi(deps);
+			await expect(api.fetchPullRequestDetail("sub-no-pr")).rejects.toThrow(/no PR number/i);
+		});
+
+		it("returns empty threads when all threads are resolved", async () => {
+			const deps = createMockDeps();
+			const pullRequest = {
+				id: "sub-resolved",
+				jiraKey: "POL-1",
+				repoId: "repo",
+				repoPath: "/repos/repo",
+				prompt: "",
+				title: "t",
+				baseRef: "main",
+				branchName: "POL-1-fix",
+				worktreePath: "",
+				status: "review" as const,
+				prUrl: "https://github.com/myorg/myrepo/pull/10",
+				prNumber: 10,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "sub-resolved": pullRequest });
+			(deps.fetchGhPullRequestDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+				body: "All good",
+				reviewThreads: [
+					{ isResolved: true, isOutdated: false, path: "src/a.ts", comments: [] },
+					{ isResolved: true, isOutdated: true, path: "src/b.ts", comments: [] },
+				],
+			});
+			const api = createJiraApi(deps);
+			const result = await api.fetchPullRequestDetail("sub-resolved");
+			expect(result.threads).toHaveLength(0);
+			expect(result.body).toBe("All good");
+		});
+	});
+
+	describe("startPullRequestSession — auto-create worktree", () => {
+		it("auto-creates worktree and starts session when branchName+repoPath set and worktreesRoot available", async () => {
+			const deps = createMockDeps();
+			const pullRequest = {
+				id: "auto-sub",
+				jiraKey: "POL-2",
+				repoId: "myrepo",
+				repoPath: "/repos/myrepo",
+				prompt: "Work on it",
+				title: "POL-2 feature",
+				baseRef: "main",
+				branchName: "POL-2-feature",
+				worktreePath: "",
+				status: "review" as const,
+				prUrl: "https://github.com/org/myrepo/pull/7",
+				prNumber: 7,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "auto-sub": pullRequest });
+			(deps.getWorktreesRoot as ReturnType<typeof vi.fn>).mockReturnValue("/work");
+			(deps.createPullRequestWorktree as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+			(deps.addWorkspace as ReturnType<typeof vi.fn>).mockResolvedValue("ws-auto");
+			(deps.startTaskSession as ReturnType<typeof vi.fn>).mockResolvedValue({ started: true });
+			fsMocks.access.mockRejectedValueOnce(new Error("ENOENT"));
+			const api = createJiraApi(deps);
+			const result = await api.startPullRequestSession("auto-sub");
+			expect(deps.createPullRequestWorktree).toHaveBeenCalledWith(
+				expect.objectContaining({ repoPath: "/repos/myrepo", branchName: "POL-2-feature" }),
+			);
+			expect(result.started).toBe(true);
+			expect(result.openUrl).toBeUndefined();
+		});
+
+		it("falls back to openUrl when repoPath is empty (no local repo)", async () => {
+			const deps = createMockDeps();
+			const pullRequest = {
+				id: "no-repo-sub",
+				jiraKey: "POL-3",
+				repoId: "myrepo",
+				repoPath: "",
+				prompt: "",
+				title: "t",
+				baseRef: "main",
+				branchName: "POL-3-fix",
+				worktreePath: "",
+				status: "review" as const,
+				prUrl: "https://github.com/org/myrepo/pull/8",
+				prNumber: 8,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "no-repo-sub": pullRequest });
+			(deps.getWorktreesRoot as ReturnType<typeof vi.fn>).mockReturnValue("/work");
+			const api = createJiraApi(deps);
+			const result = await api.startPullRequestSession("no-repo-sub");
+			expect(deps.createPullRequestWorktree).not.toHaveBeenCalled();
+			expect(result.openUrl).toBe("https://github.com/org/myrepo/pull/8");
+			expect(result.started).toBe(false);
+		});
+
+		it("falls back to openUrl when getWorktreesRoot returns null", async () => {
+			const deps = createMockDeps();
+			const pullRequest = {
+				id: "no-root-sub",
+				jiraKey: "POL-4",
+				repoId: "myrepo",
+				repoPath: "/repos/myrepo",
+				prompt: "",
+				title: "t",
+				baseRef: "main",
+				branchName: "POL-4-fix",
+				worktreePath: "",
+				status: "review" as const,
+				prUrl: "https://github.com/org/myrepo/pull/9",
+				prNumber: 9,
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "no-root-sub": pullRequest });
+			(deps.getWorktreesRoot as ReturnType<typeof vi.fn>).mockReturnValue(null);
+			const api = createJiraApi(deps);
+			const result = await api.startPullRequestSession("no-root-sub");
+			expect(deps.createPullRequestWorktree).not.toHaveBeenCalled();
+			expect(result.openUrl).toBe("https://github.com/org/myrepo/pull/9");
+			expect(result.started).toBe(false);
 		});
 	});
 });
