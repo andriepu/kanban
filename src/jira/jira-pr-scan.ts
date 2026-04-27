@@ -118,6 +118,10 @@ export interface GhPullRequestDetail {
 	reviewThreads: GhPullRequestReviewThread[];
 }
 
+interface RawGhPullRequestThread extends Omit<GhPullRequestReviewThread, "comments"> {
+	comments: { nodes: (GhPullRequestReviewComment | null)[] };
+}
+
 export const GH_PR_DETAIL_GRAPHQL_QUERY = `query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
@@ -188,23 +192,11 @@ export async function fetchGhPullRequestDetail(
 	}
 
 	const trimmed = stdout.trim();
+	if (!trimmed) throw new Error("gh returned empty response");
+
 	let parsed: {
 		data: {
-			repository: {
-				pullRequest: {
-					body: string;
-					reviewThreads: {
-						nodes: ({
-							isResolved: boolean;
-							isOutdated: boolean;
-							path: string;
-							comments: {
-								nodes: (GhPullRequestReviewComment | null)[];
-							};
-						} | null)[];
-					};
-				};
-			};
+			repository: { pullRequest: { body: string; reviewThreads: { nodes: (RawGhPullRequestThread | null)[] } } };
 		};
 	};
 	try {
@@ -217,7 +209,7 @@ export async function fetchGhPullRequestDetail(
 	const rawThreads = pr?.reviewThreads?.nodes ?? [];
 
 	const reviewThreads: GhPullRequestReviewThread[] = rawThreads
-		.filter((t): t is NonNullable<typeof t> => t !== null)
+		.filter((t): t is RawGhPullRequestThread => t !== null)
 		.map((t) => ({
 			isResolved: t.isResolved,
 			isOutdated: t.isOutdated,
