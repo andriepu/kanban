@@ -17,7 +17,7 @@ if [ $? -ne 0 ]; then
 fi
 
 for file in $STAGED_FILES; do
-	if [ -f "$file" ]; then
+	if [ -f "$file" ] && ! git check-ignore -q "$file"; then
 		git add "$file"
 	fi
 done
