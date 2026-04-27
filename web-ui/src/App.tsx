@@ -90,6 +90,7 @@ export default function App(): ReactElement {
 	const [pendingTaskStartAfterEditId, setPendingTaskStartAfterEditId] = useState<string | null>(null);
 	const taskEditorResetRef = useRef<() => void>(() => {});
 	const lastStreamErrorRef = useRef<string | null>(null);
+	const homeTerminalDefaultOpenedRepoIdRef = useRef<string | null>(null);
 	const handleRepoSwitchStart = useCallback(() => {
 		setCanPersistWorkspaceState(false);
 		setIsGitHistoryOpen(false);
@@ -377,6 +378,7 @@ export default function App(): ReactElement {
 		setDetailTerminalPaneHeight,
 		handleToggleExpandHomeTerminal,
 		handleToggleExpandDetailTerminal,
+		openHomeTerminal,
 		handleToggleHomeTerminal,
 		handleToggleDetailTerminal,
 		handleSendAgentCommandToHomeTerminal,
@@ -519,9 +521,20 @@ export default function App(): ReactElement {
 			return;
 		}
 		if (!isHomeTerminalOpen) {
-			void handleToggleHomeTerminal();
+			openHomeTerminal();
 		}
-	}, [sidebarTab, selectedCard, hasNoRepos, currentRepoId, isHomeTerminalOpen, handleToggleHomeTerminal]);
+	}, [sidebarTab, selectedCard, hasNoRepos, currentRepoId, isHomeTerminalOpen, openHomeTerminal]);
+
+	useEffect(() => {
+		if (selectedCard || hasNoRepos || !currentRepoId) {
+			return;
+		}
+		if (homeTerminalDefaultOpenedRepoIdRef.current === currentRepoId) {
+			return;
+		}
+		homeTerminalDefaultOpenedRepoIdRef.current = currentRepoId;
+		openHomeTerminal();
+	}, [currentRepoId, hasNoRepos, openHomeTerminal, selectedCard]);
 
 	const showHomeBottomTerminal = !selectedCard && !hasNoRepos && isHomeTerminalOpen;
 	const homeTerminalSubtitle = useMemo(

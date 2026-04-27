@@ -107,6 +107,7 @@ export interface UseTerminalPanelsResult {
 	setDetailTerminalPaneHeight: (height: number | undefined) => void;
 	handleToggleExpandHomeTerminal: () => void;
 	handleToggleExpandDetailTerminal: () => void;
+	openHomeTerminal: () => void;
 	handleToggleHomeTerminal: () => void;
 	handleToggleDetailTerminal: () => void;
 	handleSendAgentCommandToHomeTerminal: () => void;
@@ -283,18 +284,25 @@ export function useTerminalPanels({
 		}
 	}, [currentRepoId, upsertSession, workspaceGit?.currentBranch, workspaceGit?.defaultBranch]);
 
-	const handleToggleHomeTerminal = useCallback(() => {
-		if (isHomeTerminalOpen) {
-			closeHomeTerminal();
+	const openHomeTerminal = useCallback(() => {
+		if (!currentRepoId) {
 			return;
 		}
-		if (!currentRepoId) {
+		if (isHomeTerminalOpen && homeTerminalRepoIdRef.current === currentRepoId) {
 			return;
 		}
 		homeTerminalRepoIdRef.current = currentRepoId;
 		setIsHomeTerminalOpen(true);
 		void startHomeTerminalSession();
-	}, [closeHomeTerminal, currentRepoId, isHomeTerminalOpen, startHomeTerminalSession]);
+	}, [currentRepoId, isHomeTerminalOpen, startHomeTerminalSession]);
+
+	const handleToggleHomeTerminal = useCallback(() => {
+		if (isHomeTerminalOpen) {
+			closeHomeTerminal();
+			return;
+		}
+		openHomeTerminal();
+	}, [closeHomeTerminal, isHomeTerminalOpen, openHomeTerminal]);
 
 	const startDetailTerminalForCard = useCallback(
 		async (card: BoardCard, options?: StartDetailTerminalOptions): Promise<boolean> => {
@@ -506,6 +514,7 @@ export function useTerminalPanels({
 		setDetailTerminalPaneHeight,
 		handleToggleExpandHomeTerminal,
 		handleToggleExpandDetailTerminal,
+		openHomeTerminal,
 		handleToggleHomeTerminal,
 		handleToggleDetailTerminal,
 		handleSendAgentCommandToHomeTerminal,
