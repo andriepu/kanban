@@ -15,6 +15,7 @@ import { GitHistoryView } from "@/components/git-history-view";
 import { JiraBoardView } from "@/components/jira-board";
 import { JiraCardDetailView } from "@/components/jira-card-detail-view";
 import { JiraPullRequestBoard } from "@/components/jira-pull-request-board";
+import { JiraPullRequestDetailView } from "@/components/jira-pull-request-detail-view";
 import { RepoNavigationPanel } from "@/components/repo-navigation-panel";
 import { RuntimeSettingsDialog, type RuntimeSettingsSection } from "@/components/runtime-settings-dialog";
 import { StartupOnboardingDialog } from "@/components/startup-onboarding-dialog";
@@ -89,7 +90,7 @@ export default function App(): ReactElement {
 	const [pendingTaskStartAfterEditId, setPendingTaskStartAfterEditId] = useState<string | null>(null);
 	const taskEditorResetRef = useRef<() => void>(() => {});
 	const lastStreamErrorRef = useRef<string | null>(null);
-	const pendingPullRequestIdRef = useRef<string | null>(null);
+	const [selectedPullRequestModal, setSelectedPullRequestModal] = useState<JiraPullRequest | null>(null);
 	const handleRepoSwitchStart = useCallback(() => {
 		setCanPersistWorkspaceState(false);
 		setIsGitHistoryOpen(false);
@@ -221,13 +222,6 @@ export default function App(): ReactElement {
 		}
 		resetWorkspaceMetadataStore();
 	}, [isRepoSwitching]);
-
-	useEffect(() => {
-		if (!pendingPullRequestIdRef.current) return;
-		if (isRepoSwitching || isAwaitingWorkspaceSnapshot) return;
-		setSelectedTaskId(pendingPullRequestIdRef.current);
-		pendingPullRequestIdRef.current = null;
-	}, [currentRepoId, isRepoSwitching, isAwaitingWorkspaceSnapshot, setSelectedTaskId]);
 
 	const {
 		displayedRepos,
@@ -559,19 +553,9 @@ export default function App(): ReactElement {
 		runAutoReviewGitAction,
 	});
 
-	const handlePullRequestClick = useCallback(
-		(pullRequest: JiraPullRequest) => {
-			const repo = repos.find((r) => r.path === pullRequest.repoPath);
-			if (!repo) return;
-			if (repo.id === currentRepoId) {
-				setSelectedTaskId(pullRequest.id);
-			} else {
-				pendingPullRequestIdRef.current = pullRequest.id;
-				handleSelectRepo(repo.id);
-			}
-		},
-		[repos, handleSelectRepo, setSelectedTaskId, currentRepoId],
-	);
+	const handlePullRequestClick = useCallback((pullRequest: JiraPullRequest) => {
+		setSelectedPullRequestModal(pullRequest);
+	}, []);
 
 	const {
 		handleCreateAndStartTask,
@@ -1020,6 +1004,12 @@ export default function App(): ReactElement {
 									isDocumentVisible={isDocumentVisible}
 								/>
 							</div>
+						) : null}
+						{selectedPullRequestModal ? (
+							<JiraPullRequestDetailView
+								pullRequest={selectedPullRequestModal}
+								onClose={() => setSelectedPullRequestModal(null)}
+							/>
 						) : null}
 					</div>
 				</div>

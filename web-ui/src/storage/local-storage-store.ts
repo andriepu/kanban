@@ -15,6 +15,7 @@ export enum LocalStorageKey {
 	GitDiffFileTreePanelRatio = "kanban.git-diff-file-tree-panel-ratio",
 	DetailDiffFileTreeVisible = "kanban.detail-diff-file-tree-visible",
 	GitDiffFileTreeVisible = "kanban.git-diff-file-tree-visible",
+	JiraPullRequestDetailSidebarRatio = "kanban.jira-pull-request-detail-sidebar-ratio",
 	NotificationPermissionPrompted = "kanban.notifications.permission-prompted",
 	PreferredOpenTarget = "kanban.preferred-open-target",
 	NotificationBadgeClearEvent = "kanban.notification-badge-clear.v1",

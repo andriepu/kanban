@@ -36,3 +36,22 @@ export interface RepoOption {
 	id: string;
 	path: string;
 }
+
+export interface JiraPullRequestDetailThreadComment {
+	author: { login: string };
+	body: string;
+	createdAt: string;
+	url: string;
+}
+
+export interface JiraPullRequestDetailThread {
+	isResolved: boolean;
+	isOutdated: boolean;
+	path: string;
+	comments: JiraPullRequestDetailThreadComment[];
+}
+
+export interface JiraPullRequestDetail {
+	body: string;
+	threads: JiraPullRequestDetailThread[];
+}
