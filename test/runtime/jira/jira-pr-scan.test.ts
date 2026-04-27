@@ -13,8 +13,12 @@ vi.mock("node:child_process", () => ({
 	}),
 }));
 
-import type { GhPullRequest } from "../../../src/jira/jira-pr-scan";
-import { listAuthoredGhPullRequestsForProject } from "../../../src/jira/jira-pr-scan";
+import type { GhPullRequest, GhPullRequestDetail, GhPullRequestReviewThread } from "../../../src/jira/jira-pr-scan";
+import {
+	fetchGhPullRequestDetail,
+	GH_PR_DETAIL_GRAPHQL_QUERY,
+	listAuthoredGhPullRequestsForProject,
+} from "../../../src/jira/jira-pr-scan";
 
 const SAMPLE_OPEN_PRS: GhPullRequest[] = [
 	{
@@ -169,5 +173,184 @@ describe("listAuthoredGhPullRequestsForProject", () => {
 		expect(result[0]?.state).toBe("OPEN");
 		expect(result[1]?.isDraft).toBe(true);
 		expect(result[1]?.state).toBe("OPEN");
+	});
+});
+
+// ---- fetchGhPullRequestDetail ----
+
+function prDetailResponse(detail: {
+	body: string;
+	reviewThreads: {
+		nodes: ({
+			isResolved: boolean;
+			isOutdated: boolean;
+			path: string;
+			comments: { nodes: ({ author: { login: string }; body: string; createdAt: string; url: string } | null)[] };
+		} | null)[];
+	};
+}) {
+	return { data: { repository: { pullRequest: detail } } };
+}
+
+const SAMPLE_COMMENT_1 = {
+	author: { login: "reviewer1" },
+	body: "Please extract this into a utility function.",
+	createdAt: "2026-04-27T10:00:00Z",
+	url: "https://github.com/org/repo/pull/42#discussion_r1",
+};
+
+const SAMPLE_THREAD_1 = {
+	isResolved: false,
+	isOutdated: false,
+	path: "src/foo.ts",
+	comments: {
+		nodes: [SAMPLE_COMMENT_1],
+	},
+};
+
+const SAMPLE_THREAD_2 = {
+	isResolved: true,
+	isOutdated: false,
+	path: "src/bar.ts",
+	comments: {
+		nodes: [
+			{
+				author: { login: "reviewer2" },
+				body: "Fixed in latest commit.",
+				createdAt: "2026-04-27T11:00:00Z",
+				url: "https://github.com/org/repo/pull/42#discussion_r2",
+			},
+		],
+	},
+};
+
+describe("fetchGhPullRequestDetail", () => {
+	beforeEach(() => {
+		childProcessMocks.execFile.mockReset();
+		childProcessMocks.execFilePromise.mockReset();
+	});
+
+	it("returns body and all threads (resolved + unresolved) on happy path", async () => {
+		const payload = prDetailResponse({
+			body: "## Summary\nThis PR fixes the login bug.",
+			reviewThreads: { nodes: [SAMPLE_THREAD_1, SAMPLE_THREAD_2] },
+		});
+		childProcessMocks.execFilePromise.mockResolvedValueOnce({
+			stdout: JSON.stringify(payload),
+			stderr: "",
+		});
+
+		const result = await fetchGhPullRequestDetail("org", "repo", 42);
+
+		expect(result.body).toBe("## Summary\nThis PR fixes the login bug.");
+		expect(result.reviewThreads).toHaveLength(2);
+		expect(result.reviewThreads[0]).toMatchObject<Partial<GhPullRequestReviewThread>>({
+			isResolved: false,
+			path: "src/foo.ts",
+		});
+		expect(result.reviewThreads[1]).toMatchObject<Partial<GhPullRequestReviewThread>>({
+			isResolved: true,
+			path: "src/bar.ts",
+		});
+	});
+
+	it("returns empty body and empty threads when PR has no content", async () => {
+		const payload = prDetailResponse({
+			body: "",
+			reviewThreads: { nodes: [] },
+		});
+		childProcessMocks.execFilePromise.mockResolvedValueOnce({
+			stdout: JSON.stringify(payload),
+			stderr: "",
+		});
+
+		const result = await fetchGhPullRequestDetail("org", "repo", 1);
+
+		expect(result).toEqual<GhPullRequestDetail>({ body: "", reviewThreads: [] });
+	});
+
+	it("throws a clear error when gh CLI is not found (ENOENT)", async () => {
+		const enoentError = Object.assign(new Error("spawn gh ENOENT"), { code: "ENOENT" });
+		childProcessMocks.execFilePromise.mockRejectedValueOnce(enoentError);
+
+		await expect(fetchGhPullRequestDetail("org", "repo", 42)).rejects.toThrow(
+			"gh CLI not found. Install GitHub CLI (gh) to use PR scan.",
+		);
+	});
+
+	it("throws with stderr content when gh exits non-zero", async () => {
+		const stderrMessage = "gh: Could not resolve to a Repository with the name 'org/repo'.";
+		const exitError = Object.assign(new Error("Command failed"), {
+			code: 1,
+			stderr: stderrMessage,
+		});
+		childProcessMocks.execFilePromise.mockRejectedValueOnce(exitError);
+
+		await expect(fetchGhPullRequestDetail("org", "repo", 42)).rejects.toThrow(stderrMessage);
+	});
+
+	it("invokes gh api graphql with correct args including -F number and owner/repo variables", async () => {
+		const payload = prDetailResponse({ body: "", reviewThreads: { nodes: [] } });
+		childProcessMocks.execFilePromise.mockResolvedValueOnce({
+			stdout: JSON.stringify(payload),
+			stderr: "",
+		});
+
+		await fetchGhPullRequestDetail("myorg", "myrepo", 99);
+
+		expect(childProcessMocks.execFilePromise).toHaveBeenCalledWith(
+			"gh",
+			[
+				"api",
+				"graphql",
+				"-f",
+				`query=${GH_PR_DETAIL_GRAPHQL_QUERY}`,
+				"-f",
+				"owner=myorg",
+				"-f",
+				"repo=myrepo",
+				"-F",
+				"number=99",
+			],
+			expect.objectContaining({ encoding: "utf8" }),
+		);
+	});
+
+	it("filters out null thread nodes from sparse GraphQL results", async () => {
+		const payload = prDetailResponse({
+			body: "PR body",
+			reviewThreads: { nodes: [null, SAMPLE_THREAD_1, null] },
+		});
+		childProcessMocks.execFilePromise.mockResolvedValueOnce({
+			stdout: JSON.stringify(payload),
+			stderr: "",
+		});
+
+		const result = await fetchGhPullRequestDetail("org", "repo", 42);
+
+		expect(result.reviewThreads).toHaveLength(1);
+		expect(result.reviewThreads[0]?.path).toBe("src/foo.ts");
+	});
+
+	it("filters out null comment nodes within threads from sparse GraphQL results", async () => {
+		const threadWithNullComments = {
+			...SAMPLE_THREAD_1,
+			comments: {
+				nodes: [null, SAMPLE_COMMENT_1, null],
+			},
+		};
+		const payload = prDetailResponse({
+			body: "PR body",
+			reviewThreads: { nodes: [threadWithNullComments] },
+		});
+		childProcessMocks.execFilePromise.mockResolvedValueOnce({
+			stdout: JSON.stringify(payload),
+			stderr: "",
+		});
+
+		const result = await fetchGhPullRequestDetail("org", "repo", 42);
+
+		expect(result.reviewThreads[0]?.comments).toHaveLength(1);
+		expect(result.reviewThreads[0]?.comments[0]?.author.login).toBe("reviewer1");
 	});
 });

@@ -98,3 +98,135 @@ export async function listAuthoredGhPullRequestsForProject(projectKey: string): 
 	}
 	return Array.from(seen.values());
 }
+
+export interface GhPullRequestReviewComment {
+	author: { login: string };
+	body: string;
+	createdAt: string;
+	url: string;
+}
+
+export interface GhPullRequestReviewThread {
+	isResolved: boolean;
+	isOutdated: boolean;
+	path: string;
+	comments: GhPullRequestReviewComment[];
+}
+
+export interface GhPullRequestDetail {
+	body: string;
+	reviewThreads: GhPullRequestReviewThread[];
+}
+
+export const GH_PR_DETAIL_GRAPHQL_QUERY = `query($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      body
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          isOutdated
+          path
+          comments(first: 50) {
+            nodes {
+              author { login }
+              body
+              createdAt
+              url
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+
+/**
+ * Fetches the body and review threads for a specific GitHub pull request via the `gh` CLI.
+ * Returns all threads without filtering — caller is responsible for filtering by resolved/unresolved.
+ * Throws a clear Error if `gh` is not found or exits non-zero.
+ */
+export async function fetchGhPullRequestDetail(
+	owner: string,
+	repo: string,
+	number: number,
+): Promise<GhPullRequestDetail> {
+	let stdout: string;
+
+	try {
+		const result = await execFileAsync(
+			"gh",
+			[
+				"api",
+				"graphql",
+				"-f",
+				`query=${GH_PR_DETAIL_GRAPHQL_QUERY}`,
+				"-f",
+				`owner=${owner}`,
+				"-f",
+				`repo=${repo}`,
+				"-F",
+				`number=${number}`,
+			],
+			{ encoding: "utf8" },
+		);
+		stdout = result.stdout;
+	} catch (error) {
+		if (
+			typeof error === "object" &&
+			error !== null &&
+			"code" in error &&
+			(error as { code?: unknown }).code === "ENOENT"
+		) {
+			throw new Error("gh CLI not found. Install GitHub CLI (gh) to use PR scan.");
+		}
+		const stderr =
+			typeof error === "object" && error !== null && "stderr" in error
+				? String((error as { stderr?: unknown }).stderr ?? "")
+				: String(error);
+		throw new Error(stderr || String(error));
+	}
+
+	const trimmed = stdout.trim();
+	let parsed: {
+		data: {
+			repository: {
+				pullRequest: {
+					body: string;
+					reviewThreads: {
+						nodes: ({
+							isResolved: boolean;
+							isOutdated: boolean;
+							path: string;
+							comments: {
+								nodes: (GhPullRequestReviewComment | null)[];
+							};
+						} | null)[];
+					};
+				};
+			};
+		};
+	};
+	try {
+		parsed = JSON.parse(trimmed) as typeof parsed;
+	} catch {
+		throw new Error(`gh returned malformed JSON: ${trimmed.slice(0, 200)}`);
+	}
+
+	const pr = parsed.data?.repository?.pullRequest;
+	const rawThreads = pr?.reviewThreads?.nodes ?? [];
+
+	const reviewThreads: GhPullRequestReviewThread[] = rawThreads
+		.filter((t): t is NonNullable<typeof t> => t !== null)
+		.map((t) => ({
+			isResolved: t.isResolved,
+			isOutdated: t.isOutdated,
+			path: t.path,
+			comments: (t.comments?.nodes ?? []).filter((c): c is GhPullRequestReviewComment => c !== null),
+		}));
+
+	return {
+		body: pr?.body ?? "",
+		reviewThreads,
+	};
+}
