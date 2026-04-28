@@ -155,7 +155,7 @@ The `src/terminal/` area owns everything process-oriented:
 
 `src/workspace/` owns worktree creation, lookup, cleanup, and turn checkpoints.
 
-`src/config/runtime-config.ts` owns Kanban preferences such as selected agent, shortcuts, and prompt templates.
+`src/config/runtime-config.ts` owns Kanban preferences such as selected agent and prompt templates.
 
 ### State streaming
 
@@ -183,7 +183,7 @@ This lets the sidebar reuse the same runtime primitives that already exist for t
 
 | State | Where it lives | Why |
 | --- | --- | --- |
-| selected agent, shortcuts, prompt templates | Kanban runtime config | Kanban preferences |
+| selected agent, prompt templates | Kanban runtime config | Kanban preferences |
 | per-project UI or workflow state | workspace state or project config | workspace-scoped product state |
 | task runtime summaries | Kanban runtime memory and state stream | the board needs a lightweight product-shaped summary of current work |
 

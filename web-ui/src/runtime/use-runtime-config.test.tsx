@@ -17,11 +17,10 @@ type HookSnapshot = UseRuntimeConfigResult;
 function createRuntimeConfigResponse(selectedAgentId: RuntimeConfigResponse["selectedAgentId"]): RuntimeConfigResponse {
 	return {
 		selectedAgentId,
-		selectedShortcutLabel: null,
 		agentAutonomousModeEnabled: true,
 		effectiveCommand: selectedAgentId,
 		globalConfigPath: "/tmp/global-config.json",
-		repoConfigPath: "/tmp/repo/.cline/kanban/config.json",
+
 		readyForReviewNotificationsEnabled: true,
 		detectedCommands: [selectedAgentId],
 		agents: [
@@ -35,7 +34,6 @@ function createRuntimeConfigResponse(selectedAgentId: RuntimeConfigResponse["sel
 				configured: true,
 			},
 		],
-		shortcuts: [],
 		commitPromptTemplate: "",
 		openPrPromptTemplate: "",
 		commitPromptTemplateDefault: "",

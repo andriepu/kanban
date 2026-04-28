@@ -11,6 +11,7 @@ const mockTransitionIssue = vi.hoisted(() => vi.fn());
 const mockScanAndAttachPRs = vi.hoisted(() => vi.fn());
 const mockFetchIssue = vi.hoisted(() => vi.fn());
 const mockLoadDetails = vi.hoisted(() => vi.fn());
+const mockDeleteCard = vi.hoisted(() => vi.fn());
 
 // Return the same client object on every call to avoid reference churn —
 // a new object per call would change `trpc` on every render, which changes
@@ -24,6 +25,7 @@ const mockTrpcClient = {
 		scanAndAttachPRs: { mutate: mockScanAndAttachPRs },
 		fetchIssue: { query: mockFetchIssue },
 		loadDetails: { query: mockLoadDetails },
+		deleteCard: { mutate: mockDeleteCard },
 	},
 };
 
@@ -67,6 +69,7 @@ describe("useJiraBoard", () => {
 		mockScanAndAttachPRs.mockResolvedValue({ attached: 0, skipped: 0, pullRequests: {}, board: { cards: [] } });
 		mockFetchIssue.mockResolvedValue({ jiraKey: "POL-1", summary: "Fix", description: null });
 		mockLoadDetails.mockResolvedValue({ details: {} });
+		mockDeleteCard.mockResolvedValue({ deleted: true, removedPullRequestIds: [] });
 
 		previousActEnvironment = (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
 			.IS_REACT_ACT_ENVIRONMENT;
@@ -167,7 +170,7 @@ describe("useJiraBoard", () => {
 		expect(result.board.cards).toContainEqual(expect.objectContaining({ jiraKey: "POL-1", summary: "Test issue" }));
 	});
 
-	it("strips Done cards from board on load and calls saveBoard to clean up", async () => {
+	it("strips Done cards from board on load and cascade-deletes them", async () => {
 		const doneCard = {
 			jiraKey: "POL-99",
 			summary: "Already done",
@@ -192,11 +195,8 @@ describe("useJiraBoard", () => {
 		});
 
 		if (snapshot === null) throw new Error("Expected a hook snapshot");
-		const result: UseJiraBoardResult = snapshot;
-		expect(result.board.cards).toHaveLength(0);
-		expect(mockSaveBoard).toHaveBeenCalledWith(
-			expect.objectContaining({ board: expect.objectContaining({ cards: [] }) }),
-		);
+		expect(mockDeleteCard).toHaveBeenCalledWith({ jiraKey: "POL-99" });
+		expect((snapshot as UseJiraBoardResult).board.cards).toHaveLength(0);
 	});
 
 	it("schedules 60 s delete timer when card moved to Done", async () => {
@@ -233,7 +233,7 @@ describe("useJiraBoard", () => {
 
 		if (snapshot === null) throw new Error("Expected a hook snapshot");
 		const result: UseJiraBoardResult = snapshot;
-		mockSaveBoard.mockClear();
+		mockDeleteCard.mockClear();
 
 		// Move to done
 		await act(async () => {
@@ -245,21 +245,18 @@ describe("useJiraBoard", () => {
 		const snapAfterMove: UseJiraBoardResult = snapshot;
 		expect(snapAfterMove.board.cards).toHaveLength(1);
 		expect(snapAfterMove.board.cards[0]?.status).toBe("done");
-		expect(mockSaveBoard).not.toHaveBeenCalledWith(
-			expect.objectContaining({ board: expect.objectContaining({ cards: [] }) }),
-		);
+		expect(mockDeleteCard).not.toHaveBeenCalled();
 
-		// Advance 60 s
+		// Advance 60 s and flush the async cascade
 		await act(async () => {
 			vi.advanceTimersByTime(60_000);
+			await flushPromises();
 		});
 
 		if (snapshot === null) throw new Error("Expected snapshot after timer");
 		const snapAfterTimer: UseJiraBoardResult = snapshot;
 		expect(snapAfterTimer.board.cards).toHaveLength(0);
-		expect(mockSaveBoard).toHaveBeenCalledWith(
-			expect.objectContaining({ board: expect.objectContaining({ cards: [] }) }),
-		);
+		expect(mockDeleteCard).toHaveBeenCalledWith({ jiraKey: "POL-1" });
 
 		vi.useRealTimers();
 	});
@@ -292,7 +289,7 @@ describe("useJiraBoard", () => {
 
 		if (snapshot === null) throw new Error("Expected a hook snapshot");
 		const result: UseJiraBoardResult = snapshot;
-		mockSaveBoard.mockClear();
+		mockDeleteCard.mockClear();
 
 		await act(async () => {
 			await result.moveCard("POL-2", "done");
@@ -301,20 +298,22 @@ describe("useJiraBoard", () => {
 		// Manually delete before timer fires
 		await act(async () => {
 			result.deleteCard("POL-2");
+			await flushPromises();
 		});
 
 		if (snapshot === null) throw new Error("Expected snapshot after deleteCard");
 		const snapAfterDelete: UseJiraBoardResult = snapshot;
 		expect(snapAfterDelete.board.cards).toHaveLength(0);
-		expect(mockSaveBoard).toHaveBeenCalled();
-		mockSaveBoard.mockClear();
+		expect(mockDeleteCard).toHaveBeenCalledWith({ jiraKey: "POL-2" });
+		mockDeleteCard.mockClear();
 
-		// Timer should have been cancelled — advancing shouldn't call saveBoard again
+		// Timer should have been cancelled — advancing shouldn't call deleteCard again
 		await act(async () => {
 			vi.advanceTimersByTime(60_000);
+			await flushPromises();
 		});
 
-		expect(mockSaveBoard).not.toHaveBeenCalled();
+		expect(mockDeleteCard).not.toHaveBeenCalled();
 
 		vi.useRealTimers();
 	});

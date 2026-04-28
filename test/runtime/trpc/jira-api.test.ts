@@ -28,7 +28,6 @@ function createMockDeps(): CreateJiraApiDependencies {
 			baseRef: "main",
 			branchName: "POL-1-t",
 			worktreePath: "",
-			status: "review",
 			prUrl: "https://github.com/a/b/pull/1",
 			prNumber: 1,
 			prState: "open",
@@ -36,6 +35,10 @@ function createMockDeps(): CreateJiraApiDependencies {
 			updatedAt: 1,
 		}),
 		deleteJiraPullRequest: vi.fn().mockResolvedValue(undefined),
+		deleteJiraCardCascade: vi.fn().mockResolvedValue({ removedPullRequestIds: [] }),
+		deleteLocalBranch: vi.fn().mockResolvedValue(undefined),
+		deleteRemoteBranch: vi.fn().mockResolvedValue(undefined),
+		removeJiraCardWorktreeParent: vi.fn().mockResolvedValue(undefined),
 		searchJiraIssues: vi.fn().mockResolvedValue([]),
 		fetchIssue: vi.fn().mockResolvedValue({ key: "POL-1", summary: "Summary", description: null }),
 		transitionIssue: vi.fn().mockResolvedValue(undefined),
@@ -118,6 +121,65 @@ describe("jira-api", () => {
 		expect(deps.broadcastRuntimeReposUpdated).toHaveBeenCalledTimes(1);
 	});
 
+	it("deleteCard calls worktree/branch cleanup then JSON cascade then parent dir removal", async () => {
+		const pr = {
+			id: "pr-1",
+			jiraKey: "POL-10",
+			repoId: "my-repo",
+			repoPath: "/repos/my-repo",
+			worktreePath: "/work/POL-10/my-repo__branch",
+			prompt: "",
+			title: "t",
+			baseRef: "main",
+			branchName: "POL-10-fix",
+			createdAt: 1,
+			updatedAt: 1,
+		};
+		const deps = createMockDeps();
+		(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "pr-1": pr });
+		(deps.deleteJiraCardCascade as ReturnType<typeof vi.fn>).mockResolvedValue({ removedPullRequestIds: ["pr-1"] });
+
+		const api = createJiraApi(deps);
+		const result = await api.deleteCard("POL-10");
+
+		expect(result.deleted).toBe(true);
+		expect(result.removedPullRequestIds).toContain("pr-1");
+		expect(deps.removePullRequestWorktree).toHaveBeenCalledWith({
+			repoPath: "/repos/my-repo",
+			worktreePath: "/work/POL-10/my-repo__branch",
+		});
+		expect(deps.deleteLocalBranch).toHaveBeenCalledWith({ repoPath: "/repos/my-repo", branchName: "POL-10-fix" });
+		expect(deps.deleteRemoteBranch).toHaveBeenCalledWith({ repoPath: "/repos/my-repo", branchName: "POL-10-fix" });
+		expect(deps.deleteJiraCardCascade).toHaveBeenCalledWith("POL-10");
+		expect(deps.removeJiraCardWorktreeParent).toHaveBeenCalledWith({ worktreesRoot: "/work", jiraKey: "POL-10" });
+		expect(deps.broadcastRuntimeReposUpdated).toHaveBeenCalledTimes(1);
+	});
+
+	it("deleteCard continues cascade even when deleteRemoteBranch throws", async () => {
+		const pr = {
+			id: "pr-2",
+			jiraKey: "POL-11",
+			repoId: "my-repo",
+			repoPath: "/repos/my-repo",
+			worktreePath: "/work/POL-11/my-repo__branch",
+			prompt: "",
+			title: "t",
+			baseRef: "main",
+			branchName: "POL-11-fix",
+			createdAt: 1,
+			updatedAt: 1,
+		};
+		const deps = createMockDeps();
+		(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "pr-2": pr });
+		(deps.deleteRemoteBranch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("no remote"));
+		(deps.deleteJiraCardCascade as ReturnType<typeof vi.fn>).mockResolvedValue({ removedPullRequestIds: ["pr-2"] });
+
+		const api = createJiraApi(deps);
+		// Should not throw — remote deletion is best-effort
+		await expect(api.deleteCard("POL-11")).resolves.toBeDefined();
+		expect(deps.deleteJiraCardCascade).toHaveBeenCalledWith("POL-11");
+	});
+
 	it("deletePullRequest broadcasts runtime repos updated", async () => {
 		const deps = createMockDeps();
 		(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -127,7 +189,6 @@ describe("jira-api", () => {
 				repoId: "my-repo",
 				repoPath: "/repos/my-repo",
 				worktreePath: "/work/POL-1",
-				status: "backlog",
 				prompt: "",
 				title: "t",
 				baseRef: "main",
@@ -343,7 +404,7 @@ describe("jira-api", () => {
 			expect(result.board.cards[0]?.pullRequestIds).toHaveLength(1);
 		});
 
-		it("sets status to review for non-draft PR", async () => {
+		it("sets prState to open for non-draft PR", async () => {
 			const deps = createMockDeps();
 			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
 				{
@@ -364,11 +425,10 @@ describe("jira-api", () => {
 			const api = createJiraApi(deps);
 			const result = await api.scanAndAttachPRs();
 			const newPullRequest = Object.values(result.pullRequests)[0];
-			expect(newPullRequest?.status).toBe("review");
 			expect(newPullRequest?.prState).toBe("open");
 		});
 
-		it("sets status to in_progress for draft PR", async () => {
+		it("sets prState to draft for draft PR", async () => {
 			const deps = createMockDeps();
 			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
 				{
@@ -389,11 +449,10 @@ describe("jira-api", () => {
 			const api = createJiraApi(deps);
 			const result = await api.scanAndAttachPRs();
 			const newPullRequest = Object.values(result.pullRequests)[0];
-			expect(newPullRequest?.status).toBe("in_progress");
 			expect(newPullRequest?.prState).toBe("draft");
 		});
 
-		it("updates draft status of existing PR-backed pullRequest (draft → ready bumps to review)", async () => {
+		it("updates prState from draft to open when draft flag cleared", async () => {
 			const existingPullRequest = {
 				id: "existing-sub",
 				jiraKey: "POL-1",
@@ -404,7 +463,6 @@ describe("jira-api", () => {
 				baseRef: "main",
 				branchName: "POL-1-wip",
 				worktreePath: "",
-				status: "in_progress" as const,
 				prUrl: "https://github.com/a/b/pull/5",
 				prNumber: 5,
 				prState: "draft" as const,
@@ -440,12 +498,11 @@ describe("jira-api", () => {
 			});
 			const api = createJiraApi(deps);
 			const result = await api.scanAndAttachPRs();
-			expect(result.pullRequests["existing-sub"]?.status).toBe("review");
 			expect(result.pullRequests["existing-sub"]?.prState).toBe("open");
 			expect(result.attached).toBe(0);
 		});
 
-		it("does not update status of done pullRequest on rescan", async () => {
+		it("does not revert prState to draft once open on rescan", async () => {
 			const existingPullRequest = {
 				id: "done-sub",
 				jiraKey: "POL-1",
@@ -456,7 +513,6 @@ describe("jira-api", () => {
 				baseRef: "main",
 				branchName: "POL-1-done",
 				worktreePath: "",
-				status: "done" as const,
 				prUrl: "https://github.com/a/b/pull/6",
 				prNumber: 6,
 				prState: "open" as const,
@@ -471,7 +527,7 @@ describe("jira-api", () => {
 					title: "POL-1 done",
 					url: "https://github.com/a/b/pull/6",
 					headRefName: "POL-1-done",
-					isDraft: true,
+					isDraft: false,
 					state: "OPEN" as const,
 					repository: { nameWithOwner: "a/b" },
 				},
@@ -490,7 +546,7 @@ describe("jira-api", () => {
 			});
 			const api = createJiraApi(deps);
 			const result = await api.scanAndAttachPRs();
-			expect(result.pullRequests["done-sub"]?.status).toBe("done");
+			expect(result.pullRequests["done-sub"]?.prState).toBe("open");
 		});
 
 		it("sets prState to merged when PR state is MERGED", async () => {
@@ -528,7 +584,6 @@ describe("jira-api", () => {
 				baseRef: "main",
 				branchName: "POL-1-feature",
 				worktreePath: "",
-				status: "review" as const,
 				prUrl: "https://github.com/a/b/pull/11",
 				prNumber: 11,
 				prState: "open" as const,
@@ -578,7 +633,6 @@ describe("jira-api", () => {
 				baseRef: "main",
 				branchName: "POL-1-feature",
 				worktreePath: "",
-				status: "review" as const,
 				prUrl: "https://github.com/a/b/pull/20",
 				prNumber: 20,
 				prState: "merged" as const,
@@ -628,7 +682,6 @@ describe("jira-api", () => {
 				baseRef: "main",
 				branchName: "POL-1-orphan",
 				worktreePath: "",
-				status: "review" as const,
 				prUrl: "https://github.com/a/b/pull/99",
 				prNumber: 99,
 				// prState intentionally absent
@@ -677,7 +730,6 @@ describe("jira-api", () => {
 				baseRef: "main",
 				branchName: "b",
 				worktreePath: "",
-				status: "review" as const,
 				prUrl: "https://github.com/a/b/pull/1",
 				prNumber: 1,
 				prState: "merged" as const,
@@ -1005,6 +1057,126 @@ describe("jira-api", () => {
 			expect(deps.createPullRequestWorktree).not.toHaveBeenCalled();
 			expect(result.openUrl).toBe("https://github.com/org/myrepo/pull/9");
 			expect(result.started).toBe(false);
+		});
+	});
+
+	describe("orphan PR pruning", () => {
+		const makeCard = (jiraKey: string) => ({
+			jiraKey,
+			summary: "s",
+			status: "todo" as const,
+			pullRequestIds: [],
+			createdAt: 1,
+			updatedAt: 1,
+		});
+
+		const makePr = (id: string, jiraKey: string, worktreePath = "") => ({
+			id,
+			jiraKey,
+			repoId: "r",
+			repoPath: "/r",
+			prompt: "",
+			title: "t",
+			baseRef: "main",
+			branchName: "b",
+			worktreePath,
+			createdAt: 1,
+			updatedAt: 1,
+		});
+
+		it("loadBoard filters orphan PRs and persists the cleaned map", async () => {
+			const deps = createMockDeps();
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({ cards: [makeCard("POL-1")] });
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({
+				"pr-keep": makePr("pr-keep", "POL-1"),
+				"pr-orphan": makePr("pr-orphan", "POL-DELETED"),
+			});
+
+			const api = createJiraApi(deps);
+			const result = await api.loadBoard();
+
+			expect(Object.keys(result.pullRequests)).toEqual(["pr-keep"]);
+			expect(deps.saveJiraPullRequests).toHaveBeenCalledTimes(1);
+			expect(deps.saveJiraPullRequests).toHaveBeenCalledWith({
+				"pr-keep": expect.objectContaining({ jiraKey: "POL-1" }),
+			});
+		});
+
+		it("loadBoard removes orphan worktree when worktreePath is set", async () => {
+			const deps = createMockDeps();
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({ cards: [makeCard("POL-1")] });
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({
+				"pr-orphan": makePr("pr-orphan", "POL-GONE", "/work/POL-GONE/r__b"),
+			});
+
+			const api = createJiraApi(deps);
+			await api.loadBoard();
+
+			expect(deps.removePullRequestWorktree).toHaveBeenCalledWith({
+				repoPath: "/r",
+				worktreePath: "/work/POL-GONE/r__b",
+			});
+		});
+
+		it("loadBoard calls removeJiraCardWorktreeParent for orphaned jiraKeys", async () => {
+			const deps = createMockDeps();
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({ cards: [makeCard("POL-1")] });
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({
+				"pr-orphan": makePr("pr-orphan", "POL-GONE"),
+			});
+			(deps.getWorktreesRoot as ReturnType<typeof vi.fn>).mockReturnValue("/work");
+
+			const api = createJiraApi(deps);
+			await api.loadBoard();
+
+			expect(deps.removeJiraCardWorktreeParent).toHaveBeenCalledWith({
+				worktreesRoot: "/work",
+				jiraKey: "POL-GONE",
+			});
+		});
+
+		it("loadBoard is a no-op when there are no orphans", async () => {
+			const deps = createMockDeps();
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({ cards: [makeCard("POL-1")] });
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({
+				"pr-keep": makePr("pr-keep", "POL-1"),
+			});
+
+			const api = createJiraApi(deps);
+			const result = await api.loadBoard();
+
+			expect(Object.keys(result.pullRequests)).toEqual(["pr-keep"]);
+			expect(deps.saveJiraPullRequests).not.toHaveBeenCalled();
+		});
+
+		it("loadBoard still returns filtered map when persist throws", async () => {
+			const deps = createMockDeps();
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({ cards: [makeCard("POL-1")] });
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({
+				"pr-keep": makePr("pr-keep", "POL-1"),
+				"pr-orphan": makePr("pr-orphan", "POL-GONE"),
+			});
+			(deps.saveJiraPullRequests as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("disk full"));
+
+			const api = createJiraApi(deps);
+			const result = await api.loadBoard();
+
+			expect(Object.keys(result.pullRequests)).toEqual(["pr-keep"]);
+		});
+
+		it("scanAndAttachPRs removes orphan PRs from the result and persists", async () => {
+			const deps = createMockDeps();
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({ cards: [makeCard("POL-1")] });
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({
+				"pr-orphan": makePr("pr-orphan", "POL-OLD"),
+			});
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+			const api = createJiraApi(deps);
+			const result = await api.scanAndAttachPRs();
+
+			expect(result.pullRequests).toEqual({});
+			expect(deps.saveJiraPullRequests).toHaveBeenCalledWith({});
 		});
 	});
 });

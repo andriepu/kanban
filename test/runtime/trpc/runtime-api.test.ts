@@ -54,17 +54,15 @@ function createSummary(overrides: Partial<RuntimeTaskSessionSummary> = {}): Runt
 function createRuntimeConfigState(): RuntimeConfigState {
 	return {
 		selectedAgentId: "claude",
-		selectedShortcutLabel: null,
 		agentAutonomousModeEnabled: true,
 		terminalFontFamily: null,
 		readyForReviewNotificationsEnabled: true,
-		shortcuts: [],
 		commitPromptTemplate: "commit",
 		openPrPromptTemplate: "pr",
 		commitPromptTemplateDefault: "commit",
 		openPrPromptTemplateDefault: "pr",
 		globalConfigPath: "/tmp/global-config.json",
-		repoConfigPath: "/tmp/project-config.json",
+
 		worktreesRoot: null,
 		reposRoot: null,
 		jiraProjectKey: null,

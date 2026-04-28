@@ -62,11 +62,10 @@ function createSummary(taskId: string, agentId: RuntimeTaskSessionSummary["agent
 function createRuntimeConfig(overrides: Partial<RuntimeConfigResponse> = {}): RuntimeConfigResponse {
 	return {
 		selectedAgentId: "claude",
-		selectedShortcutLabel: null,
 		agentAutonomousModeEnabled: true,
 		effectiveCommand: "claude --dangerously-skip-permissions",
 		globalConfigPath: "/tmp/global-config.json",
-		repoConfigPath: "/tmp/repo-config.json",
+
 		readyForReviewNotificationsEnabled: true,
 		detectedCommands: ["claude"],
 		agents: [
@@ -80,7 +79,6 @@ function createRuntimeConfig(overrides: Partial<RuntimeConfigResponse> = {}): Ru
 				configured: true,
 			},
 		],
-		shortcuts: [],
 		commitPromptTemplate: "commit",
 		openPrPromptTemplate: "pr",
 		commitPromptTemplateDefault: "commit",

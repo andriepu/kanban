@@ -16,7 +16,6 @@ function makePullRequest(overrides: Partial<JiraPullRequest> = {}): JiraPullRequ
 		baseRef: "main",
 		branchName: "feature/kan-1-implement-feature",
 		worktreePath: "/worktrees/kan-1",
-		status: "backlog",
 		createdAt: 1,
 		updatedAt: 1,
 		...overrides,
@@ -50,7 +49,7 @@ describe("JiraPullRequestBoard", () => {
 		}
 	});
 
-	it("renders all four columns", () => {
+	it("renders three columns", () => {
 		act(() => {
 			root.render(
 				<JiraPullRequestBoard pullRequests={[]} repoFilter={null} sessions={{}} onPullRequestClick={() => {}} />,
@@ -59,11 +58,11 @@ describe("JiraPullRequestBoard", () => {
 		const columns = Array.from(container.querySelectorAll("[data-column-id]")).map((el) =>
 			el.getAttribute("data-column-id"),
 		);
-		expect(columns).toEqual(["backlog", "in_progress", "review", "done"]);
+		expect(columns).toEqual(["draft", "open", "done"]);
 	});
 
-	it("shows pull request in its status column", () => {
-		const pullRequest = makePullRequest({ id: "s1", status: "in_progress", title: "My feature" });
+	it("shows draft PR in draft column", () => {
+		const pullRequest = makePullRequest({ id: "s1", prState: "draft", title: "My draft" });
 		act(() => {
 			root.render(
 				<JiraPullRequestBoard
@@ -74,8 +73,55 @@ describe("JiraPullRequestBoard", () => {
 				/>,
 			);
 		});
-		expect(container.querySelector("[data-column-id='in_progress']")?.textContent).toContain("My feature");
-		expect(container.querySelector("[data-column-id='backlog']")?.textContent).not.toContain("My feature");
+		expect(container.querySelector("[data-column-id='draft']")?.textContent).toContain("My draft");
+		expect(container.querySelector("[data-column-id='open']")?.textContent).not.toContain("My draft");
+	});
+
+	it("shows open PR in open column", () => {
+		const pullRequest = makePullRequest({ id: "s1", prState: "open", title: "My open PR" });
+		act(() => {
+			root.render(
+				<JiraPullRequestBoard
+					pullRequests={[pullRequest]}
+					repoFilter={null}
+					sessions={{}}
+					onPullRequestClick={() => {}}
+				/>,
+			);
+		});
+		expect(container.querySelector("[data-column-id='open']")?.textContent).toContain("My open PR");
+		expect(container.querySelector("[data-column-id='draft']")?.textContent).not.toContain("My open PR");
+	});
+
+	it("shows merged PR in done column", () => {
+		const pullRequest = makePullRequest({ id: "s1", prState: "merged", title: "My merged PR" });
+		act(() => {
+			root.render(
+				<JiraPullRequestBoard
+					pullRequests={[pullRequest]}
+					repoFilter={null}
+					sessions={{}}
+					onPullRequestClick={() => {}}
+				/>,
+			);
+		});
+		expect(container.querySelector("[data-column-id='done']")?.textContent).toContain("My merged PR");
+		expect(container.querySelector("[data-column-id='open']")?.textContent).not.toContain("My merged PR");
+	});
+
+	it("shows PR without prState in draft column", () => {
+		const pullRequest = makePullRequest({ id: "s1", title: "Local draft" });
+		act(() => {
+			root.render(
+				<JiraPullRequestBoard
+					pullRequests={[pullRequest]}
+					repoFilter={null}
+					sessions={{}}
+					onPullRequestClick={() => {}}
+				/>,
+			);
+		});
+		expect(container.querySelector("[data-column-id='draft']")?.textContent).toContain("Local draft");
 	});
 
 	it("filters pull requests by repoFilter", () => {

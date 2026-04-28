@@ -34,12 +34,17 @@ afterEach(async () => {
 // set in beforeEach is always in effect when any exported function runs.
 import {
 	createJiraPullRequest,
+	deleteJiraCardCascade,
+	deleteJiraDetail,
 	deleteJiraPullRequest,
 	type JiraBoard,
+	type JiraDetail,
 	type JiraPullRequest,
 	loadJiraBoard,
+	loadJiraDetails,
 	loadJiraPullRequests,
 	saveJiraBoard,
+	saveJiraDetail,
 } from "../../../src/jira/jira-board-state";
 
 describe("loadJiraBoard", () => {
@@ -107,7 +112,6 @@ describe("loadJiraPullRequests", () => {
 			baseRef: "main",
 			branchName: "b2",
 			worktreePath: "/w2",
-			status: "review",
 			prUrl: "https://github.com/a/b/pull/2",
 			prNumber: 2,
 			prState: "merged",
@@ -139,7 +143,6 @@ describe("createJiraPullRequest", () => {
 			baseRef: "main",
 			branchName: "POL-1-fix-login",
 			worktreePath: "/worktrees/POL-1/my-repo__POL-1-fix-login",
-			status: "backlog",
 		};
 		const pullRequest = await createJiraPullRequest(input);
 
@@ -178,7 +181,6 @@ describe("deleteJiraPullRequest", () => {
 			baseRef: "main",
 			branchName: "b",
 			worktreePath: "/w",
-			status: "backlog",
 			createdAt: 1,
 			updatedAt: 1,
 		};
@@ -211,8 +213,130 @@ describe("createJiraPullRequest — error cases", () => {
 				baseRef: "main",
 				branchName: "POL-999-t",
 				worktreePath: "/w",
-				status: "backlog",
 			}),
 		).rejects.toThrow(/POL-999/);
+	});
+});
+
+describe("deleteJiraDetail", () => {
+	it("removes the detail entry for the given jiraKey", async () => {
+		const detail: JiraDetail = { jiraKey: "POL-1", summary: "Fix", description: null, fetchedAt: 1000 };
+		const sibling: JiraDetail = { jiraKey: "POL-2", summary: "Other", description: null, fetchedAt: 2000 };
+		await saveJiraDetail(detail);
+		await saveJiraDetail(sibling);
+
+		await deleteJiraDetail("POL-1");
+
+		const remaining = await loadJiraDetails();
+		expect(remaining["POL-1"]).toBeUndefined();
+		expect(remaining["POL-2"]).toBeDefined();
+	});
+
+	it("is idempotent when key does not exist", async () => {
+		await expect(deleteJiraDetail("POL-NONEXISTENT")).resolves.not.toThrow();
+	});
+
+	it("does not throw when details file does not exist", async () => {
+		await expect(deleteJiraDetail("POL-1")).resolves.not.toThrow();
+	});
+});
+
+describe("deleteJiraCardCascade", () => {
+	it("removes card from board, PRs from map, detail entry, and returns removed PR ids", async () => {
+		const board: JiraBoard = {
+			cards: [
+				{
+					jiraKey: "POL-5",
+					summary: "Card",
+					status: "todo",
+					pullRequestIds: ["pr-a"],
+					createdAt: 1,
+					updatedAt: 1,
+				},
+			],
+		};
+		await saveJiraBoard(board);
+
+		const pullRequestsPath = path.join(tempHome, ".kanban", "kanban", "jira-pull-requests.json");
+		await fs.mkdir(path.dirname(pullRequestsPath), { recursive: true });
+		const pr: JiraPullRequest = {
+			id: "pr-a",
+			jiraKey: "POL-5",
+			repoId: "r",
+			repoPath: "/r",
+			prompt: "p",
+			title: "t",
+			baseRef: "main",
+			branchName: "b",
+			worktreePath: "/w",
+			createdAt: 1,
+			updatedAt: 1,
+		};
+		await fs.writeFile(pullRequestsPath, JSON.stringify({ "pr-a": pr }));
+
+		await saveJiraDetail({ jiraKey: "POL-5", summary: "Card", description: null, fetchedAt: 1 });
+
+		const { removedPullRequestIds } = await deleteJiraCardCascade("POL-5");
+
+		expect(removedPullRequestIds).toContain("pr-a");
+
+		const updatedBoard = await loadJiraBoard();
+		expect(updatedBoard.cards.find((c) => c.jiraKey === "POL-5")).toBeUndefined();
+
+		const updatedPRs = await loadJiraPullRequests();
+		expect(updatedPRs["pr-a"]).toBeUndefined();
+
+		const updatedDetails = await loadJiraDetails();
+		expect(updatedDetails["POL-5"]).toBeUndefined();
+	});
+
+	it("tolerates missing card (still cleans PRs and details)", async () => {
+		const pullRequestsPath = path.join(tempHome, ".kanban", "kanban", "jira-pull-requests.json");
+		await fs.mkdir(path.dirname(pullRequestsPath), { recursive: true });
+		const pr: JiraPullRequest = {
+			id: "pr-b",
+			jiraKey: "POL-6",
+			repoId: "r",
+			repoPath: "/r",
+			prompt: "p",
+			title: "t",
+			baseRef: "main",
+			branchName: "b",
+			worktreePath: "/w",
+			createdAt: 1,
+			updatedAt: 1,
+		};
+		await fs.writeFile(pullRequestsPath, JSON.stringify({ "pr-b": pr }));
+		await saveJiraDetail({ jiraKey: "POL-6", summary: "X", description: null, fetchedAt: 1 });
+
+		const { removedPullRequestIds } = await deleteJiraCardCascade("POL-6");
+
+		expect(removedPullRequestIds).toContain("pr-b");
+		const updatedPRs = await loadJiraPullRequests();
+		expect(updatedPRs["pr-b"]).toBeUndefined();
+		const updatedDetails = await loadJiraDetails();
+		expect(updatedDetails["POL-6"]).toBeUndefined();
+	});
+
+	it("returns empty removedPullRequestIds when card has no PRs", async () => {
+		const board: JiraBoard = {
+			cards: [
+				{
+					jiraKey: "POL-7",
+					summary: "No PRs",
+					status: "todo",
+					pullRequestIds: [],
+					createdAt: 1,
+					updatedAt: 1,
+				},
+			],
+		};
+		await saveJiraBoard(board);
+
+		const { removedPullRequestIds } = await deleteJiraCardCascade("POL-7");
+		expect(removedPullRequestIds).toHaveLength(0);
+
+		const updatedBoard = await loadJiraBoard();
+		expect(updatedBoard.cards.find((c) => c.jiraKey === "POL-7")).toBeUndefined();
 	});
 });

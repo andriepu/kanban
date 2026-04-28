@@ -69,17 +69,6 @@ interface UseTerminalPanelsInput {
 	) => Promise<{ ok: boolean; message?: string }>;
 }
 
-interface PrepareTerminalForShortcutInput {
-	prepareWaitForTerminalConnectionReady: (taskId: string) => () => Promise<void>;
-}
-
-interface PrepareTerminalForShortcutResult {
-	hadExistingOpenTerminal?: boolean;
-	ok: boolean;
-	targetTaskId?: string;
-	message?: string;
-}
-
 interface DetailTerminalPanelState {
 	isOpen: boolean;
 }
@@ -105,7 +94,6 @@ export interface UseTerminalPanelsResult {
 	handleToggleDetailTerminal: () => void;
 	handleSendAgentCommandToHomeTerminal: () => void;
 	handleSendAgentCommandToDetailTerminal: () => void;
-	prepareTerminalForShortcut: (input: PrepareTerminalForShortcutInput) => Promise<PrepareTerminalForShortcutResult>;
 	resetBottomTerminalLayoutCustomizations: () => void;
 	collapseHomeTerminal: () => void;
 	collapseDetailTerminal: () => void;
@@ -372,79 +360,6 @@ export function useTerminalPanels({
 		void sendTaskSessionInput(terminalTaskId, agentCommand, { appendNewline: true });
 	}, [agentCommand, selectedCard, sendTaskSessionInput]);
 
-	const prepareTerminalForShortcut = useCallback(
-		async ({ prepareWaitForTerminalConnectionReady }: PrepareTerminalForShortcutInput) => {
-			let targetTaskId = HOME_TERMINAL_TASK_ID;
-			let hadExistingOpenTerminal = false;
-			let shouldWaitForConnection = false;
-			let waitForTerminalConnectionReady: (() => Promise<void>) | null = null;
-			const activeSelection = selectedCard;
-			if (activeSelection) {
-				targetTaskId = getDetailTerminalTaskId(activeSelection.card.id);
-				const selectionKey = `${activeSelection.card.id}:${activeSelection.card.baseRef}`;
-				const detailWasAlreadyOpenForSelection =
-					isDetailTerminalOpen && detailTerminalSelectionKeyRef.current === selectionKey;
-				hadExistingOpenTerminal = detailWasAlreadyOpenForSelection;
-				shouldWaitForConnection = !detailWasAlreadyOpenForSelection;
-				if (shouldWaitForConnection) {
-					waitForTerminalConnectionReady = prepareWaitForTerminalConnectionReady(targetTaskId);
-				}
-				detailTerminalSelectionKeyRef.current = selectionKey;
-				updateDetailTerminalPanelState(targetTaskId, (previous) => ({
-					...previous,
-					isOpen: true,
-				}));
-				const started = await startDetailTerminalForCard(activeSelection.card, { showLoading: true });
-				if (!started) {
-					if (detailTerminalSelectionKeyRef.current === selectionKey) {
-						detailTerminalSelectionKeyRef.current = null;
-					}
-					return {
-						ok: false,
-						message: "Could not open detail terminal.",
-					} satisfies PrepareTerminalForShortcutResult;
-				}
-			} else {
-				const homeWasAlreadyOpenForRepo = isHomeTerminalOpen && homeTerminalRepoIdRef.current === currentRepoId;
-				hadExistingOpenTerminal = homeWasAlreadyOpenForRepo;
-				shouldWaitForConnection = !homeWasAlreadyOpenForRepo;
-				if (shouldWaitForConnection) {
-					waitForTerminalConnectionReady = prepareWaitForTerminalConnectionReady(HOME_TERMINAL_TASK_ID);
-				}
-				homeTerminalRepoIdRef.current = currentRepoId;
-				setIsHomeTerminalOpen(true);
-				const started = await startHomeTerminalSession();
-				if (!started) {
-					closeHomeTerminal();
-					return {
-						ok: false,
-						message: "Could not open terminal.",
-					} satisfies PrepareTerminalForShortcutResult;
-				}
-			}
-
-			if (shouldWaitForConnection && waitForTerminalConnectionReady) {
-				await waitForTerminalConnectionReady();
-			}
-
-			return {
-				hadExistingOpenTerminal,
-				ok: true,
-				targetTaskId,
-			} satisfies PrepareTerminalForShortcutResult;
-		},
-		[
-			closeHomeTerminal,
-			currentRepoId,
-			isDetailTerminalOpen,
-			isHomeTerminalOpen,
-			selectedCard,
-			startDetailTerminalForCard,
-			startHomeTerminalSession,
-			updateDetailTerminalPanelState,
-		],
-	);
-
 	const resetTerminalPanelsState = useCallback(() => {
 		closeHomeTerminal();
 		setIsHomeTerminalStarting(false);
@@ -471,7 +386,6 @@ export function useTerminalPanels({
 		handleToggleDetailTerminal,
 		handleSendAgentCommandToHomeTerminal,
 		handleSendAgentCommandToDetailTerminal,
-		prepareTerminalForShortcut,
 		resetBottomTerminalLayoutCustomizations,
 		collapseHomeTerminal,
 		collapseDetailTerminal,

@@ -7,15 +7,13 @@ import { shouldShowStartupOnboardingDialog } from "./onboarding";
 function makeConfig(overrides: Partial<RuntimeConfigResponse> = {}): RuntimeConfigResponse {
 	return {
 		selectedAgentId: "claude",
-		selectedShortcutLabel: null,
 		agentAutonomousModeEnabled: true,
 		effectiveCommand: "claude",
 		globalConfigPath: "/home/user/.kanban/kanban/config.json",
-		repoConfigPath: null,
+
 		readyForReviewNotificationsEnabled: true,
 		detectedCommands: ["claude"],
 		agents: [],
-		shortcuts: [],
 		commitPromptTemplate: "",
 		openPrPromptTemplate: "",
 		commitPromptTemplateDefault: "",

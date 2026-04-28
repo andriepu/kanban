@@ -36,6 +36,9 @@
 
 - [2026-04-25] When adding a field to `JiraSubtask` (disk type), also update `jiraSubtaskSchema` in `src/core/api-contract.ts`. tRPC routes with `.output(schema)` use zod's default `.strip()` mode — unknown keys are silently dropped. Missing the schema update causes the field to survive `loadBoard` (no output validator) but get stripped by `scanAndAttachPRs` (`.output(jiraScanAndAttachPrsResponseSchema)`). This caused `prState: "merged"` to be correct on first load but dropped on auto-scan, making merged PRs render green after ~1 second.
 
+- [2026-04-28] When nuking a full feature from runtime config, `repoConfigPath` and other removed fields must also be stripped from ALL test fixtures that have a `RuntimeConfigState` / `RuntimeConfigResponse` literal, not just the fields explicitly listed in the plan. Grep for removed field names across all test files after tsc to find stragglers.
+- [2026-04-28] `updateRuntimeConfig` and `saveRuntimeConfig` signature change: previously took `(cwd, config)`, now takes `(config)` only. All test callers in `test/runtime/config/runtime-config.test.ts` must be updated.
+
 ## Decision Log
 
 <!-- Significant technical decisions with rationale. Why X was chosen over Y. -->

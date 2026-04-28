@@ -1,23 +1,11 @@
-import {
-	ArrowDown,
-	ArrowLeft,
-	ArrowUp,
-	Bug,
-	CircleArrowDown,
-	Command,
-	GitBranch,
-	Menu,
-	Settings,
-	Terminal,
-} from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Bug, CircleArrowDown, GitBranch, Menu, Settings } from "lucide-react";
 import { OpenWorkspaceButton } from "@/components/open-workspace-button";
-import { ShortcutRunButton } from "@/components/shortcut-run-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import type { RuntimeGitSyncAction, RuntimeRepoShortcut } from "@/runtime/types";
+import type { RuntimeGitSyncAction } from "@/runtime/types";
 import {
 	useHomeGitSummaryValue,
 	useTaskWorkspaceInfoValue,
@@ -25,10 +13,6 @@ import {
 } from "@/stores/workspace-metadata-store";
 import type { OpenTargetId, OpenTargetOption } from "@/utils/open-targets";
 import { formatPathForDisplay } from "@/utils/path-display";
-import { isMacPlatform } from "@/utils/platform";
-
-type SettingsSection = "shortcuts";
-type CreateShortcutResult = { ok: boolean; message?: string };
 
 const MOBILE_TOUCH_TARGET = "min-w-[44px] min-h-[44px]";
 
@@ -221,20 +205,11 @@ export function TopBar({
 	onGitFetch,
 	onGitPull,
 	onGitPush,
-	onToggleTerminal,
-	isTerminalOpen,
-	isTerminalLoading,
 	onToggleGitHistory,
 	isGitHistoryOpen,
 	onOpenSettings,
 	showDebugButton,
 	onOpenDebugDialog,
-	shortcuts,
-	selectedShortcutLabel,
-	onSelectShortcutLabel,
-	runningShortcutLabel,
-	onRunShortcut,
-	onCreateFirstShortcut,
 	openTargetOptions,
 	selectedOpenTargetId,
 	onSelectOpenTarget,
@@ -256,20 +231,11 @@ export function TopBar({
 	onGitFetch?: () => void;
 	onGitPull?: () => void;
 	onGitPush?: () => void;
-	onToggleTerminal?: () => void;
-	isTerminalOpen?: boolean;
-	isTerminalLoading?: boolean;
 	onToggleGitHistory?: () => void;
 	isGitHistoryOpen?: boolean;
-	onOpenSettings?: (section?: SettingsSection) => void;
+	onOpenSettings?: () => void;
 	showDebugButton?: boolean;
 	onOpenDebugDialog?: () => void;
-	shortcuts?: RuntimeRepoShortcut[];
-	selectedShortcutLabel?: string | null;
-	onSelectShortcutLabel?: (shortcutLabel: string) => void;
-	runningShortcutLabel?: string | null;
-	onRunShortcut?: (shortcutLabel: string) => void;
-	onCreateFirstShortcut?: (shortcut: RuntimeRepoShortcut) => Promise<CreateShortcutResult>;
 	openTargetOptions: readonly OpenTargetOption[];
 	selectedOpenTargetId: OpenTargetId;
 	onSelectOpenTarget: (targetId: OpenTargetId) => void;
@@ -405,80 +371,15 @@ export function TopBar({
 
 			{/* ---- Right side: actions ---- */}
 			<div className="flex flex-nowrap items-center h-10 pr-0.5 shrink-0">
-				{!isMobile && !hideRepoDependentActions && onRunShortcut ? (
-					<ShortcutRunButton
-						shortcuts={shortcuts ?? []}
-						selectedShortcutLabel={selectedShortcutLabel}
-						runningShortcutLabel={runningShortcutLabel}
-						onRunShortcut={onRunShortcut}
-						onSelectShortcutLabel={onSelectShortcutLabel}
-						onCreateFirstShortcut={onCreateFirstShortcut}
-						onAddShortcut={() => onOpenSettings?.("shortcuts")}
-					/>
-				) : null}
-				{/* Desktop: terminal, debug buttons */}
-				{!isMobile ? (
-					<>
-						{onToggleTerminal ? (
-							<Tooltip
-								side="bottom"
-								content={
-									<span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-										<span>Toggle terminal</span>
-										<span className="inline-flex items-center gap-0.5 whitespace-nowrap">
-											<span>(</span>
-											{isMacPlatform ? <Command size={11} /> : <span>Ctrl</span>}
-											<span>+ J)</span>
-										</span>
-									</span>
-								}
-							>
-								<Button
-									variant="ghost"
-									size="sm"
-									icon={<Terminal size={16} />}
-									onClick={onToggleTerminal}
-									disabled={Boolean(isTerminalLoading)}
-									aria-label={isTerminalOpen ? "Close terminal" : "Open terminal"}
-									className="ml-2"
-								/>
-							</Tooltip>
-						) : null}
-						{showDebugButton && onOpenDebugDialog ? (
-							<Button
-								variant="ghost"
-								size="sm"
-								icon={<Bug size={16} />}
-								onClick={onOpenDebugDialog}
-								aria-label="Debug"
-								data-testid="open-debug-dialog-button"
-								className="ml-0.5 mr-0.5"
-							/>
-						) : null}
-					</>
-				) : null}
-
-				{/* Mobile: inline run + terminal buttons */}
-				{isMobile && !hideRepoDependentActions && onRunShortcut ? (
-					<ShortcutRunButton
-						shortcuts={shortcuts ?? []}
-						selectedShortcutLabel={selectedShortcutLabel}
-						runningShortcutLabel={runningShortcutLabel}
-						onRunShortcut={onRunShortcut}
-						onSelectShortcutLabel={onSelectShortcutLabel}
-						onCreateFirstShortcut={onCreateFirstShortcut}
-						onAddShortcut={() => onOpenSettings?.("shortcuts")}
-					/>
-				) : null}
-				{isMobile && onToggleTerminal ? (
+				{!isMobile && showDebugButton && onOpenDebugDialog ? (
 					<Button
 						variant="ghost"
 						size="sm"
-						icon={<Terminal size={16} />}
-						onClick={onToggleTerminal}
-						disabled={Boolean(isTerminalLoading)}
-						aria-label={isTerminalOpen ? "Close terminal" : "Open terminal"}
-						className={MOBILE_TOUCH_TARGET}
+						icon={<Bug size={16} />}
+						onClick={onOpenDebugDialog}
+						aria-label="Debug"
+						data-testid="open-debug-dialog-button"
+						className="ml-0.5 mr-0.5"
 					/>
 				) : null}
 

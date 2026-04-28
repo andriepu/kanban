@@ -505,13 +505,6 @@ export const runtimeTaskWorkspaceInfoResponseSchema = z.object({
 });
 export type RuntimeTaskWorkspaceInfoResponse = z.infer<typeof runtimeTaskWorkspaceInfoResponseSchema>;
 
-export const runtimeRepoShortcutSchema = z.object({
-	label: z.string(),
-	command: z.string(),
-	icon: z.string().optional(),
-});
-export type RuntimeRepoShortcut = z.infer<typeof runtimeRepoShortcutSchema>;
-
 export const runtimeCommandRunRequestSchema = z.object({
 	command: z.string(),
 });
@@ -555,17 +548,14 @@ export type RuntimeAgentDefinition = z.infer<typeof runtimeAgentDefinitionSchema
 
 export const runtimeConfigResponseSchema = z.object({
 	selectedAgentId: runtimeAgentIdSchema,
-	selectedShortcutLabel: z.string().nullable(),
 	agentAutonomousModeEnabled: z.boolean(),
 	terminalFontFamily: z.string().nullable().optional(),
 	debugModeEnabled: z.boolean().optional(),
 	effectiveCommand: z.string().nullable(),
 	globalConfigPath: z.string(),
-	repoConfigPath: z.string().nullable(),
 	readyForReviewNotificationsEnabled: z.boolean(),
 	detectedCommands: z.array(z.string()),
 	agents: z.array(runtimeAgentDefinitionSchema),
-	shortcuts: z.array(runtimeRepoShortcutSchema),
 	commitPromptTemplate: z.string(),
 	openPrPromptTemplate: z.string(),
 	commitPromptTemplateDefault: z.string(),
@@ -582,10 +572,8 @@ export type RuntimeConfigResponse = z.infer<typeof runtimeConfigResponseSchema>;
 
 export const runtimeConfigSaveRequestSchema = z.object({
 	selectedAgentId: runtimeAgentIdSchema.optional(),
-	selectedShortcutLabel: z.string().nullable().optional(),
 	agentAutonomousModeEnabled: z.boolean().optional(),
 	terminalFontFamily: z.string().nullable().optional(),
-	shortcuts: z.array(runtimeRepoShortcutSchema).optional(),
 	readyForReviewNotificationsEnabled: z.boolean().optional(),
 	commitPromptTemplate: z.string().optional(),
 	openPrPromptTemplate: z.string().optional(),
@@ -927,9 +915,6 @@ export type RuntimeJiraCard = z.infer<typeof jiraCardSchema>;
 export const jiraBoardSchema = z.object({ cards: z.array(jiraCardSchema) });
 export type RuntimeJiraBoard = z.infer<typeof jiraBoardSchema>;
 
-export const jiraPullRequestStatusSchema = z.enum(["backlog", "in_progress", "review", "done"]);
-export type JiraPullRequestStatus = z.infer<typeof jiraPullRequestStatusSchema>;
-
 export const jiraPullRequestSchema = z.object({
 	id: z.string(),
 	jiraKey: z.string(),
@@ -940,7 +925,6 @@ export const jiraPullRequestSchema = z.object({
 	baseRef: z.string(),
 	branchName: z.string(),
 	worktreePath: z.string(),
-	status: jiraPullRequestStatusSchema,
 	prUrl: z.string().optional(),
 	prNumber: z.number().optional(),
 	prState: z.enum(["open", "draft", "merged"]).optional(),
@@ -1018,14 +1002,14 @@ export const jiraPullRequestSessionStopRequestSchema = z.object({
 });
 export const jiraPullRequestSessionStopResponseSchema = z.object({ stopped: z.boolean() });
 
-export const jiraPullRequestUpdateStatusRequestSchema = z.object({
-	pullRequestId: z.string(),
-	status: jiraPullRequestStatusSchema,
-});
-export const jiraPullRequestUpdateStatusResponseSchema = z.object({ pullRequest: jiraPullRequestSchema });
-
 export const jiraSetApiTokenRequestSchema = z.object({ token: z.string().nullable() });
 export const jiraSetApiTokenResponseSchema = z.object({ configured: z.boolean() });
+
+export const jiraDeleteCardRequestSchema = z.object({ jiraKey: z.string() });
+export const jiraDeleteCardResponseSchema = z.object({
+	deleted: z.boolean(),
+	removedPullRequestIds: z.array(z.string()),
+});
 
 export const jiraDetailSchema = z.object({
 	jiraKey: z.string(),

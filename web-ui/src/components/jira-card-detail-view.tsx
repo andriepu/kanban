@@ -20,13 +20,6 @@ interface JiraCardDetailViewProps {
 	onPullRequestClick: (pullRequest: JiraPullRequest) => void;
 }
 
-const PULL_REQUEST_STATUS_COLORS: Record<JiraPullRequest["status"], string> = {
-	backlog: "text-text-tertiary",
-	in_progress: "text-status-blue",
-	review: "text-status-orange",
-	done: "text-status-green",
-};
-
 const PR_STATE_COLORS: Record<NonNullable<JiraPullRequest["prState"]>, string> = {
 	open: "text-status-green",
 	draft: "text-text-secondary",
@@ -128,14 +121,7 @@ export function JiraCardDetailView({
 							className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-surface-2"
 						>
 							{!pullRequest.prUrl && (
-								<span
-									className={cn(
-										"shrink-0 text-xs font-medium",
-										PULL_REQUEST_STATUS_COLORS[pullRequest.status],
-									)}
-								>
-									{pullRequest.status}
-								</span>
+								<span className="shrink-0 text-xs font-medium text-text-tertiary">Draft</span>
 							)}
 							<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 								{pullRequest.prUrl ? (

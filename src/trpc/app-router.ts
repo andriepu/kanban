@@ -68,17 +68,18 @@ import type {
 } from "../core/api-contract";
 import {
 	jiraBoardSaveRequestSchema,
+	jiraDeleteCardRequestSchema,
+	jiraDeleteCardResponseSchema,
 	jiraFetchIssueRequestSchema,
 	jiraImportRequestSchema,
 	jiraLoadDetailsResponseSchema,
 	jiraPullRequestCreateRequestSchema,
 	jiraPullRequestDeleteRequestSchema,
-	jiraPullRequestSessionStartRequestSchema,
-	jiraPullRequestSessionStopRequestSchema,
-	jiraPullRequestUpdateStatusRequestSchema,
-	jiraScanAndAttachPrsResponseSchema,
 	jiraPullRequestDetailRequestSchema,
 	jiraPullRequestDetailResponseSchema,
+	jiraPullRequestSessionStartRequestSchema,
+	jiraPullRequestSessionStopRequestSchema,
+	jiraScanAndAttachPrsResponseSchema,
 	jiraSetApiTokenRequestSchema,
 	jiraSetApiTokenResponseSchema,
 	jiraTransitionRequestSchema,
@@ -553,6 +554,10 @@ export const runtimeAppRouter = t.router({
 		deletePullRequest: t.procedure
 			.input(jiraPullRequestDeleteRequestSchema)
 			.mutation(({ ctx, input }) => ctx.jiraApi.deletePullRequest(input.pullRequestId)),
+		deleteCard: t.procedure
+			.input(jiraDeleteCardRequestSchema)
+			.output(jiraDeleteCardResponseSchema)
+			.mutation(({ ctx, input }) => ctx.jiraApi.deleteCard(input.jiraKey)),
 		importFromJira: t.procedure
 			.input(jiraImportRequestSchema)
 			.mutation(({ ctx, input }) => ctx.jiraApi.importFromJira(input.jql)),
@@ -572,9 +577,6 @@ export const runtimeAppRouter = t.router({
 		stopPullRequestSession: t.procedure
 			.input(jiraPullRequestSessionStopRequestSchema)
 			.mutation(({ ctx, input }) => ctx.jiraApi.stopPullRequestSession(input.pullRequestId, input.workspacePath)),
-		updatePullRequestStatus: t.procedure
-			.input(jiraPullRequestUpdateStatusRequestSchema)
-			.mutation(({ ctx, input }) => ctx.jiraApi.updatePullRequestStatus(input.pullRequestId, input.status)),
 		scanAndAttachPRs: t.procedure
 			.output(jiraScanAndAttachPrsResponseSchema)
 			.mutation(({ ctx }) => ctx.jiraApi.scanAndAttachPRs()),

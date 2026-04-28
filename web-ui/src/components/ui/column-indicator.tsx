@@ -7,14 +7,14 @@ export function ColumnIndicator({ columnId, size = 14 }: { columnId: string; siz
 	const cy = size / 2;
 	const strokeWidth = size * 0.15;
 
-	if (columnId === "backlog" || columnId === "todo") {
+	if (columnId === "backlog" || columnId === "todo" || columnId === "draft") {
 		return (
 			<svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
 				<circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={strokeWidth} />
 			</svg>
 		);
 	}
-	if (columnId === "in_progress") {
+	if (columnId === "in_progress" || columnId === "open") {
 		const top = cy - r;
 		const bottom = cy + r;
 		return (

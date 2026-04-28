@@ -5,6 +5,8 @@ export const columnIndicatorColors: Record<string, string> = {
 	trash: "var(--color-status-red)",
 	todo: "var(--color-text-primary)",
 	done: "var(--color-status-green)",
+	draft: "var(--color-text-tertiary)",
+	open: "var(--color-accent)",
 };
 
 export const columnBackgroundColors: Record<string, string> = {

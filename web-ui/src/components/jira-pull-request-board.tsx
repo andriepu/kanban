@@ -1,14 +1,21 @@
 import { cn } from "@/components/ui/cn";
 import { ColumnIndicator } from "@/components/ui/column-indicator";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
-import type { JiraPullRequest, JiraPullRequestStatus } from "@/types/jira";
+import type { JiraPullRequest } from "@/types/jira";
 
-const PULL_REQUEST_COLUMNS: Array<{ id: JiraPullRequestStatus; label: string }> = [
-	{ id: "backlog", label: "Backlog" },
-	{ id: "in_progress", label: "In Progress" },
-	{ id: "review", label: "Review" },
+type PrColumn = "draft" | "open" | "done";
+
+const PULL_REQUEST_COLUMNS: Array<{ id: PrColumn; label: string }> = [
+	{ id: "draft", label: "Draft" },
+	{ id: "open", label: "Open" },
 	{ id: "done", label: "Done" },
 ];
+
+function getPrColumn(pr: JiraPullRequest): PrColumn {
+	if (pr.prState === "merged") return "done";
+	if (pr.prState === "open") return "open";
+	return "draft";
+}
 
 export function JiraPullRequestBoard({
 	pullRequests,
@@ -26,7 +33,7 @@ export function JiraPullRequestBoard({
 	return (
 		<div className="flex h-full flex-1 gap-2 overflow-x-auto p-2">
 			{PULL_REQUEST_COLUMNS.map((col) => {
-				const colPullRequests = filtered.filter((s) => s.status === col.id);
+				const colPullRequests = filtered.filter((s) => getPrColumn(s) === col.id);
 				return (
 					<PullRequestColumn
 						key={col.id}
@@ -51,7 +58,7 @@ function PullRequestColumn({
 	showRepoName,
 	onPullRequestClick,
 }: {
-	columnId: JiraPullRequestStatus;
+	columnId: PrColumn;
 	label: string;
 	pullRequests: JiraPullRequest[];
 	sessions: Record<string, RuntimeTaskSessionSummary>;

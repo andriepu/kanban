@@ -42,6 +42,10 @@ export interface CreateJiraApiDependencies {
 	fetchGhPullRequestDetail: (owner: string, repo: string, number: number) => Promise<GhPullRequestDetail>;
 	getJiraProjectKey: () => string | null;
 	broadcastRuntimeReposUpdated?: () => void;
+	deleteJiraCardCascade: (jiraKey: string) => Promise<{ removedPullRequestIds: string[] }>;
+	deleteLocalBranch: (opts: { repoPath: string; branchName: string }) => Promise<void>;
+	deleteRemoteBranch: (opts: { repoPath: string; branchName: string }) => Promise<void>;
+	removeJiraCardWorktreeParent: (opts: { worktreesRoot: string; jiraKey: string }) => Promise<void>;
 }
 
 const JIRA_STATUS_MAP: Record<string, "todo" | "in_progress" | "done"> = {
@@ -57,11 +61,96 @@ const JIRA_STATUS_MAP: Record<string, "todo" | "in_progress" | "done"> = {
 	done: "done",
 };
 
+async function cascadeDeleteCard(
+	jiraKey: string,
+	deps: CreateJiraApiDependencies,
+): Promise<{ deleted: boolean; removedPullRequestIds: string[] }> {
+	const pullRequests = await deps.loadJiraPullRequests();
+	const targetPRs = Object.values(pullRequests).filter((pr) => pr.jiraKey === jiraKey);
+
+	for (const pr of targetPRs) {
+		if (pr.worktreePath) {
+			try {
+				await deps.removePullRequestWorktree({ repoPath: pr.repoPath, worktreePath: pr.worktreePath });
+			} catch {}
+		}
+		if (pr.repoPath && pr.branchName) {
+			try {
+				await deps.deleteLocalBranch({ repoPath: pr.repoPath, branchName: pr.branchName });
+			} catch {}
+			try {
+				await deps.deleteRemoteBranch({ repoPath: pr.repoPath, branchName: pr.branchName });
+			} catch {}
+		}
+	}
+
+	const { removedPullRequestIds } = await deps.deleteJiraCardCascade(jiraKey);
+
+	const worktreesRoot = deps.getWorktreesRoot();
+	if (worktreesRoot) {
+		try {
+			await deps.removeJiraCardWorktreeParent({ worktreesRoot, jiraKey });
+		} catch {}
+	}
+
+	deps.broadcastRuntimeReposUpdated?.();
+	return { deleted: true, removedPullRequestIds };
+}
+
+async function pruneOrphanPullRequests(
+	pullRequests: Record<string, JiraPullRequest>,
+	boardKeySet: Set<string>,
+	deps: Pick<
+		CreateJiraApiDependencies,
+		"saveJiraPullRequests" | "removePullRequestWorktree" | "removeJiraCardWorktreeParent" | "getWorktreesRoot"
+	>,
+): Promise<Record<string, JiraPullRequest>> {
+	const next: Record<string, JiraPullRequest> = {};
+	const orphans: JiraPullRequest[] = [];
+	for (const [id, pr] of Object.entries(pullRequests)) {
+		if (boardKeySet.has(pr.jiraKey)) {
+			next[id] = pr;
+		} else {
+			orphans.push(pr);
+		}
+	}
+	if (orphans.length === 0) return pullRequests;
+
+	// Best-effort: remove each orphan's worktree
+	for (const pr of orphans) {
+		if (pr.worktreePath) {
+			try {
+				await deps.removePullRequestWorktree({ repoPath: pr.repoPath, worktreePath: pr.worktreePath });
+			} catch {}
+		}
+	}
+
+	// Best-effort: remove parent worktree dir for each orphaned jiraKey
+	const worktreesRoot = deps.getWorktreesRoot();
+	if (worktreesRoot) {
+		const orphanedKeys = new Set(orphans.map((pr) => pr.jiraKey));
+		for (const jiraKey of orphanedKeys) {
+			try {
+				await deps.removeJiraCardWorktreeParent({ worktreesRoot, jiraKey });
+			} catch {}
+		}
+	}
+
+	try {
+		await deps.saveJiraPullRequests(next);
+	} catch {
+		// best-effort persist; in-memory response is still clean
+	}
+	return next;
+}
+
 export function createJiraApi(deps: CreateJiraApiDependencies) {
 	return {
 		async loadBoard(): Promise<{ board: JiraBoard; pullRequests: Record<string, JiraPullRequest> }> {
 			const [board, pullRequests] = await Promise.all([deps.loadJiraBoard(), deps.loadJiraPullRequests()]);
-			return { board, pullRequests };
+			const boardKeySet = new Set(board.cards.map((c) => c.jiraKey));
+			const pruned = await pruneOrphanPullRequests(pullRequests, boardKeySet, deps);
+			return { board, pullRequests: pruned };
 		},
 
 		async saveBoard(board: JiraBoard): Promise<{ board: JiraBoard }> {
@@ -105,7 +194,6 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			const pullRequest = await deps.createJiraPullRequest({
 				...input,
 				worktreePath: resolvedWorktreePath,
-				status: "backlog",
 			});
 
 			deps.broadcastRuntimeReposUpdated?.();
@@ -126,6 +214,10 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			return { deleted: true };
 		},
 
+		async deleteCard(jiraKey: string): Promise<{ deleted: boolean; removedPullRequestIds: string[] }> {
+			return cascadeDeleteCard(jiraKey, deps);
+		},
+
 		async importFromJira(jql: string): Promise<{ imported: number; skipped: number; board: JiraBoard }> {
 			const issues = await deps.searchJiraIssues(jql);
 
@@ -136,6 +228,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			let imported = 0;
 			let skipped = 0;
 			const now = Date.now();
+			const keysToCleanup: string[] = [];
 
 			for (const issue of issues) {
 				if (!issue.key || !issue.summary) continue;
@@ -151,9 +244,10 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 							updatedCards[idx] = { ...card, status: mappedStatus, updatedAt: now };
 						}
 					} else {
-						// Unmapped status OR done → remove from board
+						// Unmapped status OR done → cascade-delete
 						const idx = updatedCards.findIndex((c) => c.jiraKey === issue.key);
 						if (idx !== -1) updatedCards.splice(idx, 1);
+						keysToCleanup.push(issue.key);
 					}
 				} else if (mappedStatus && mappedStatus !== "done") {
 					updatedCards.push({
@@ -171,6 +265,12 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 
 			const updatedBoard: JiraBoard = { cards: updatedCards };
 			await deps.saveJiraBoard(updatedBoard);
+
+			// Cascade-delete PRs, worktrees, branches, and details for Done cards
+			for (const jiraKey of keysToCleanup) {
+				await cascadeDeleteCard(jiraKey, deps);
+			}
+
 			return { imported, skipped, board: updatedBoard };
 		},
 
@@ -248,7 +348,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 
 				if (worktreeAccessible) {
 					const workspaceId = await deps.addWorkspace(pullRequest.repoPath);
-					pullRequests[pullRequestId] = { ...pullRequest, status: "in_progress", updatedAt: Date.now() };
+					pullRequests[pullRequestId] = { ...pullRequest, updatedAt: Date.now() };
 					await deps.saveJiraPullRequests(pullRequests);
 					return {
 						started: true,
@@ -285,7 +385,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 						await deps.saveJiraPullRequests(pullRequests);
 
 						const workspaceId = await deps.addWorkspace(updatedPr.repoPath);
-						pullRequests[pullRequestId] = { ...updatedPr, status: "in_progress", updatedAt: Date.now() };
+						pullRequests[pullRequestId] = { ...updatedPr, updatedAt: Date.now() };
 						await deps.saveJiraPullRequests(pullRequests);
 						return {
 							started: true,
@@ -308,22 +408,6 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 
 		async stopPullRequestSession(pullRequestId: string, workspacePath: string): Promise<{ stopped: boolean }> {
 			return deps.stopTaskSession(workspacePath, pullRequestId);
-		},
-
-		async updatePullRequestStatus(
-			pullRequestId: string,
-			status: JiraPullRequest["status"],
-		): Promise<{ pullRequest: JiraPullRequest }> {
-			const pullRequests = await deps.loadJiraPullRequests();
-			const pullRequest = pullRequests[pullRequestId];
-			if (!pullRequest) throw new Error(`Pull request ${pullRequestId} not found`);
-
-			const updated: JiraPullRequest = { ...pullRequest, status, updatedAt: Date.now() };
-			pullRequests[pullRequestId] = updated;
-
-			await deps.saveJiraPullRequests(pullRequests);
-
-			return { pullRequest: updated };
 		},
 
 		async scanAndAttachPRs(): Promise<{
@@ -372,12 +456,9 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 					if (existing) {
 						const prState: JiraPullRequest["prState"] =
 							existing.prState === "merged" || pr.state === "MERGED" ? "merged" : pr.isDraft ? "draft" : "open";
-						const newStatus: JiraPullRequest["status"] = pr.isDraft ? "in_progress" : "review";
-						const shouldUpdateStatus = existing.status === "in_progress" || existing.status === "review";
 						updatedPullRequests[existingId] = {
 							...existing,
 							prState,
-							status: shouldUpdateStatus ? newStatus : existing.status,
 							updatedAt: now,
 						};
 					}
@@ -402,7 +483,6 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 						baseRef: "main",
 						branchName: pr.headRefName,
 						worktreePath: "",
-						status: pr.isDraft ? "in_progress" : "review",
 						prUrl: pr.url,
 						prNumber: pr.number,
 						prState: pr.state === "MERGED" ? "merged" : pr.isDraft ? "draft" : "open",
@@ -434,11 +514,13 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 				}
 			}
 
-			await deps.saveJiraPullRequests(updatedPullRequests);
+			// Sweep orphans: PRs whose jiraKey is no longer on the board (disk drift)
+			const finalKeySet = new Set(updatedBoard.cards.map((c) => c.jiraKey));
+			const finalPullRequests = await pruneOrphanPullRequests(updatedPullRequests, finalKeySet, deps);
 
 			deps.broadcastRuntimeReposUpdated?.();
 
-			return { attached, skipped, pullRequests: updatedPullRequests, board: updatedBoard };
+			return { attached, skipped, pullRequests: finalPullRequests, board: updatedBoard };
 		},
 	};
 }

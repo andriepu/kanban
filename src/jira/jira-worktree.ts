@@ -1,7 +1,8 @@
 import { execFile as execFileCb } from "node:child_process";
-import { access, readdir, symlink } from "node:fs/promises";
+import { access, readdir, rm, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { runGit } from "../workspace/git-utils.js";
 
 const execFile = promisify(execFileCb);
 
@@ -184,5 +185,24 @@ export async function removePullRequestWorktree(options: { repoPath: string; wor
 		await execFile("git", ["-C", repoPath, "worktree", "remove", "--force", worktreePath]);
 	} catch {
 		// Worktree may already be removed or repo gone — ignore all errors
+	}
+}
+
+export async function deleteLocalBranch(opts: { repoPath: string; branchName: string }): Promise<void> {
+	await runGit(opts.repoPath, ["branch", "-D", opts.branchName]);
+	// runGit never throws — failures are swallowed
+}
+
+export async function deleteRemoteBranch(opts: { repoPath: string; branchName: string }): Promise<void> {
+	await runGit(opts.repoPath, ["push", "origin", "--delete", opts.branchName]);
+	// runGit never throws — branch may not exist remotely
+}
+
+export async function removeJiraCardWorktreeParent(opts: { worktreesRoot: string; jiraKey: string }): Promise<void> {
+	const parentPath = join(opts.worktreesRoot, opts.jiraKey);
+	try {
+		await rm(parentPath, { recursive: true, force: true });
+	} catch {
+		// Non-fatal — directory may already be gone
 	}
 }

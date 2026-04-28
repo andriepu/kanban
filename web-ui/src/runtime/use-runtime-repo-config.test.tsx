@@ -21,17 +21,12 @@ function createDeferred<T>() {
 	return { promise, resolve, reject };
 }
 
-function createRuntimeConfigResponse(
-	selectedAgentId: RuntimeConfigResponse["selectedAgentId"],
-	shortcuts: RuntimeConfigResponse["shortcuts"],
-): RuntimeConfigResponse {
+function createRuntimeConfigResponse(selectedAgentId: RuntimeConfigResponse["selectedAgentId"]): RuntimeConfigResponse {
 	return {
 		selectedAgentId,
-		selectedShortcutLabel: shortcuts[0]?.label ?? null,
 		agentAutonomousModeEnabled: true,
 		effectiveCommand: selectedAgentId,
 		globalConfigPath: "/tmp/global-config.json",
-		repoConfigPath: "/tmp/project/.cline/kanban/config.json",
 		readyForReviewNotificationsEnabled: true,
 		detectedCommands: [selectedAgentId],
 		agents: [
@@ -45,7 +40,6 @@ function createRuntimeConfigResponse(
 				configured: true,
 			},
 		],
-		shortcuts,
 		commitPromptTemplate: "",
 		openPrPromptTemplate: "",
 		commitPromptTemplateDefault: "",
@@ -117,9 +111,7 @@ describe("useRuntimeRepoConfig", () => {
 	});
 
 	it("clears the previous repo config immediately when switching workspaces", async () => {
-		const projectAConfig = createRuntimeConfigResponse("claude", [
-			{ label: "Ship it", command: "npm run ship", icon: "rocket" },
-		]);
+		const projectAConfig = createRuntimeConfigResponse("claude");
 		const projectBDeferred = createDeferred<RuntimeConfigResponse>();
 		fetchRuntimeConfigMock.mockResolvedValueOnce(projectAConfig);
 		fetchRuntimeConfigMock.mockImplementationOnce(() => projectBDeferred.promise);
@@ -140,7 +132,7 @@ describe("useRuntimeRepoConfig", () => {
 
 		const loadedProjectASnapshot = findLatestLoadedSnapshot(snapshots);
 		expect(fetchRuntimeConfigMock).toHaveBeenCalledWith("project-a");
-		expect(loadedProjectASnapshot?.config?.shortcuts).toHaveLength(1);
+		expect(loadedProjectASnapshot?.config).not.toBeNull();
 
 		await act(async () => {
 			root.render(
@@ -157,15 +149,15 @@ describe("useRuntimeRepoConfig", () => {
 		expect(snapshots.at(-1)?.config).toBeNull();
 
 		await act(async () => {
-			projectBDeferred.resolve(createRuntimeConfigResponse("claude", []));
+			projectBDeferred.resolve(createRuntimeConfigResponse("claude"));
 			await projectBDeferred.promise;
 		});
 
-		expect(snapshots.at(-1)?.config?.shortcuts).toEqual([]);
+		expect(snapshots.at(-1)?.config?.selectedAgentId).toBe("claude");
 	});
 
 	it("loads runtime config without a selected repo", async () => {
-		const startupConfig = createRuntimeConfigResponse("claude", []);
+		const startupConfig = createRuntimeConfigResponse("claude");
 		fetchRuntimeConfigMock.mockResolvedValue(startupConfig);
 		let latestSnapshot: HookSnapshot | null = null;
 

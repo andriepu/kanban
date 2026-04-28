@@ -1,20 +1,18 @@
 // Persists Kanban-owned runtime preferences on disk.
-// This module should store Kanban settings such as selected agents,
-// shortcuts, and prompt templates, not SDK-owned Cline secrets or OAuth data.
+// This module should store Kanban settings such as selected agents and prompt
+// templates, not SDK-owned Cline secrets or OAuth data.
 import { chmod, readFile, rm } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join } from "node:path";
 import { getRuntimeAgentCatalogEntry, isRuntimeAgentLaunchSupported } from "../core/agent-catalog";
-import type { RuntimeAgentId, RuntimeRepoShortcut } from "../core/api-contract";
+import type { RuntimeAgentId } from "../core/api-contract";
 import { type LockRequest, lockedFileSystem } from "../fs/locked-file-system";
 import { detectInstalledCommands } from "../terminal/agent-registry";
-import { areRuntimeRepoShortcutsEqual } from "./shortcut-utils";
 
 export const DEFAULT_JIRA_SYNC_INTERVAL_MS = 60 * 60 * 1000;
 
 interface RuntimeGlobalConfigFileShape {
 	selectedAgentId?: RuntimeAgentId;
-	selectedShortcutLabel?: string;
 	agentAutonomousModeEnabled?: boolean;
 	terminalFontFamily?: string;
 	readyForReviewNotificationsEnabled?: boolean;
@@ -28,19 +26,12 @@ interface RuntimeGlobalConfigFileShape {
 	jiraSyncIntervalMs?: number;
 }
 
-interface RuntimeRepoConfigFileShape {
-	shortcuts?: RuntimeRepoShortcut[];
-}
-
 export interface RuntimeConfigState {
 	globalConfigPath: string;
-	repoConfigPath: string | null;
 	selectedAgentId: RuntimeAgentId;
-	selectedShortcutLabel: string | null;
 	agentAutonomousModeEnabled: boolean;
 	terminalFontFamily: string | null;
 	readyForReviewNotificationsEnabled: boolean;
-	shortcuts: RuntimeRepoShortcut[];
 	commitPromptTemplate: string;
 	openPrPromptTemplate: string;
 	commitPromptTemplateDefault: string;
@@ -56,11 +47,9 @@ export interface RuntimeConfigState {
 
 export interface RuntimeConfigUpdateInput {
 	selectedAgentId?: RuntimeAgentId;
-	selectedShortcutLabel?: string | null;
 	agentAutonomousModeEnabled?: boolean;
 	terminalFontFamily?: string | null;
 	readyForReviewNotificationsEnabled?: boolean;
-	shortcuts?: RuntimeRepoShortcut[];
 	commitPromptTemplate?: string;
 	openPrPromptTemplate?: string;
 	worktreesRoot?: string | null;
@@ -74,9 +63,6 @@ export interface RuntimeConfigUpdateInput {
 const RUNTIME_HOME_PARENT_DIR = ".kanban";
 const RUNTIME_HOME_DIR = "kanban";
 const CONFIG_FILENAME = "config.json";
-const REPO_CONFIG_PARENT_DIR = ".kanban";
-const REPO_CONFIG_DIR = "kanban";
-const REPO_CONFIG_FILENAME = "config.json";
 const DEFAULT_AGENT_ID: RuntimeAgentId = "claude";
 const AUTO_SELECT_AGENT_PRIORITY: readonly RuntimeAgentId[] = ["claude"] as const;
 const DEFAULT_AGENT_AUTONOMOUS_MODE_ENABLED = true;
@@ -151,40 +137,6 @@ function pickBestInstalledAgentId(): RuntimeAgentId | null {
 	return pickBestInstalledAgentIdFromDetected(detectInstalledCommands());
 }
 
-function normalizeShortcut(shortcut: RuntimeRepoShortcut): RuntimeRepoShortcut | null {
-	if (!shortcut || typeof shortcut !== "object") {
-		return null;
-	}
-
-	const label = typeof shortcut.label === "string" ? shortcut.label.trim() : "";
-	const command = typeof shortcut.command === "string" ? shortcut.command.trim() : "";
-	const icon = typeof shortcut.icon === "string" ? shortcut.icon.trim() : "";
-
-	if (!label || !command) {
-		return null;
-	}
-
-	return {
-		label,
-		command,
-		icon: icon || undefined,
-	};
-}
-
-function normalizeShortcuts(shortcuts: RuntimeRepoShortcut[] | null | undefined): RuntimeRepoShortcut[] {
-	if (!Array.isArray(shortcuts)) {
-		return [];
-	}
-	const normalized: RuntimeRepoShortcut[] = [];
-	for (const shortcut of shortcuts) {
-		const parsed = normalizeShortcut(shortcut);
-		if (parsed) {
-			normalized.push(parsed);
-		}
-	}
-	return normalized;
-}
-
 function normalizePromptTemplate(value: unknown, fallback: string): string {
 	if (typeof value !== "string") {
 		return fallback;
@@ -198,14 +150,6 @@ function normalizeBoolean(value: unknown, fallback: boolean): boolean {
 		return value;
 	}
 	return fallback;
-}
-
-function normalizeShortcutLabel(value: unknown): string | null {
-	if (typeof value !== "string") {
-		return null;
-	}
-	const normalized = value.trim();
-	return normalized.length > 0 ? normalized : null;
 }
 
 function normalizeOptionalString(value: unknown): string | null {
@@ -232,77 +176,20 @@ export function getRuntimeGlobalConfigPath(): string {
 	return join(getRuntimeHomePath(), CONFIG_FILENAME);
 }
 
-export function getRuntimeRepoConfigPath(cwd: string): string {
-	return join(resolve(cwd), REPO_CONFIG_PARENT_DIR, REPO_CONFIG_DIR, REPO_CONFIG_FILENAME);
-}
-
-interface RuntimeConfigPaths {
-	globalConfigPath: string;
-	repoConfigPath: string | null;
-}
-
-function normalizePathForComparison(path: string): string {
-	const normalized = resolve(path).replaceAll("\\", "/");
-	return process.platform === "win32" ? normalized.toLowerCase() : normalized;
-}
-
-function resolveRuntimeConfigPaths(cwd: string | null): RuntimeConfigPaths {
-	const globalConfigPath = getRuntimeGlobalConfigPath();
-	if (cwd === null) {
-		return {
-			globalConfigPath,
-			repoConfigPath: null,
-		};
-	}
-
-	const normalizedCwd = normalizePathForComparison(cwd);
-	const normalizedHome = normalizePathForComparison(homedir());
-	if (normalizedCwd === normalizedHome) {
-		return {
-			globalConfigPath,
-			repoConfigPath: null,
-		};
-	}
-
-	return {
-		globalConfigPath,
-		repoConfigPath: getRuntimeRepoConfigPath(cwd),
-	};
-}
-
-function getRuntimeConfigLockRequests(cwd: string | null): LockRequest[] {
-	const paths = resolveRuntimeConfigPaths(cwd);
-	const requests: LockRequest[] = [
-		{
-			path: paths.globalConfigPath,
-			type: "file",
-		},
-	];
-	if (paths.repoConfigPath) {
-		requests.push({
-			path: paths.repoConfigPath,
-			type: "file",
-		});
-	}
-	return requests;
+function getRuntimeConfigLockRequests(): LockRequest[] {
+	return [{ path: getRuntimeGlobalConfigPath(), type: "file" }];
 }
 
 function toRuntimeConfigState({
 	globalConfigPath,
-	repoConfigPath,
 	globalConfig,
-	repoConfig,
 }: {
 	globalConfigPath: string;
-	repoConfigPath: string | null;
 	globalConfig: RuntimeGlobalConfigFileShape | null;
-	repoConfig: RuntimeRepoConfigFileShape | null;
 }): RuntimeConfigState {
 	return {
 		globalConfigPath,
-		repoConfigPath,
 		selectedAgentId: normalizeAgentId(globalConfig?.selectedAgentId),
-		selectedShortcutLabel: normalizeShortcutLabel(globalConfig?.selectedShortcutLabel),
 		agentAutonomousModeEnabled: normalizeBoolean(
 			globalConfig?.agentAutonomousModeEnabled,
 			DEFAULT_AGENT_AUTONOMOUS_MODE_ENABLED,
@@ -312,7 +199,6 @@ function toRuntimeConfigState({
 			globalConfig?.readyForReviewNotificationsEnabled,
 			DEFAULT_READY_FOR_REVIEW_NOTIFICATIONS_ENABLED,
 		),
-		shortcuts: normalizeShortcuts(repoConfig?.shortcuts),
 		commitPromptTemplate: normalizePromptTemplate(globalConfig?.commitPromptTemplate, DEFAULT_COMMIT_PROMPT_TEMPLATE),
 		openPrPromptTemplate: normalizePromptTemplate(
 			globalConfig?.openPrPromptTemplate,
@@ -343,7 +229,6 @@ async function writeRuntimeGlobalConfigFile(
 	configPath: string,
 	config: {
 		selectedAgentId?: RuntimeAgentId;
-		selectedShortcutLabel?: string | null;
 		agentAutonomousModeEnabled?: boolean;
 		terminalFontFamily?: string | null;
 		readyForReviewNotificationsEnabled?: boolean;
@@ -361,11 +246,6 @@ async function writeRuntimeGlobalConfigFile(
 	const selectedAgentId = config.selectedAgentId === undefined ? undefined : normalizeAgentId(config.selectedAgentId);
 	const existingSelectedAgentId = hasOwnKey(existing, "selectedAgentId")
 		? normalizeAgentId(existing?.selectedAgentId)
-		: undefined;
-	const selectedShortcutLabel =
-		config.selectedShortcutLabel === undefined ? undefined : normalizeShortcutLabel(config.selectedShortcutLabel);
-	const existingSelectedShortcutLabel = hasOwnKey(existing, "selectedShortcutLabel")
-		? normalizeShortcutLabel(existing?.selectedShortcutLabel)
 		: undefined;
 	const agentAutonomousModeEnabled =
 		config.agentAutonomousModeEnabled === undefined
@@ -396,13 +276,6 @@ async function writeRuntimeGlobalConfigFile(
 		}
 	} else if (existingSelectedAgentId !== undefined) {
 		payload.selectedAgentId = existingSelectedAgentId;
-	}
-	if (selectedShortcutLabel !== undefined) {
-		if (selectedShortcutLabel) {
-			payload.selectedShortcutLabel = selectedShortcutLabel;
-		}
-	} else if (existingSelectedShortcutLabel) {
-		payload.selectedShortcutLabel = existingSelectedShortcutLabel;
 	}
 	if (
 		hasOwnKey(existing, "agentAutonomousModeEnabled") ||
@@ -527,56 +400,21 @@ async function writeRuntimeGlobalConfigFile(
 	});
 }
 
-async function writeRuntimeRepoConfigFile(
-	configPath: string | null,
-	config: { shortcuts: RuntimeRepoShortcut[] },
-): Promise<void> {
-	const normalizedShortcuts = normalizeShortcuts(config.shortcuts);
-	if (!configPath) {
-		if (normalizedShortcuts.length > 0) {
-			throw new Error("Cannot save repo shortcuts without a selected repo.");
-		}
-		return;
-	}
-	if (normalizedShortcuts.length === 0) {
-		await rm(configPath, { force: true });
-		try {
-			await rm(dirname(configPath));
-		} catch {
-			// Ignore missing or non-empty repo config directories.
-		}
-		return;
-	}
-	await lockedFileSystem.writeJsonFileAtomic(
-		configPath,
-		{
-			shortcuts: normalizedShortcuts,
-		} satisfies RuntimeRepoConfigFileShape,
-		{
-			lock: null,
-		},
-	);
-}
-
 interface RuntimeConfigFiles {
 	globalConfigPath: string;
-	repoConfigPath: string | null;
 	globalConfig: RuntimeGlobalConfigFileShape | null;
-	repoConfig: RuntimeRepoConfigFileShape | null;
 }
 
-async function readRuntimeConfigFiles(cwd: string | null): Promise<RuntimeConfigFiles> {
-	const { globalConfigPath, repoConfigPath } = resolveRuntimeConfigPaths(cwd);
+async function readRuntimeConfigFiles(): Promise<RuntimeConfigFiles> {
+	const globalConfigPath = getRuntimeGlobalConfigPath();
 	return {
 		globalConfigPath,
-		repoConfigPath,
 		globalConfig: await readRuntimeConfigFile<RuntimeGlobalConfigFileShape>(globalConfigPath),
-		repoConfig: repoConfigPath ? await readRuntimeConfigFile<RuntimeRepoConfigFileShape>(repoConfigPath) : null,
 	};
 }
 
-async function loadRuntimeConfigLocked(cwd: string | null): Promise<RuntimeConfigState> {
-	const configFiles = await readRuntimeConfigFiles(cwd);
+async function loadRuntimeConfigLocked(): Promise<RuntimeConfigState> {
+	const configFiles = await readRuntimeConfigFiles();
 	if (configFiles.globalConfig === null) {
 		const autoSelectedAgentId = pickBestInstalledAgentId();
 		if (autoSelectedAgentId) {
@@ -593,13 +431,10 @@ async function loadRuntimeConfigLocked(cwd: string | null): Promise<RuntimeConfi
 
 function createRuntimeConfigStateFromValues(input: {
 	globalConfigPath: string;
-	repoConfigPath: string | null;
 	selectedAgentId: RuntimeAgentId;
-	selectedShortcutLabel: string | null;
 	agentAutonomousModeEnabled: boolean;
 	terminalFontFamily: string | null;
 	readyForReviewNotificationsEnabled: boolean;
-	shortcuts: RuntimeRepoShortcut[];
 	commitPromptTemplate: string;
 	openPrPromptTemplate: string;
 	worktreesRoot: string | null;
@@ -612,9 +447,7 @@ function createRuntimeConfigStateFromValues(input: {
 }): RuntimeConfigState {
 	return {
 		globalConfigPath: input.globalConfigPath,
-		repoConfigPath: input.repoConfigPath,
 		selectedAgentId: normalizeAgentId(input.selectedAgentId),
-		selectedShortcutLabel: normalizeShortcutLabel(input.selectedShortcutLabel),
 		agentAutonomousModeEnabled: normalizeBoolean(
 			input.agentAutonomousModeEnabled,
 			DEFAULT_AGENT_AUTONOMOUS_MODE_ENABLED,
@@ -624,7 +457,6 @@ function createRuntimeConfigStateFromValues(input: {
 			input.readyForReviewNotificationsEnabled,
 			DEFAULT_READY_FOR_REVIEW_NOTIFICATIONS_ENABLED,
 		),
-		shortcuts: normalizeShortcuts(input.shortcuts),
 		commitPromptTemplate: normalizePromptTemplate(input.commitPromptTemplate, DEFAULT_COMMIT_PROMPT_TEMPLATE),
 		openPrPromptTemplate: normalizePromptTemplate(input.openPrPromptTemplate, DEFAULT_OPEN_PR_PROMPT_TEMPLATE),
 		commitPromptTemplateDefault: DEFAULT_COMMIT_PROMPT_TEMPLATE,
@@ -642,13 +474,10 @@ function createRuntimeConfigStateFromValues(input: {
 export function toGlobalRuntimeConfigState(current: RuntimeConfigState): RuntimeConfigState {
 	return createRuntimeConfigStateFromValues({
 		globalConfigPath: current.globalConfigPath,
-		repoConfigPath: null,
 		selectedAgentId: current.selectedAgentId,
-		selectedShortcutLabel: current.selectedShortcutLabel,
 		agentAutonomousModeEnabled: current.agentAutonomousModeEnabled,
 		terminalFontFamily: current.terminalFontFamily,
 		readyForReviewNotificationsEnabled: current.readyForReviewNotificationsEnabled,
-		shortcuts: [],
 		commitPromptTemplate: current.commitPromptTemplate,
 		openPrPromptTemplate: current.openPrPromptTemplate,
 		worktreesRoot: current.worktreesRoot,
@@ -660,44 +489,29 @@ export function toGlobalRuntimeConfigState(current: RuntimeConfigState): Runtime
 	});
 }
 
-export async function loadRuntimeConfig(cwd: string | null): Promise<RuntimeConfigState> {
-	const configFiles = await readRuntimeConfigFiles(cwd);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function loadRuntimeConfig(_cwd?: string | null): Promise<RuntimeConfigState> {
+	const configFiles = await readRuntimeConfigFiles();
 	if (configFiles.globalConfig !== null) {
 		return toRuntimeConfigState(configFiles);
 	}
-	return await lockedFileSystem.withLocks(
-		getRuntimeConfigLockRequests(cwd),
-		async () => await loadRuntimeConfigLocked(cwd),
-	);
+	return await lockedFileSystem.withLocks(getRuntimeConfigLockRequests(), async () => await loadRuntimeConfigLocked());
 }
 
 export async function loadGlobalRuntimeConfig(): Promise<RuntimeConfigState> {
-	const configFiles = await readRuntimeConfigFiles(null);
-	if (configFiles.globalConfig !== null) {
-		return toRuntimeConfigState(configFiles);
-	}
-	return await lockedFileSystem.withLocks(
-		getRuntimeConfigLockRequests(null),
-		async () => await loadRuntimeConfigLocked(null),
-	);
+	return loadRuntimeConfig();
 }
 
-export async function saveRuntimeConfig(
-	cwd: string,
-	config: {
-		selectedAgentId: RuntimeAgentId;
-		selectedShortcutLabel: string | null;
-		agentAutonomousModeEnabled: boolean;
-		terminalFontFamily?: string | null;
-		readyForReviewNotificationsEnabled: boolean;
-		shortcuts: RuntimeRepoShortcut[];
-		commitPromptTemplate: string;
-		openPrPromptTemplate: string;
-	},
-): Promise<RuntimeConfigState> {
-	const { globalConfigPath, repoConfigPath } = resolveRuntimeConfigPaths(cwd);
-	return await lockedFileSystem.withLocks(getRuntimeConfigLockRequests(cwd), async () => {
-		// Read existing global config to preserve fields not managed by this call.
+export async function saveRuntimeConfig(config: {
+	selectedAgentId: RuntimeAgentId;
+	agentAutonomousModeEnabled: boolean;
+	terminalFontFamily?: string | null;
+	readyForReviewNotificationsEnabled: boolean;
+	commitPromptTemplate: string;
+	openPrPromptTemplate: string;
+}): Promise<RuntimeConfigState> {
+	const globalConfigPath = getRuntimeGlobalConfigPath();
+	return await lockedFileSystem.withLocks(getRuntimeConfigLockRequests(), async () => {
 		const existingGlobal = await readRuntimeConfigFile<RuntimeGlobalConfigFileShape>(globalConfigPath);
 		const worktreesRoot = normalizeOptionalString(existingGlobal?.worktreesRoot);
 		const reposRoot = normalizeOptionalString(existingGlobal?.reposRoot);
@@ -715,7 +529,6 @@ export async function saveRuntimeConfig(
 
 		await writeRuntimeGlobalConfigFile(globalConfigPath, {
 			selectedAgentId: config.selectedAgentId,
-			selectedShortcutLabel: config.selectedShortcutLabel,
 			agentAutonomousModeEnabled: config.agentAutonomousModeEnabled,
 			terminalFontFamily,
 			readyForReviewNotificationsEnabled: config.readyForReviewNotificationsEnabled,
@@ -728,16 +541,12 @@ export async function saveRuntimeConfig(
 			jiraEmail,
 			jiraSyncIntervalMs,
 		});
-		await writeRuntimeRepoConfigFile(repoConfigPath, { shortcuts: config.shortcuts });
 		return createRuntimeConfigStateFromValues({
 			globalConfigPath,
-			repoConfigPath,
 			selectedAgentId: config.selectedAgentId,
-			selectedShortcutLabel: config.selectedShortcutLabel,
 			agentAutonomousModeEnabled: config.agentAutonomousModeEnabled,
 			terminalFontFamily,
 			readyForReviewNotificationsEnabled: config.readyForReviewNotificationsEnabled,
-			shortcuts: config.shortcuts,
 			commitPromptTemplate: config.commitPromptTemplate,
 			openPrPromptTemplate: config.openPrPromptTemplate,
 			worktreesRoot,
@@ -750,23 +559,17 @@ export async function saveRuntimeConfig(
 	});
 }
 
-export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpdateInput): Promise<RuntimeConfigState> {
-	const { globalConfigPath, repoConfigPath } = resolveRuntimeConfigPaths(cwd);
-	return await lockedFileSystem.withLocks(getRuntimeConfigLockRequests(cwd), async () => {
-		const current = await loadRuntimeConfigLocked(cwd);
-		if (repoConfigPath === null && normalizeShortcuts(updates.shortcuts).length > 0) {
-			throw new Error("Cannot save repo shortcuts without a selected repo.");
-		}
+export async function updateRuntimeConfig(updates: RuntimeConfigUpdateInput): Promise<RuntimeConfigState> {
+	const globalConfigPath = getRuntimeGlobalConfigPath();
+	return await lockedFileSystem.withLocks(getRuntimeConfigLockRequests(), async () => {
+		const current = await loadRuntimeConfigLocked();
 		const nextConfig = {
 			selectedAgentId: updates.selectedAgentId ?? current.selectedAgentId,
-			selectedShortcutLabel:
-				updates.selectedShortcutLabel === undefined ? current.selectedShortcutLabel : updates.selectedShortcutLabel,
 			agentAutonomousModeEnabled: updates.agentAutonomousModeEnabled ?? current.agentAutonomousModeEnabled,
 			terminalFontFamily:
 				updates.terminalFontFamily === undefined ? current.terminalFontFamily : updates.terminalFontFamily,
 			readyForReviewNotificationsEnabled:
 				updates.readyForReviewNotificationsEnabled ?? current.readyForReviewNotificationsEnabled,
-			shortcuts: repoConfigPath ? (updates.shortcuts ?? current.shortcuts) : current.shortcuts,
 			commitPromptTemplate: updates.commitPromptTemplate ?? current.commitPromptTemplate,
 			openPrPromptTemplate: updates.openPrPromptTemplate ?? current.openPrPromptTemplate,
 			worktreesRoot: updates.worktreesRoot === undefined ? current.worktreesRoot : updates.worktreesRoot,
@@ -782,7 +585,6 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 
 		const hasChanges =
 			nextConfig.selectedAgentId !== current.selectedAgentId ||
-			nextConfig.selectedShortcutLabel !== current.selectedShortcutLabel ||
 			nextConfig.agentAutonomousModeEnabled !== current.agentAutonomousModeEnabled ||
 			nextConfig.terminalFontFamily !== current.terminalFontFamily ||
 			nextConfig.readyForReviewNotificationsEnabled !== current.readyForReviewNotificationsEnabled ||
@@ -793,8 +595,7 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			nextConfig.jiraProjectKey !== current.jiraProjectKey ||
 			nextConfig.jiraBaseUrl !== current.jiraBaseUrl ||
 			nextConfig.jiraEmail !== current.jiraEmail ||
-			nextConfig.jiraSyncIntervalMs !== current.jiraSyncIntervalMs ||
-			!areRuntimeRepoShortcutsEqual(nextConfig.shortcuts, current.shortcuts);
+			nextConfig.jiraSyncIntervalMs !== current.jiraSyncIntervalMs;
 
 		if (!hasChanges) {
 			return current;
@@ -802,7 +603,6 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 
 		await writeRuntimeGlobalConfigFile(globalConfigPath, {
 			selectedAgentId: nextConfig.selectedAgentId,
-			selectedShortcutLabel: nextConfig.selectedShortcutLabel,
 			agentAutonomousModeEnabled: nextConfig.agentAutonomousModeEnabled,
 			terminalFontFamily: nextConfig.terminalFontFamily,
 			readyForReviewNotificationsEnabled: nextConfig.readyForReviewNotificationsEnabled,
@@ -815,18 +615,12 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 			jiraEmail: nextConfig.jiraEmail,
 			jiraSyncIntervalMs: nextConfig.jiraSyncIntervalMs,
 		});
-		await writeRuntimeRepoConfigFile(repoConfigPath, {
-			shortcuts: nextConfig.shortcuts,
-		});
 		return createRuntimeConfigStateFromValues({
 			globalConfigPath,
-			repoConfigPath,
 			selectedAgentId: nextConfig.selectedAgentId,
-			selectedShortcutLabel: nextConfig.selectedShortcutLabel,
 			agentAutonomousModeEnabled: nextConfig.agentAutonomousModeEnabled,
 			terminalFontFamily: nextConfig.terminalFontFamily,
 			readyForReviewNotificationsEnabled: nextConfig.readyForReviewNotificationsEnabled,
-			shortcuts: nextConfig.shortcuts,
 			commitPromptTemplate: nextConfig.commitPromptTemplate,
 			openPrPromptTemplate: nextConfig.openPrPromptTemplate,
 			worktreesRoot: nextConfig.worktreesRoot,
@@ -840,98 +634,10 @@ export async function updateRuntimeConfig(cwd: string, updates: RuntimeConfigUpd
 }
 
 export async function updateGlobalRuntimeConfig(
-	current: RuntimeConfigState,
+	_current: RuntimeConfigState,
 	updates: RuntimeConfigUpdateInput,
 ): Promise<RuntimeConfigState> {
-	const globalConfigPath = getRuntimeGlobalConfigPath();
-	return await lockedFileSystem.withLocks(
-		[
-			{
-				path: globalConfigPath,
-				type: "file",
-			},
-		],
-		async () => {
-			const nextConfig = {
-				selectedAgentId: updates.selectedAgentId ?? current.selectedAgentId,
-				selectedShortcutLabel:
-					updates.selectedShortcutLabel === undefined
-						? current.selectedShortcutLabel
-						: updates.selectedShortcutLabel,
-				agentAutonomousModeEnabled: updates.agentAutonomousModeEnabled ?? current.agentAutonomousModeEnabled,
-				terminalFontFamily:
-					updates.terminalFontFamily === undefined ? current.terminalFontFamily : updates.terminalFontFamily,
-				readyForReviewNotificationsEnabled:
-					updates.readyForReviewNotificationsEnabled ?? current.readyForReviewNotificationsEnabled,
-				shortcuts: current.shortcuts,
-				commitPromptTemplate: updates.commitPromptTemplate ?? current.commitPromptTemplate,
-				openPrPromptTemplate: updates.openPrPromptTemplate ?? current.openPrPromptTemplate,
-				worktreesRoot: updates.worktreesRoot === undefined ? current.worktreesRoot : updates.worktreesRoot,
-				reposRoot: updates.reposRoot === undefined ? current.reposRoot : updates.reposRoot,
-				jiraProjectKey: updates.jiraProjectKey === undefined ? current.jiraProjectKey : updates.jiraProjectKey,
-				jiraBaseUrl: updates.jiraBaseUrl === undefined ? current.jiraBaseUrl : updates.jiraBaseUrl,
-				jiraEmail: updates.jiraEmail === undefined ? current.jiraEmail : updates.jiraEmail,
-				jiraSyncIntervalMs:
-					updates.jiraSyncIntervalMs == null
-						? current.jiraSyncIntervalMs
-						: normalizePositiveInteger(updates.jiraSyncIntervalMs, current.jiraSyncIntervalMs),
-			};
-
-			const hasChanges =
-				nextConfig.selectedAgentId !== current.selectedAgentId ||
-				nextConfig.selectedShortcutLabel !== current.selectedShortcutLabel ||
-				nextConfig.agentAutonomousModeEnabled !== current.agentAutonomousModeEnabled ||
-				nextConfig.terminalFontFamily !== current.terminalFontFamily ||
-				nextConfig.readyForReviewNotificationsEnabled !== current.readyForReviewNotificationsEnabled ||
-				nextConfig.commitPromptTemplate !== current.commitPromptTemplate ||
-				nextConfig.openPrPromptTemplate !== current.openPrPromptTemplate ||
-				nextConfig.worktreesRoot !== current.worktreesRoot ||
-				nextConfig.reposRoot !== current.reposRoot ||
-				nextConfig.jiraProjectKey !== current.jiraProjectKey ||
-				nextConfig.jiraBaseUrl !== current.jiraBaseUrl ||
-				nextConfig.jiraEmail !== current.jiraEmail ||
-				nextConfig.jiraSyncIntervalMs !== current.jiraSyncIntervalMs;
-
-			if (!hasChanges) {
-				return current;
-			}
-
-			await writeRuntimeGlobalConfigFile(globalConfigPath, {
-				selectedAgentId: nextConfig.selectedAgentId,
-				selectedShortcutLabel: nextConfig.selectedShortcutLabel,
-				agentAutonomousModeEnabled: nextConfig.agentAutonomousModeEnabled,
-				terminalFontFamily: nextConfig.terminalFontFamily,
-				readyForReviewNotificationsEnabled: nextConfig.readyForReviewNotificationsEnabled,
-				commitPromptTemplate: nextConfig.commitPromptTemplate,
-				openPrPromptTemplate: nextConfig.openPrPromptTemplate,
-				worktreesRoot: nextConfig.worktreesRoot,
-				reposRoot: nextConfig.reposRoot,
-				jiraProjectKey: nextConfig.jiraProjectKey,
-				jiraBaseUrl: nextConfig.jiraBaseUrl,
-				jiraEmail: nextConfig.jiraEmail,
-				jiraSyncIntervalMs: nextConfig.jiraSyncIntervalMs,
-			});
-
-			return createRuntimeConfigStateFromValues({
-				globalConfigPath,
-				repoConfigPath: current.repoConfigPath,
-				selectedAgentId: nextConfig.selectedAgentId,
-				selectedShortcutLabel: nextConfig.selectedShortcutLabel,
-				agentAutonomousModeEnabled: nextConfig.agentAutonomousModeEnabled,
-				terminalFontFamily: nextConfig.terminalFontFamily,
-				readyForReviewNotificationsEnabled: nextConfig.readyForReviewNotificationsEnabled,
-				shortcuts: nextConfig.shortcuts,
-				commitPromptTemplate: nextConfig.commitPromptTemplate,
-				openPrPromptTemplate: nextConfig.openPrPromptTemplate,
-				worktreesRoot: nextConfig.worktreesRoot,
-				reposRoot: nextConfig.reposRoot,
-				jiraProjectKey: nextConfig.jiraProjectKey,
-				jiraBaseUrl: nextConfig.jiraBaseUrl,
-				jiraEmail: nextConfig.jiraEmail,
-				jiraSyncIntervalMs: nextConfig.jiraSyncIntervalMs,
-			});
-		},
-	);
+	return updateRuntimeConfig(updates);
 }
 
 function getJiraCredentialsPath(): string {

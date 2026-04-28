@@ -79,11 +79,10 @@ function createBoard(): BoardData {
 function createRuntimeConfig(selectedAgentId: RuntimeConfigResponse["selectedAgentId"]): RuntimeConfigResponse {
 	return {
 		selectedAgentId,
-		selectedShortcutLabel: null,
 		agentAutonomousModeEnabled: true,
 		effectiveCommand: null,
 		globalConfigPath: "/tmp/global-config.json",
-		repoConfigPath: "/tmp/repo-config.json",
+
 		readyForReviewNotificationsEnabled: true,
 		detectedCommands: [],
 		agents: [
@@ -97,7 +96,6 @@ function createRuntimeConfig(selectedAgentId: RuntimeConfigResponse["selectedAge
 				configured: true,
 			},
 		],
-		shortcuts: [],
 		commitPromptTemplate: "commit",
 		openPrPromptTemplate: "pr",
 		commitPromptTemplateDefault: "commit",

@@ -96,7 +96,7 @@ export function createRuntimeApi(deps: CreateRuntimeApiDependencies): RuntimeTrp
 			const parsed = parseRuntimeConfigSaveRequest(input);
 			let nextRuntimeConfig: RuntimeConfigState;
 			if (workspaceScope) {
-				nextRuntimeConfig = await updateRuntimeConfig(workspaceScope.workspacePath, parsed);
+				nextRuntimeConfig = await updateRuntimeConfig(parsed);
 			} else {
 				const activeRuntimeConfig = deps.getActiveRuntimeConfig?.();
 				if (!activeRuntimeConfig) {

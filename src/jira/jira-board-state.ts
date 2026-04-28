@@ -34,7 +34,6 @@ export interface JiraPullRequest {
 	baseRef: string; // branch to branch from (default "main")
 	branchName: string; // e.g. "POL-1234-fix-auth-flow"
 	worktreePath: string; // absolute path to worktree
-	status: "backlog" | "in_progress" | "review" | "done";
 	prUrl?: string; // GitHub PR URL
 	prNumber?: number; // GitHub PR number
 	prState?: "open" | "draft" | "merged";
@@ -119,11 +118,12 @@ export async function loadJiraPullRequests(): Promise<Record<string, JiraPullReq
 		} catch {
 			// Ignore deletion errors — the new file is authoritative
 		}
-		// Fix up prState if missing
+		// Fix up prState if missing; strip legacy status field
 		for (const pr of Object.values(oldData)) {
 			if (pr.prUrl !== undefined && pr.prState === undefined) {
 				pr.prState = "open";
 			}
+			delete (pr as unknown as Record<string, unknown>).status;
 		}
 		return oldData;
 	}
@@ -136,6 +136,7 @@ export async function loadJiraPullRequests(): Promise<Record<string, JiraPullReq
 		if (pr.prUrl !== undefined && pr.prState === undefined) {
 			pr.prState = "open";
 		}
+		delete (pr as unknown as Record<string, unknown>).status;
 	}
 	return data;
 }
@@ -215,6 +216,62 @@ export async function saveJiraDetail(detail: JiraDetail): Promise<void> {
 		const updated = { ...current, [detail.jiraKey]: detail };
 		await lockedFileSystem.writeJsonFileAtomic(getDetailsFilePath(), updated, { lock: null });
 	});
+}
+
+export async function deleteJiraDetail(jiraKey: string): Promise<void> {
+	await lockedFileSystem.withLocks([getDetailsLockRequest()], async () => {
+		const current = (await readJsonFile<Record<string, JiraDetail>>(getDetailsFilePath())) ?? {};
+		if (!(jiraKey in current)) return;
+		const { [jiraKey]: _removed, ...updated } = current;
+		await lockedFileSystem.writeJsonFileAtomic(getDetailsFilePath(), updated, { lock: null });
+	});
+}
+
+export async function deleteJiraCardCascade(jiraKey: string): Promise<{ removedPullRequestIds: string[] }> {
+	let removedPullRequestIds: string[] = [];
+
+	await lockedFileSystem.withLocks(
+		[getBoardLockRequest(), getPullRequestsLockRequest(), getDetailsLockRequest()],
+		async () => {
+			const [board, pullRequests, details] = await Promise.all([
+				readJsonFile<JiraBoard>(getBoardFilePath()),
+				readJsonFile<Record<string, JiraPullRequest>>(getPullRequestsFilePath()),
+				readJsonFile<Record<string, JiraDetail>>(getDetailsFilePath()),
+			]);
+
+			const currentBoard: JiraBoard = board !== null && Array.isArray(board.cards) ? board : { cards: [] };
+			const currentPullRequests: Record<string, JiraPullRequest> =
+				pullRequests !== null && typeof pullRequests === "object" ? pullRequests : {};
+			const currentDetails: Record<string, JiraDetail> =
+				details !== null && typeof details === "object" ? details : {};
+
+			// Collect PR ids to remove — use both card.pullRequestIds and a full sweep for drift safety
+			const idsFromCard = currentBoard.cards.find((c) => c.jiraKey === jiraKey)?.pullRequestIds ?? [];
+			const idsFromSweep = Object.entries(currentPullRequests)
+				.filter(([, pr]) => pr.jiraKey === jiraKey)
+				.map(([id]) => id);
+			removedPullRequestIds = [...new Set([...idsFromCard, ...idsFromSweep])];
+
+			// Updated board: remove card
+			const updatedCards = currentBoard.cards.filter((c) => c.jiraKey !== jiraKey);
+
+			// Updated PR map: remove all PRs for this card
+			const removedSet = new Set(removedPullRequestIds);
+			const updatedPullRequests: Record<string, JiraPullRequest> = {};
+			for (const [id, pr] of Object.entries(currentPullRequests)) {
+				if (!removedSet.has(id)) updatedPullRequests[id] = pr;
+			}
+
+			// Updated details: remove entry
+			const { [jiraKey]: _removedDetail, ...updatedDetails } = currentDetails;
+
+			await lockedFileSystem.writeJsonFileAtomic(getBoardFilePath(), { cards: updatedCards }, { lock: null });
+			await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), updatedPullRequests, { lock: null });
+			await lockedFileSystem.writeJsonFileAtomic(getDetailsFilePath(), updatedDetails, { lock: null });
+		},
+	);
+
+	return { removedPullRequestIds };
 }
 
 export async function deleteJiraPullRequest(pullRequestId: string): Promise<void> {

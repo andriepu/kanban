@@ -164,24 +164,19 @@ describe.sequential("runtime-config auto agent selection", () => {
 			await withTemporaryEnv({ home: tempHome }, async () => {
 				const state = await loadRuntimeConfig(tempHome);
 				expect(state.globalConfigPath).toBe(join(tempHome, ".kanban", "kanban", "config.json"));
-				expect(state.repoConfigPath).toBeNull();
-				expect(state.shortcuts).toEqual([]);
 
-				const updated = await updateRuntimeConfig(tempHome, {
+				const updated = await updateRuntimeConfig({
 					selectedAgentId: "claude",
 				});
 				expect(updated.selectedAgentId).toBe("claude");
-				expect(updated.repoConfigPath).toBeNull();
 
 				const globalPayload = JSON.parse(
 					readFileSync(join(tempHome, ".kanban", "kanban", "config.json"), "utf8"),
 				) as {
 					selectedAgentId?: string;
-					shortcuts?: unknown;
 				};
 				// "claude" is the default agent so it is not written to disk (write optimization)
 				expect(globalPayload.selectedAgentId).toBeUndefined();
-				expect(globalPayload.shortcuts).toBeUndefined();
 			});
 		} finally {
 			cleanupHome();
@@ -195,8 +190,6 @@ describe.sequential("runtime-config auto agent selection", () => {
 			await withTemporaryEnv({ home: tempHome }, async () => {
 				const state = await loadGlobalRuntimeConfig();
 				expect(state.globalConfigPath).toBe(join(tempHome, ".kanban", "kanban", "config.json"));
-				expect(state.repoConfigPath).toBeNull();
-				expect(state.shortcuts).toEqual([]);
 			});
 		} finally {
 			cleanupHome();
@@ -282,12 +275,10 @@ describe.sequential("runtime-config auto agent selection", () => {
 
 			await withTemporaryEnv({ home: tempHome }, async () => {
 				const current = await loadRuntimeConfig(tempProject);
-				await saveRuntimeConfig(tempProject, {
+				await saveRuntimeConfig({
 					selectedAgentId: "claude",
-					selectedShortcutLabel: null,
 					agentAutonomousModeEnabled: true,
 					readyForReviewNotificationsEnabled: true,
-					shortcuts: [],
 					commitPromptTemplate: current.commitPromptTemplateDefault,
 					openPrPromptTemplate: current.openPrPromptTemplateDefault,
 				});
@@ -314,69 +305,6 @@ describe.sequential("runtime-config auto agent selection", () => {
 		}
 	});
 
-	it("removes an existing empty project config file when no shortcuts are saved", async () => {
-		const { path: tempHome, cleanup: cleanupHome } = createTempDir("kanban-home-runtime-config-cleanup-empty-");
-		const { path: tempProject, cleanup: cleanupProject } = createTempDir(
-			"kanban-project-runtime-config-cleanup-empty-",
-		);
-
-		try {
-			const runtimeProjectConfigDir = join(tempProject, ".kanban", "kanban");
-			mkdirSync(runtimeProjectConfigDir, { recursive: true });
-			writeFileSync(join(runtimeProjectConfigDir, "config.json"), "{}", "utf8");
-
-			await withTemporaryEnv({ home: tempHome }, async () => {
-				const current = await loadRuntimeConfig(tempProject);
-				await saveRuntimeConfig(tempProject, {
-					selectedAgentId: "claude",
-					selectedShortcutLabel: null,
-					agentAutonomousModeEnabled: true,
-					readyForReviewNotificationsEnabled: true,
-					shortcuts: [],
-					commitPromptTemplate: current.commitPromptTemplateDefault,
-					openPrPromptTemplate: current.openPrPromptTemplateDefault,
-				});
-
-				expect(existsSync(join(tempProject, ".kanban", "kanban", "config.json"))).toBe(false);
-			});
-		} finally {
-			cleanupProject();
-			cleanupHome();
-		}
-	});
-
-	it("removes the project config file when the last shortcut is deleted", async () => {
-		const { path: tempHome, cleanup: cleanupHome } = createTempDir("kanban-home-runtime-config-remove-last-");
-		const { path: tempProject, cleanup: cleanupProject } = createTempDir(
-			"kanban-project-runtime-config-remove-last-",
-		);
-
-		try {
-			await withTemporaryEnv({ home: tempHome }, async () => {
-				const current = await loadRuntimeConfig(tempProject);
-				await saveRuntimeConfig(tempProject, {
-					selectedAgentId: "claude",
-					selectedShortcutLabel: null,
-					agentAutonomousModeEnabled: true,
-					readyForReviewNotificationsEnabled: true,
-					shortcuts: [{ label: "Ship", command: "npm run ship", icon: "rocket" }],
-					commitPromptTemplate: current.commitPromptTemplateDefault,
-					openPrPromptTemplate: current.openPrPromptTemplateDefault,
-				});
-				expect(existsSync(join(tempProject, ".kanban", "kanban", "config.json"))).toBe(true);
-
-				await updateRuntimeConfig(tempProject, {
-					shortcuts: [],
-				});
-
-				expect(existsSync(join(tempProject, ".kanban", "kanban", "config.json"))).toBe(false);
-			});
-		} finally {
-			cleanupProject();
-			cleanupHome();
-		}
-	});
-
 	it("updateRuntimeConfig supports partial updates", async () => {
 		const { path: tempHome, cleanup: cleanupHome } = createTempDir("kanban-home-runtime-config-partial-");
 		const { path: tempProject, cleanup: cleanupProject } = createTempDir("kanban-project-runtime-config-partial-");
@@ -385,7 +313,7 @@ describe.sequential("runtime-config auto agent selection", () => {
 			await withTemporaryEnv({ home: tempHome }, async () => {
 				await loadRuntimeConfig(tempProject);
 
-				const updated = await updateRuntimeConfig(tempProject, {
+				const updated = await updateRuntimeConfig({
 					selectedAgentId: "claude",
 				});
 				expect(updated.selectedAgentId).toBe("claude");
@@ -394,13 +322,11 @@ describe.sequential("runtime-config auto agent selection", () => {
 					readFileSync(join(tempHome, ".kanban", "kanban", "config.json"), "utf8"),
 				) as {
 					selectedAgentId?: string;
-					selectedShortcutLabel?: string;
 					agentAutonomousModeEnabled?: boolean;
 					readyForReviewNotificationsEnabled?: boolean;
 				};
 				// "claude" is the default agent so it is not written to disk (write optimization)
 				expect(globalPayload.selectedAgentId).toBeUndefined();
-				expect(globalPayload.selectedShortcutLabel).toBeUndefined();
 				expect(globalPayload.agentAutonomousModeEnabled).toBeUndefined();
 				expect(globalPayload.readyForReviewNotificationsEnabled).toBeUndefined();
 			});
@@ -418,7 +344,7 @@ describe.sequential("runtime-config auto agent selection", () => {
 
 		try {
 			await withTemporaryEnv({ home: tempHome }, async () => {
-				const updated = await updateRuntimeConfig(tempProject, {
+				const updated = await updateRuntimeConfig({
 					agentAutonomousModeEnabled: false,
 				});
 				expect(updated.agentAutonomousModeEnabled).toBe(false);
@@ -448,10 +374,10 @@ describe.sequential("runtime-config auto agent selection", () => {
 				await loadRuntimeConfig(tempProject);
 
 				const [selectedAgentState, autonomousModeState] = await Promise.all([
-					updateRuntimeConfig(tempProject, {
+					updateRuntimeConfig({
 						selectedAgentId: "claude",
 					}),
-					updateRuntimeConfig(tempProject, {
+					updateRuntimeConfig({
 						agentAutonomousModeEnabled: false,
 					}),
 				]);
@@ -538,13 +464,13 @@ describe.sequential("runtime-config auto agent selection", () => {
 
 		try {
 			await withTemporaryEnv({ home: tempHome }, async () => {
-				await updateRuntimeConfig(tempProject, {
+				await updateRuntimeConfig({
 					terminalFontFamily: "Monaspace Neon, monospace",
 				});
 				const setConfig = await loadRuntimeConfig(tempProject);
 				expect(setConfig.terminalFontFamily).toBe("Monaspace Neon, monospace");
 
-				await updateRuntimeConfig(tempProject, {
+				await updateRuntimeConfig({
 					terminalFontFamily: null,
 				});
 				const clearedConfig = await loadRuntimeConfig(tempProject);

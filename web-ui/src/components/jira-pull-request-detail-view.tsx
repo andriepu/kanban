@@ -6,6 +6,7 @@ import type { PullRequestTerminalPanelHandle } from "@/components/detail-panels/
 import { PullRequestTerminalPanel } from "@/components/detail-panels/pull-request-terminal-panel";
 import { JiraPullRequestDetailSidebar } from "@/components/jira-pull-request-detail-sidebar";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import { Tooltip } from "@/components/ui/tooltip";
 import { clampBetween } from "@/resize/resize-persistence";
 import {
@@ -92,6 +93,11 @@ export function JiraPullRequestDetailView({
 							{pullRequest.jiraKey}
 						</span>
 						<span className="min-w-0 truncate text-sm text-text-primary">{pullRequest.title}</span>
+						{pullRequest.prUrl != null && pullRequest.prNumber != null && (
+							<Link href={pullRequest.prUrl} external className="shrink-0 text-sm">
+								#{pullRequest.prNumber}
+							</Link>
+						)}
 						<div className="ml-auto shrink-0">
 							<Tooltip content="Add stacked terminal">
 								<Button

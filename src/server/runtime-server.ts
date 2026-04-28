@@ -14,6 +14,7 @@ import {
 } from "../core/runtime-endpoint";
 import {
 	createJiraPullRequest,
+	deleteJiraCardCascade,
 	deleteJiraPullRequest,
 	loadJiraBoard,
 	loadJiraDetails,
@@ -25,7 +26,14 @@ import {
 import { fetchGhPullRequestDetail, listAuthoredGhPullRequestsForProject } from "../jira/jira-pr-scan";
 import type { JiraRestCredentials } from "../jira/jira-rest";
 import { fetchJiraIssueViaRest, searchJiraIssuesViaRest, transitionJiraIssueViaRest } from "../jira/jira-rest";
-import { createPullRequestWorktree, removePullRequestWorktree, scanReposInRoot } from "../jira/jira-worktree";
+import {
+	createPullRequestWorktree,
+	deleteLocalBranch,
+	deleteRemoteBranch,
+	removeJiraCardWorktreeParent,
+	removePullRequestWorktree,
+	scanReposInRoot,
+} from "../jira/jira-worktree";
 import { loadWorkspaceContext, loadWorkspaceContextById } from "../state/workspace-state";
 import type { TerminalSessionManager } from "../terminal/session-manager";
 import { createTerminalWebSocketBridge } from "../terminal/ws-server";
@@ -241,6 +249,10 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 		broadcastRuntimeReposUpdated: () => {
 			void deps.runtimeStateHub.broadcastRuntimeReposUpdated(null);
 		},
+		deleteJiraCardCascade,
+		deleteLocalBranch,
+		deleteRemoteBranch,
+		removeJiraCardWorktreeParent,
 	});
 
 	const createTrpcContext = async (req: IncomingMessage): Promise<RuntimeTrpcContext> => {

@@ -18,13 +18,11 @@ import {
 function createRuntimeConfigState(overrides: Partial<RuntimeConfigState> = {}): RuntimeConfigState {
 	return {
 		globalConfigPath: "/tmp/global-config.json",
-		repoConfigPath: "/tmp/project-config.json",
+
 		selectedAgentId: "claude",
-		selectedShortcutLabel: null,
 		agentAutonomousModeEnabled: true,
 		terminalFontFamily: null,
 		readyForReviewNotificationsEnabled: true,
-		shortcuts: [],
 		commitPromptTemplate: "commit",
 		openPrPromptTemplate: "pr",
 		commitPromptTemplateDefault: "commit",

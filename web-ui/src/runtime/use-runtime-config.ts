@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { fetchRuntimeConfig, saveRuntimeConfig } from "@/runtime/runtime-config-query";
-import type { RuntimeAgentId, RuntimeConfigResponse, RuntimeRepoShortcut } from "@/runtime/types";
+import type { RuntimeAgentId, RuntimeConfigResponse } from "@/runtime/types";
 import { useTrpcQuery } from "@/runtime/use-trpc-query";
 
 export interface UseRuntimeConfigResult {
@@ -11,10 +11,8 @@ export interface UseRuntimeConfigResult {
 	refresh: () => void;
 	save: (nextConfig: {
 		selectedAgentId?: RuntimeAgentId;
-		selectedShortcutLabel?: string | null;
 		agentAutonomousModeEnabled?: boolean;
 		terminalFontFamily?: string | null;
-		shortcuts?: RuntimeRepoShortcut[];
 		readyForReviewNotificationsEnabled?: boolean;
 		commitPromptTemplate?: string;
 		openPrPromptTemplate?: string;
@@ -85,10 +83,8 @@ export function useRuntimeConfig(
 	const save = useCallback(
 		async (nextConfig: {
 			selectedAgentId?: RuntimeAgentId;
-			selectedShortcutLabel?: string | null;
 			agentAutonomousModeEnabled?: boolean;
 			terminalFontFamily?: string | null;
-			shortcuts?: RuntimeRepoShortcut[];
 			readyForReviewNotificationsEnabled?: boolean;
 			commitPromptTemplate?: string;
 			openPrPromptTemplate?: string;

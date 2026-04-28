@@ -14,11 +14,10 @@ function createRuntimeConfigResponse(
 ): RuntimeConfigResponse {
 	const nextConfig: RuntimeConfigResponse = {
 		selectedAgentId,
-		selectedShortcutLabel: null,
 		agentAutonomousModeEnabled: true,
 		effectiveCommand: selectedAgentId,
 		globalConfigPath: "/tmp/global-config.json",
-		repoConfigPath: "/tmp/repo/.kanban/config.json",
+
 		readyForReviewNotificationsEnabled: true,
 		detectedCommands: ["claude"],
 		agents: [
@@ -32,7 +31,6 @@ function createRuntimeConfigResponse(
 				configured: true,
 			},
 		],
-		shortcuts: [],
 		commitPromptTemplate: "",
 		openPrPromptTemplate: "",
 		commitPromptTemplateDefault: "",

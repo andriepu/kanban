@@ -1,5 +1,4 @@
 export type JiraCardStatus = "todo" | "in_progress" | "done";
-export type JiraPullRequestStatus = "backlog" | "in_progress" | "review" | "done";
 
 export interface JiraCard {
 	jiraKey: string;
@@ -24,7 +23,6 @@ export interface JiraPullRequest {
 	baseRef: string;
 	branchName: string;
 	worktreePath: string;
-	status: JiraPullRequestStatus;
 	prUrl?: string;
 	prNumber?: number;
 	prState?: "open" | "draft" | "merged";

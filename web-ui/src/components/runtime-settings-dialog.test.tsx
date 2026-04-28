@@ -85,10 +85,6 @@ vi.mock("@runtime-agent-catalog", () => ({
 	getRuntimeLaunchSupportedAgentCatalog: vi.fn(() => [{ id: "claude", label: "Claude Code", binary: "claude" }]),
 }));
 
-vi.mock("@runtime-shortcuts", () => ({
-	areRuntimeRepoShortcutsEqual: vi.fn(() => true),
-}));
-
 vi.mock("@/resize/layout-customizations", () => ({
 	useLayoutCustomizations: () => ({
 		layoutResetNonce: 0,
@@ -128,18 +124,16 @@ function findButtonByAriaLabel(container: ParentNode, ariaLabel: string): HTMLBu
 
 const savedConfig = {
 	selectedAgentId: "claude",
-	selectedShortcutLabel: null,
 	agentAutonomousModeEnabled: true,
 	readyForReviewNotificationsEnabled: false,
 	effectiveCommand: "claude",
 	detectedCommands: ["claude"],
-	shortcuts: [],
 	commitPromptTemplate: "",
 	openPrPromptTemplate: "",
 	commitPromptTemplateDefault: "",
 	openPrPromptTemplateDefault: "",
 	globalConfigPath: null,
-	repoConfigPath: null,
+
 	agents: [
 		{
 			id: "claude",

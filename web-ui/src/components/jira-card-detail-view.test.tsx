@@ -65,7 +65,6 @@ describe("JiraCardDetailView", () => {
 				baseRef: "main",
 				branchName: "feature/login-fix",
 				worktreePath: "/worktrees/sub-1",
-				status: "review",
 				prUrl: "https://github.com/org/repo/pull/42",
 				prNumber: 42,
 				createdAt: 1,
@@ -129,7 +128,6 @@ describe("JiraCardDetailView", () => {
 						baseRef: "main",
 						branchName: "pr-branch",
 						worktreePath: "",
-						status: "review",
 						prUrl: "https://github.com/a/b/pull/1",
 						prNumber: 1,
 						prState,
@@ -260,7 +258,6 @@ describe("JiraCardDetailView", () => {
 				baseRef: "main",
 				branchName: "feature/my-branch",
 				worktreePath: "",
-				status: "review",
 				prUrl: "https://github.com/org/repo/pull/99",
 				prNumber: 99,
 				prState: "open",
@@ -322,7 +319,6 @@ describe("JiraCardDetailView", () => {
 				baseRef: "main",
 				branchName: "fix/dashboard",
 				worktreePath: "/worktrees/sub-2",
-				status: "in_progress",
 				createdAt: 1,
 				updatedAt: 1,
 			},
@@ -345,8 +341,8 @@ describe("JiraCardDetailView", () => {
 		});
 
 		expect(container.textContent).toContain("fix: dashboard crash");
-		// Non-PR pull request shows status text, not an icon
-		expect(container.textContent).toContain("in_progress");
+		// Non-PR pull request shows "Draft" label, not an icon
+		expect(container.textContent).toContain("Draft");
 		const pullRequestButtons = container.querySelectorAll('button[type="button"]');
 		const pullRequestButton = Array.from(pullRequestButtons).find((btn) =>
 			btn.textContent?.includes("fix: dashboard crash"),

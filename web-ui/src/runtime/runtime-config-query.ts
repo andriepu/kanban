@@ -2,12 +2,7 @@
 // Keep TRPC request details here so components and controller hooks can focus
 // on state orchestration instead of transport plumbing.
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
-import type {
-	RuntimeAgentId,
-	RuntimeConfigResponse,
-	RuntimeDebugResetAllStateResponse,
-	RuntimeRepoShortcut,
-} from "@/runtime/types";
+import type { RuntimeAgentId, RuntimeConfigResponse, RuntimeDebugResetAllStateResponse } from "@/runtime/types";
 
 export async function fetchRuntimeConfig(workspaceId: string | null): Promise<RuntimeConfigResponse> {
 	const trpcClient = getRuntimeTrpcClient(workspaceId);
@@ -18,10 +13,8 @@ export async function saveRuntimeConfig(
 	workspaceId: string | null,
 	nextConfig: {
 		selectedAgentId?: RuntimeAgentId;
-		selectedShortcutLabel?: string | null;
 		agentAutonomousModeEnabled?: boolean;
 		terminalFontFamily?: string | null;
-		shortcuts?: RuntimeRepoShortcut[];
 		readyForReviewNotificationsEnabled?: boolean;
 		commitPromptTemplate?: string;
 		openPrPromptTemplate?: string;

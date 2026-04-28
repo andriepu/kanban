@@ -101,17 +101,14 @@ export function buildRuntimeConfigResponse(runtimeConfig: RuntimeConfigState): R
 
 	return {
 		selectedAgentId: runtimeConfig.selectedAgentId,
-		selectedShortcutLabel: runtimeConfig.selectedShortcutLabel,
 		agentAutonomousModeEnabled: runtimeConfig.agentAutonomousModeEnabled,
 		terminalFontFamily: runtimeConfig.terminalFontFamily,
 		debugModeEnabled: isRuntimeDebugModeEnabled(),
 		effectiveCommand,
 		globalConfigPath: runtimeConfig.globalConfigPath,
-		repoConfigPath: runtimeConfig.repoConfigPath,
 		readyForReviewNotificationsEnabled: runtimeConfig.readyForReviewNotificationsEnabled,
 		detectedCommands,
 		agents,
-		shortcuts: runtimeConfig.shortcuts,
 		commitPromptTemplate: runtimeConfig.commitPromptTemplate,
 		openPrPromptTemplate: runtimeConfig.openPrPromptTemplate,
 		commitPromptTemplateDefault: runtimeConfig.commitPromptTemplateDefault,

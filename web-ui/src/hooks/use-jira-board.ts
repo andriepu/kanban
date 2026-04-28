@@ -13,6 +13,8 @@ export interface IssueData {
 export interface UseJiraBoardOptions {
 	isActive: boolean;
 	syncIntervalMs: number;
+	isPrTabFocused: boolean;
+	prScanIntervalMs: number;
 }
 
 export interface UseJiraBoardResult {
@@ -32,9 +34,14 @@ export interface UseJiraBoardResult {
 
 export function useJiraBoard(
 	currentRepoId: string | null = null,
-	options: UseJiraBoardOptions = { isActive: false, syncIntervalMs: 60 * 60 * 1000 },
+	options: UseJiraBoardOptions = {
+		isActive: false,
+		syncIntervalMs: 60 * 60 * 1000,
+		isPrTabFocused: false,
+		prScanIntervalMs: 60_000,
+	},
 ): UseJiraBoardResult {
-	const { isActive, syncIntervalMs } = options;
+	const { isActive, syncIntervalMs, isPrTabFocused, prScanIntervalMs } = options;
 	const trpc = getRuntimeTrpcClient(currentRepoId);
 
 	const [board, setBoard] = useState<JiraBoard>({ cards: [] });
@@ -47,6 +54,7 @@ export function useJiraBoard(
 	const isMountedRef = useRef(true);
 	const isImportingRef = useRef(false);
 	const prevIsActiveRef = useRef(false);
+	const prevIsPrTabFocusedRef = useRef(false);
 	const boardRef = useRef<JiraBoard>({ cards: [] });
 	const deleteTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 	const prScannedOnceRef = useRef(false);
@@ -57,6 +65,31 @@ export function useJiraBoard(
 		boardRef.current = b;
 		setBoard(b);
 	}
+
+	const cascadeDelete = useCallback(
+		async (jiraKey: string): Promise<void> => {
+			try {
+				await trpc.jira.deleteCard.mutate({ jiraKey });
+			} catch {
+				// best-effort; still prune local state
+			}
+			if (!isMountedRef.current) return;
+			applyBoard({ cards: boardRef.current.cards.filter((c) => c.jiraKey !== jiraKey) });
+			setDetails((prev) => {
+				if (!(jiraKey in prev)) return prev;
+				const { [jiraKey]: _omit, ...rest } = prev;
+				return rest;
+			});
+			setPullRequests((prev) => {
+				const next: Record<string, JiraPullRequest> = {};
+				for (const [id, pr] of Object.entries(prev)) {
+					if (pr.jiraKey !== jiraKey) next[id] = pr;
+				}
+				return next;
+			});
+		},
+		[trpc],
+	);
 
 	useUnmount(() => {
 		isMountedRef.current = false;
@@ -106,13 +139,11 @@ export function useJiraBoard(
 		try {
 			const data = await trpc.jira.loadBoard.query();
 			if (!isMountedRef.current || requestIdRef.current !== requestId) return;
-			const doneOnLoad = data.board.cards.filter((c) => c.status === "done");
-			const cleanBoard =
-				doneOnLoad.length > 0 ? { cards: data.board.cards.filter((c) => c.status !== "done") } : data.board;
-			applyBoard(cleanBoard);
+			applyBoard(data.board);
 			setPullRequests(data.pullRequests);
-			if (doneOnLoad.length > 0) {
-				void trpc.jira.saveBoard.mutate({ board: cleanBoard });
+			const doneOnLoad = data.board.cards.filter((c) => c.status === "done");
+			for (const card of doneOnLoad) {
+				void cascadeDelete(card.jiraKey);
 			}
 		} finally {
 			if (isMountedRef.current && requestIdRef.current === requestId) {
@@ -127,7 +158,7 @@ export function useJiraBoard(
 				}
 			}
 		}
-	}, [trpc, fetchDetail]);
+	}, [trpc, fetchDetail, cascadeDelete]);
 
 	useEffect(() => {
 		void fetchBoard();
@@ -139,14 +170,11 @@ export function useJiraBoard(
 			if (existing !== undefined) clearTimeout(existing);
 			const id = setTimeout(() => {
 				deleteTimersRef.current.delete(jiraKey);
-				if (!isMountedRef.current) return;
-				const cleaned = { cards: boardRef.current.cards.filter((c) => c.jiraKey !== jiraKey) };
-				applyBoard(cleaned);
-				void trpc.jira.saveBoard.mutate({ board: cleaned });
+				void cascadeDelete(jiraKey);
 			}, 60_000);
 			deleteTimersRef.current.set(jiraKey, id);
 		},
-		[trpc],
+		[cascadeDelete],
 	);
 
 	const deleteCard = useCallback(
@@ -156,11 +184,9 @@ export function useJiraBoard(
 				clearTimeout(timer);
 				deleteTimersRef.current.delete(jiraKey);
 			}
-			const cleaned = { cards: boardRef.current.cards.filter((c) => c.jiraKey !== jiraKey) };
-			applyBoard(cleaned);
-			void trpc.jira.saveBoard.mutate({ board: cleaned });
+			void cascadeDelete(jiraKey);
 		},
-		[trpc],
+		[cascadeDelete],
 	);
 
 	const refetch = useCallback((): void => {
@@ -204,12 +230,27 @@ export function useJiraBoard(
 				jql: `assignee = currentUser() ORDER BY updated DESC`,
 			});
 			if (isMountedRef.current) {
-				const doneOnSync = result.board.cards.filter((c) => c.status === "done");
-				const cleanBoard =
-					doneOnSync.length > 0 ? { cards: result.board.cards.filter((c) => c.status !== "done") } : result.board;
-				applyBoard(cleanBoard);
-				if (doneOnSync.length > 0) {
-					void trpc.jira.saveBoard.mutate({ board: cleanBoard });
+				// Server already cascade-deleted Done cards from disk; compute removed keys for local state pruning
+				const prevKeys = new Set(boardRef.current.cards.map((c) => c.jiraKey));
+				const nextKeys = new Set(result.board.cards.map((c) => c.jiraKey));
+				const removedKeys = [...prevKeys].filter((k) => !nextKeys.has(k));
+				applyBoard(result.board);
+				if (removedKeys.length > 0) {
+					const removedKeySet = new Set(removedKeys);
+					for (const jiraKey of removedKeys) {
+						setDetails((prev) => {
+							if (!(jiraKey in prev)) return prev;
+							const { [jiraKey]: _omit, ...rest } = prev;
+							return rest;
+						});
+					}
+					setPullRequests((prev) => {
+						const next: Record<string, JiraPullRequest> = {};
+						for (const [id, pr] of Object.entries(prev)) {
+							if (!removedKeySet.has(pr.jiraKey)) next[id] = pr;
+						}
+						return next;
+					});
 				}
 			}
 		} finally {
@@ -233,6 +274,20 @@ export function useJiraBoard(
 		}
 		prevIsActiveRef.current = isActive;
 	}, [isActive, syncFromJira]);
+
+	useInterval(
+		() => {
+			void scanPRs();
+		},
+		isPrTabFocused ? prScanIntervalMs : null,
+	);
+
+	useEffect(() => {
+		if (!prevIsPrTabFocusedRef.current && isPrTabFocused) {
+			void scanPRsRef.current();
+		}
+		prevIsPrTabFocusedRef.current = isPrTabFocused;
+	}, [isPrTabFocused]);
 
 	const moveCard = useCallback(
 		async (jiraKey: string, newStatus: JiraCardStatus): Promise<void> => {

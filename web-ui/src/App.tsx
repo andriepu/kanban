@@ -17,7 +17,7 @@ import { JiraCardDetailView } from "@/components/jira-card-detail-view";
 import { JiraPullRequestBoard } from "@/components/jira-pull-request-board";
 import { JiraPullRequestDetailView } from "@/components/jira-pull-request-detail-view";
 import { RepoNavigationPanel } from "@/components/repo-navigation-panel";
-import { RuntimeSettingsDialog, type RuntimeSettingsSection } from "@/components/runtime-settings-dialog";
+import { RuntimeSettingsDialog } from "@/components/runtime-settings-dialog";
 import { StartupOnboardingDialog } from "@/components/startup-onboarding-dialog";
 import { TaskCreateDialog } from "@/components/task-create-dialog";
 import { TaskInlineCreateCard } from "@/components/task-inline-create-card";
@@ -48,7 +48,6 @@ import { useOpenWorkspace } from "@/hooks/use-open-workspace";
 import { parseRemovedRepoPathFromStreamError, useRepoNavigation } from "@/hooks/use-repo-navigation";
 import { useRepoUiState } from "@/hooks/use-repo-ui-state";
 import { useReviewReadyNotifications } from "@/hooks/use-review-ready-notifications";
-import { useShortcutActions } from "@/hooks/use-shortcut-actions";
 import { useTaskBranchOptions } from "@/hooks/use-task-branch-options";
 import { useTaskEditor } from "@/hooks/use-task-editor";
 import { useTaskSessions } from "@/hooks/use-task-sessions";
@@ -83,7 +82,6 @@ export default function App(): ReactElement {
 	const [sessions, setSessions] = useState<Record<string, RuntimeTaskSessionSummary>>({});
 	const [canPersistWorkspaceState, setCanPersistWorkspaceState] = useState(false);
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-	const [settingsInitialSection, setSettingsInitialSection] = useState<RuntimeSettingsSection | null>(null);
 	const [selectedJiraKey, setSelectedJiraKey] = useState<string | null>(null);
 	const [isClearTrashDialogOpen, setIsClearTrashDialogOpen] = useState(false);
 	const [isGitHistoryOpen, setIsGitHistoryOpen] = useState(false);
@@ -154,22 +152,8 @@ export default function App(): ReactElement {
 		runtimeRepoConfig,
 		settingsRuntimeRepoConfig,
 	});
-	const {
-		markConnectionReady: markTerminalConnectionReady,
-		prepareWaitForConnection: prepareWaitForTerminalConnectionReady,
-	} = useTerminalConnectionReady();
+	const { markConnectionReady: markTerminalConnectionReady } = useTerminalConnectionReady();
 	const readyForReviewNotificationsEnabled = runtimeRepoConfig?.readyForReviewNotificationsEnabled ?? true;
-	const shortcuts = runtimeRepoConfig?.shortcuts ?? [];
-	const selectedShortcutLabel = useMemo(() => {
-		if (shortcuts.length === 0) {
-			return null;
-		}
-		const configured = runtimeRepoConfig?.selectedShortcutLabel ?? null;
-		if (configured && shortcuts.some((shortcut) => shortcut.label === configured)) {
-			return configured;
-		}
-		return shortcuts[0]?.label ?? null;
-	}, [runtimeRepoConfig?.selectedShortcutLabel, shortcuts]);
 	const {
 		upsertSession,
 		ensureTaskWorkspace,
@@ -366,11 +350,9 @@ export default function App(): ReactElement {
 	const {
 		homeTerminalTaskId,
 		isHomeTerminalOpen,
-		isHomeTerminalStarting,
 		homeTerminalPaneHeight,
 		isDetailTerminalOpen,
 		detailTerminalTaskId,
-		isDetailTerminalStarting,
 		detailTerminalPaneHeight,
 		setHomeTerminalPaneHeight,
 		setDetailTerminalPaneHeight,
@@ -379,7 +361,6 @@ export default function App(): ReactElement {
 		handleToggleDetailTerminal,
 		handleSendAgentCommandToHomeTerminal,
 		handleSendAgentCommandToDetailTerminal,
-		prepareTerminalForShortcut,
 		resetBottomTerminalLayoutCustomizations,
 		collapseHomeTerminal,
 		collapseDetailTerminal,
@@ -395,22 +376,14 @@ export default function App(): ReactElement {
 		sendTaskSessionInput,
 	});
 	const homeTerminalSummary = sessions[homeTerminalTaskId] ?? null;
-	const { runningShortcutLabel, handleSelectShortcutLabel, handleRunShortcut, handleCreateShortcut } =
-		useShortcutActions({
-			currentRepoId,
-			selectedShortcutLabel: runtimeRepoConfig?.selectedShortcutLabel,
-			shortcuts,
-			refreshRuntimeRepoConfig,
-			prepareTerminalForShortcut,
-			prepareWaitForTerminalConnectionReady,
-			sendTaskSessionInput,
-		});
-
 	const jiraSyncIntervalMs = runtimeRepoConfig?.jiraSyncIntervalMs ?? 60 * 60 * 1000;
 	const isJiraBoardActive = !isGitHistoryOpen && sidebarTab !== "pr";
+	const isPrTabFocused = sidebarTab === "pr" && isDocumentVisible;
 	const jiraBoard = useJiraBoard(currentRepoId, {
 		isActive: isJiraBoardActive,
 		syncIntervalMs: jiraSyncIntervalMs,
+		isPrTabFocused,
+		prScanIntervalMs: 60_000,
 	});
 
 	const resolvedPullRequest = useMemo((): JiraPullRequest | null => {
@@ -550,8 +523,7 @@ export default function App(): ReactElement {
 		[navigationRepoPath, workspacePath],
 	);
 
-	const handleOpenSettings = useCallback((section?: RuntimeSettingsSection) => {
-		setSettingsInitialSection(section ?? null);
+	const handleOpenSettings = useCallback(() => {
 		setIsSettingsOpen(true);
 	}, []);
 	const handleToggleGitHistory = useCallback(() => {
@@ -857,24 +829,9 @@ export default function App(): ReactElement {
 										void runGitAction("push");
 									}
 						}
-						onToggleTerminal={
-							hasNoRepos || isHomeWithoutSelectedRepo
-								? undefined
-								: selectedCard
-									? handleToggleDetailTerminal
-									: handleToggleHomeTerminal
-						}
-						isTerminalOpen={selectedCard ? isDetailTerminalOpen : showHomeBottomTerminal}
-						isTerminalLoading={selectedCard ? isDetailTerminalStarting : isHomeTerminalStarting}
 						onOpenSettings={handleOpenSettings}
 						showDebugButton={debugModeEnabled}
 						onOpenDebugDialog={debugModeEnabled ? handleOpenDebugDialog : undefined}
-						shortcuts={shortcuts}
-						selectedShortcutLabel={selectedShortcutLabel}
-						onSelectShortcutLabel={handleSelectShortcutLabel}
-						runningShortcutLabel={runningShortcutLabel}
-						onRunShortcut={handleRunShortcut}
-						onCreateFirstShortcut={currentRepoId ? handleCreateShortcut : undefined}
 						openTargetOptions={openTargetOptions}
 						selectedOpenTargetId={selectedOpenTargetId}
 						onSelectOpenTarget={onSelectOpenTarget}
@@ -959,6 +916,7 @@ export default function App(): ReactElement {
 													minWidth: 0,
 													paddingLeft: 12,
 													paddingRight: 12,
+													paddingTop: 8,
 												}}
 											>
 												<AgentTerminalPanel
@@ -969,7 +927,6 @@ export default function App(): ReactElement {
 													onSummary={upsertSession}
 													showSessionToolbar={false}
 													autoFocus
-													onClose={closeHomeTerminal}
 													minimalHeaderTitle="Terminal"
 													minimalHeaderSubtitle={homeTerminalSubtitle}
 													panelBackgroundColor="var(--color-surface-1)"
@@ -1058,12 +1015,8 @@ export default function App(): ReactElement {
 					open={isSettingsOpen}
 					workspaceId={settingsWorkspaceId}
 					initialConfig={settingsRuntimeRepoConfig}
-					initialSection={settingsInitialSection}
 					onOpenChange={(nextOpen) => {
 						setIsSettingsOpen(nextOpen);
-						if (!nextOpen) {
-							setSettingsInitialSection(null);
-						}
 					}}
 					onSaved={() => {
 						refreshRuntimeRepoConfig();
