@@ -1,7 +1,14 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-28T09:28:11.516Z
-> Files: 652 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-28T13:43:03.899Z
+> Files: 666 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../../.claude/
+
+- `claude-usage-stats.py` — /*.jsonl session files. (~1055 tok)
+- `settings.json` (~449 tok)
+- `statusline-command.sh` (~323 tok)
+- `usage-limits.json` (~44 tok)
 
 ## ../../../.claude/plans/
 
@@ -9,6 +16,7 @@
 - `1-merged-pr-on-enumerated-brooks.md` — Plan: Sticky-Merged PR State + Two-Line Subtask Row (~1003 tok)
 - `1-revert-adding-run-cryptic-pillow.md` — PR Detail: Revert Run, Disable Esc, Add Stacked Terminal Button (~1641 tok)
 - `1-when-pr-card-prancy-blum.md` — PR Card Click → Floating Fullscreen Modal + URL Routing (~1986 tok)
+- `add-layout-icon-button-effervescent-pnueli.md` — PR Detail: Layout Cycle Button for Stacked Terminals (~1165 tok)
 - `again-merged-pr-is-smooth-bentley.md` — Plan: Fix merged PR icon flipping purple → green after auto-scan (~1456 tok)
 - `also-read-the-current-zany-garden.md` — Plan: Scan Open GitHub PRs → Attach as Subtasks on Matching Jira Cards (~1630 tok)
 - `and-push-vectorized-tulip.md` — Commit + Push (~592 tok)
@@ -26,6 +34,8 @@
 - `i-got-zippy-allen.md` — Fix: Jira MCP import hits `Reached maximum number of turns (5)` (~1628 tok)
 - `i-see-jira-for-shimmying-lovelace.md` — Fix inconsistent gaps in Jira & Repos settings fields (~435 tok)
 - `i-still-cannot-see-silly-thimble.md` — Plan: Investigate Empty `workspaceId` on PR-Card-Click → Terminal (~1882 tok)
+- `if-we-have-3-reactive-reddy.md` — Fill Empty Cell in Tiled Terminal Layout (3+ odd terminals) (~708 tok)
+- `implement-expand-on-stacked-snoopy-avalanche.md` — Expand Terminal in PR Details → Fullscreen Popup (~1636 tok)
 - `improve-pr-icon-color-expressive-church.md` — Improve PR Icon Color (Card + Sidebar) (~2196 tok)
 - `improve-ux-1-when-idempotent-blum.md` — Jira Detail UX Improvements (~1854 tok)
 - `in-project-tab-list-encapsulated-steele.md` — Plan: Gray out repos in Projects tab when no Jira subtasks (~1441 tok)
@@ -40,6 +50,7 @@
 - `remove-run-button-as-imperative-conway.md` — Remove Script Shortcuts Feature (Run Button + supporting infra) (~1985 tok)
 - `rename-sidebar-tab-to-bubbly-goose.md` — Rename: Project → Repo, Subtask → PullRequest (~7386 tok)
 - `revamp-pr-board-columns-whimsical-mountain.md` — Revamp PR Board: Draft / Open / Done + Background Refresh (~2147 tok)
+- `should-show-indicator-in-ticklish-metcalfe.md` — PR Card Activity Indicator (~1859 tok)
 - `show-run-button-at-hidden-giraffe.md` — Show Run button in PR details pane header (~2946 tok)
 - `statusline-should-always-been-wobbly-donut.md` — Make JIRA sync statusline globally visible (~1505 tok)
 - `use-same-style-for-indexed-dahl.md` — PR Terminal: Style Parity + Auto-On on PR Tab (~1817 tok)
@@ -47,6 +58,7 @@
 - `when-first-jira-card-cozy-puddle.md` — Fix: PR icon missing on first Jira card click after board load (~1737 tok)
 - `when-i-first-load-curried-scroll.md` — Plan: Stay on `/` when no repo selected; redirect to `/<repo>` only on user action (~1926 tok)
 - `when-i-open-pr-website-nuxt-pol-4509-ema-quiet-fox.md` — PR Terminal: "claude" prefilled twice on open (~1542 tok)
+- `when-i-open-three-reflective-hoare.md` — Restore Stacked PR Terminals on Modal Reopen (~1731 tok)
 - `when-i-switch-back-twinkling-bear.md` — PR tab reset on tab switch (~1232 tok)
 - `when-i-switch-to-memoized-clover.md` — Plan: Make Task tab repo-agnostic; reset PR repo filter on PR-tab switch (~1197 tok)
 - `when-task-tab-active-serene-moon.md` — Plan: Tab-Aware URL Routing (`/task`, `/pr`, `/pr/<repo_name>`) (~1956 tok)
@@ -818,7 +830,7 @@
 
 ## web-ui/src/
 
-- `App.tsx` — Main React composition root for the browser app. (~10650 tok)
+- `App.tsx` — Main React composition root for the browser app. (~10656 tok)
 - `main.tsx` — _savedTheme (~441 tok)
 - `vite-env.d.ts` — / <reference types="vite/client" /> (~66 tok)
 
@@ -828,7 +840,7 @@
 - `app-error-boundary.tsx` — AppErrorFallback (~576 tok)
 - `app-toaster.ts` — Exports showAppToast, notifyError (~303 tok)
 - `board-card.test.tsx` — width — uses useState (~5151 tok)
-- `board-card.tsx` — SESSION_ACTIVITY_COLOR — uses useState, useRef, useMemo, useEffect (~8740 tok)
+- `board-card.tsx` — DESCRIPTION_COLLAPSE_LINES (~7243 tok)
 - `board-column.tsx` — BoardColumn (~1975 tok)
 - `branch-select-dropdown.tsx` — BranchSelectDropdown (~520 tok)
 - `card-detail-view.test.tsx` — mockUseRuntimeWorkspaceChanges (~5389 tok)
@@ -843,10 +855,10 @@
 - `jira-board.tsx` — COLUMNS (~1808 tok)
 - `jira-card-detail-view.test.tsx` — mockScanPRs (~2997 tok)
 - `jira-card-detail-view.tsx` — PR_STATE_COLORS (~1542 tok)
-- `jira-pull-request-board.test.tsx` — makePullRequest (~1907 tok)
-- `jira-pull-request-board.tsx` — PULL_REQUEST_COLUMNS (~1161 tok)
+- `jira-pull-request-board.test.tsx` — makeSummary (~3105 tok)
+- `jira-pull-request-board.tsx` — PULL_REQUEST_COLUMNS (~1246 tok)
 - `jira-pull-request-detail-sidebar.tsx` — ThreadCard (~1064 tok)
-- `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1584 tok)
+- `jira-pull-request-detail-view.tsx` — LAYOUT_CYCLE (~2093 tok)
 - `kanban-board.test.tsx` — dndMock — uses useEffect (~1704 tok)
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
 - `markdown-text.tsx` — MarkdownText (~489 tok)
@@ -883,7 +895,7 @@
 
 ## web-ui/src/components/detail-panels/
 
-- `agent-terminal-panel.tsx` — describeState — uses useMemo (~3049 tok)
+- `agent-terminal-panel.tsx` — describeState (~2884 tok)
 - `column-context-panel.test.tsx` — createCard (~1197 tok)
 - `column-context-panel.tsx` — ColumnSection — uses useState, useEffect, useCallback (~3345 tok)
 - `diff-selection-toolbar.test.ts` — Declares DiffHighlightRange (~406 tok)
@@ -891,7 +903,8 @@
 - `diff-viewer-panel.test.tsx` — hotkeyRegistrations (~3243 tok)
 - `diff-viewer-panel.tsx` — Identifies a single row for highlight tracking. (~10429 tok)
 - `file-tree-panel.tsx` — FileTreeRow — uses useMemo (~1050 tok)
-- `pull-request-terminal-panel.tsx` — PR_TERMINAL_TASK_PREFIX (~2442 tok)
+- `pr-terminal-expanded-dialog.tsx` — PrTerminalExpandedDialog (~762 tok)
+- `pull-request-terminal-panel.tsx` — PR_TERMINAL_INITIAL_COLS (~3330 tok)
 
 ## web-ui/src/components/git-history/
 
@@ -907,6 +920,8 @@
 - `diff-renderer.test.ts` — UnifiedDiffRow: makeContextRows, makeRowsWithChange (~2192 tok)
 - `diff-renderer.tsx` — Post-process rows to add word-level inline diff segments for adjacent (~5718 tok)
 - `render-fuzzy-highlighted-text.tsx` — renderFuzzyHighlightedText (~335 tok)
+- `session-activity-indicator.tsx` — Stable id used to reset sticky last-known activity when caller swaps entities. (~583 tok)
+- `session-activity.ts` — Exports SessionActivity, SESSION_ACTIVITY_COLOR, isCreditLimitError, getSessionActivity (~1572 tok)
 
 ## web-ui/src/components/ui/
 
@@ -1031,7 +1046,7 @@
 
 ## web-ui/src/storage/
 
-- `local-storage-store.ts` — Exports LocalStorageKey, LAYOUT_CUSTOMIZATION_LOCAL_STORAGE_KEYS, readLocalStorageItem, writeLocalSt (~833 tok)
+- `local-storage-store.ts` — Exports LocalStorageKey, LAYOUT_CUSTOMIZATION_LOCAL_STORAGE_KEYS, readLocalStorageItem, writeLocalSt (~994 tok)
 
 ## web-ui/src/stores/
 
@@ -1047,6 +1062,8 @@
 ## web-ui/src/terminal/
 
 - `persistent-terminal-manager.ts` — ThemeTerminalColors: generateTerminalClientId, getTerminalIoWebSocketUrl, getTerminalControlWebSocketUrl + 6 more (~6001 tok)
+- `pr-terminal-task-id.test.ts` — Declares makeSummary (~1442 tok)
+- `pr-terminal-task-id.ts` — Exports PR_TERMINAL_TASK_PREFIX, getPrTerminalTaskId, getStackedPrTerminalTaskIdMatcher, parseStacke (~558 tok)
 - `shell-session-flow.ts` — Exports StartShellTerminalSessionInput, StartShellTerminalSessionResult, startShellTerminalSession, (~477 tok)
 - `terminal-controller-registry.ts` — Exports TerminalController, getTerminalController, waitForTerminalLikelyPrompt, registerTerminalController (~265 tok)
 - `terminal-geometry-registry.ts` — Exports TerminalGeometry, reportTerminalGeometry, clearTerminalGeometry, getTerminalGeometry, prepareWaitForTerminalGeometry (~472 tok)

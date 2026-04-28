@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { notifyError } from "@/components/app-toaster";
 import { AgentTerminalPanel } from "@/components/detail-panels/agent-terminal-panel";
+import { PrTerminalExpandedDialog } from "@/components/detail-panels/pr-terminal-expanded-dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
@@ -32,9 +33,12 @@ export interface PullRequestTerminalPanelHandle {
 	addStackedTerminal: () => Promise<void>;
 }
 
+export type PrTerminalLayout = "vertical" | "horizontal" | "tiled";
+
 export interface PullRequestTerminalPanelProps {
 	pullRequestId: string;
 	baseRef: string;
+	layout?: PrTerminalLayout;
 	initialStackedTaskIds?: string[];
 	sessions?: Record<string, RuntimeTaskSessionSummary>;
 	onOpenExternalUrl: (url: string) => void;
@@ -43,7 +47,15 @@ export interface PullRequestTerminalPanelProps {
 
 export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandle, PullRequestTerminalPanelProps>(
 	function PullRequestTerminalPanel(
-		{ pullRequestId, baseRef, initialStackedTaskIds, sessions, onOpenExternalUrl, onReadyChange },
+		{
+			pullRequestId,
+			baseRef,
+			layout = "vertical",
+			initialStackedTaskIds,
+			sessions,
+			onOpenExternalUrl,
+			onReadyChange,
+		},
 		ref,
 	): ReactElement {
 		const terminalThemeColors = useTerminalThemeColors();
@@ -52,6 +64,7 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 		const [sessionError, setSessionError] = useState<string | null>(null);
 		const [sessionSummary, setSessionSummary] = useState<RuntimeTaskSessionSummary | null>(null);
 		const [stackedSessions, setStackedSessions] = useState<StackedSession[]>([]);
+		const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 		const { config: runtimeRepoConfig } = useRuntimeRepoConfig(activeSession?.workspaceId ?? null);
 
 		const stackedCounterRef = useRef(0);
@@ -93,6 +106,19 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 				},
 			}),
 			[pullRequestId, baseRef],
+		);
+
+		const handleExpandedSummaryChange = useCallback(
+			(updated: RuntimeTaskSessionSummary) => {
+				if (expandedTaskId === activeSession?.taskId) {
+					setSessionSummary(updated);
+				} else if (expandedTaskId !== null) {
+					setStackedSessions((prev) =>
+						prev.map((s) => (s.taskId === expandedTaskId ? { ...s, summary: updated } : s)),
+					);
+				}
+			},
+			[expandedTaskId, activeSession?.taskId],
 		);
 
 		useEffect(() => {
@@ -214,55 +240,122 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 			return <div className="flex h-full" />;
 		}
 
-		return (
-			<div
-				style={{
-					display: "flex",
-					flexDirection: "column",
+		const expandedSummary =
+			expandedTaskId === null
+				? null
+				: expandedTaskId === activeSession.taskId
+					? sessionSummary
+					: (stackedSessions.find((s) => s.taskId === expandedTaskId)?.summary ?? null);
+
+		const allSessions = [
+			{ taskId: activeSession.taskId, summary: sessionSummary, isActive: true },
+			...stackedSessions.map((s) => ({ taskId: s.taskId, summary: s.summary, isActive: false })),
+		];
+
+		const isTiled = layout === "tiled";
+		const visibleSessions = allSessions.filter((s) => s.taskId !== expandedTaskId);
+		const tiledLastSpansFull = isTiled && visibleSessions.length % 2 === 1;
+		const isHorizontal = layout === "horizontal";
+
+		const containerStyle: React.CSSProperties = isTiled
+			? {
+					display: "grid",
+					gridTemplateColumns: "1fr 1fr",
 					flex: "1 1 0",
 					minWidth: 0,
+					minHeight: 0,
+					gap: 1,
+					background: "var(--color-border)",
 					paddingLeft: 12,
 					paddingRight: 12,
-				}}
-			>
-				<div style={{ display: "flex", flex: "1 1 0", minHeight: 0 }}>
-					<AgentTerminalPanel
-						taskId={activeSession.taskId}
+				}
+			: {
+					display: "flex",
+					flexDirection: isHorizontal ? "row" : "column",
+					flex: "1 1 0",
+					minWidth: 0,
+					minHeight: 0,
+					paddingLeft: 12,
+					paddingRight: 12,
+				};
+
+		return (
+			<div style={containerStyle}>
+				{visibleSessions.map(({ taskId, summary, isActive }, idx) => {
+					const needsDivider = !isTiled && idx > 0;
+					const dividerEl = needsDivider ? (
+						isHorizontal ? (
+							<div key={`divider-${taskId}`} className="w-px bg-border shrink-0" />
+						) : (
+							<div key={`divider-${taskId}`} className="h-px bg-border" />
+						)
+					) : null;
+
+					const panelEl = (
+						<div
+							key={taskId}
+							style={{
+								display: "flex",
+								flexDirection: "column",
+								flex: "1 1 0",
+								minWidth: 0,
+								minHeight: 0,
+								...(tiledLastSpansFull && idx === visibleSessions.length - 1 ? { gridColumn: "span 2" } : null),
+							}}
+						>
+							<AgentTerminalPanel
+								taskId={taskId}
+								workspaceId={activeSession.workspaceId}
+								summary={summary}
+								onSummary={
+									isActive
+										? setSessionSummary
+										: (updated) => {
+												setStackedSessions((prev) =>
+													prev.map((s) => (s.taskId === taskId ? { ...s, summary: updated } : s)),
+												);
+											}
+								}
+								showSessionToolbar={false}
+								showMoveToTrash={false}
+								panelBackgroundColor="var(--color-surface-1)"
+								terminalBackgroundColor={terminalThemeColors.surfaceRaised}
+								cursorColor={terminalThemeColors.textPrimary}
+								terminalFontFamily={runtimeRepoConfig?.terminalFontFamily ?? null}
+								onClose={
+									isActive
+										? undefined
+										: () => {
+												if (expandedTaskId === taskId) {
+													setExpandedTaskId(null);
+												}
+												setStackedSessions((prev) => prev.filter((s) => s.taskId !== taskId));
+											}
+								}
+								onExpand={() => setExpandedTaskId(taskId)}
+							/>
+						</div>
+					);
+
+					if (!needsDivider) return panelEl;
+					return (
+						<React.Fragment key={taskId}>
+							{dividerEl}
+							{panelEl}
+						</React.Fragment>
+					);
+				})}
+				{expandedTaskId !== null && (
+					<PrTerminalExpandedDialog
+						taskId={expandedTaskId}
 						workspaceId={activeSession.workspaceId}
-						summary={sessionSummary}
-						onSummary={setSessionSummary}
-						showSessionToolbar={false}
-						showMoveToTrash={false}
-						panelBackgroundColor="var(--color-surface-1)"
-						terminalBackgroundColor={terminalThemeColors.surfaceRaised}
-						cursorColor={terminalThemeColors.textPrimary}
+						summary={expandedSummary}
+						onSummary={handleExpandedSummaryChange}
+						onCollapse={() => setExpandedTaskId(null)}
+						terminalThemeColors={terminalThemeColors}
 						terminalFontFamily={runtimeRepoConfig?.terminalFontFamily ?? null}
 					/>
-				</div>
-				{stackedSessions.map(({ taskId, summary }) => (
-					<div key={taskId} style={{ display: "flex", flexDirection: "column", flex: "1 1 0", minHeight: 0 }}>
-						<div className="h-px bg-border" />
-						<AgentTerminalPanel
-							taskId={taskId}
-							workspaceId={activeSession.workspaceId}
-							summary={summary}
-							onSummary={(updated) => {
-								setStackedSessions((prev) =>
-									prev.map((s) => (s.taskId === taskId ? { ...s, summary: updated } : s)),
-								);
-							}}
-							showSessionToolbar={false}
-							showMoveToTrash={false}
-							panelBackgroundColor="var(--color-surface-1)"
-							terminalBackgroundColor={terminalThemeColors.surfaceRaised}
-							cursorColor={terminalThemeColors.textPrimary}
-							terminalFontFamily={runtimeRepoConfig?.terminalFontFamily ?? null}
-							onClose={() => {
-								setStackedSessions((prev) => prev.filter((s) => s.taskId !== taskId));
-							}}
-						/>
-					</div>
-				))}
+				)}
 			</div>
 		);
 	},

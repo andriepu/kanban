@@ -1,8 +1,11 @@
 import * as RadixDialog from "@radix-ui/react-dialog";
-import { ArrowLeft, Terminal } from "lucide-react";
+import { ArrowLeft, Columns2, LayoutGrid, Rows2, Terminal } from "lucide-react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { PullRequestTerminalPanelHandle } from "@/components/detail-panels/pull-request-terminal-panel";
+import type {
+	PrTerminalLayout,
+	PullRequestTerminalPanelHandle,
+} from "@/components/detail-panels/pull-request-terminal-panel";
 import { PullRequestTerminalPanel } from "@/components/detail-panels/pull-request-terminal-panel";
 import { JiraPullRequestDetailSidebar } from "@/components/jira-pull-request-detail-sidebar";
 import { Button } from "@/components/ui/button";
@@ -16,9 +19,25 @@ import {
 } from "@/resize/resize-preferences";
 import { useResizeDrag } from "@/resize/use-resize-drag";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
-import { LocalStorageKey } from "@/storage/local-storage-store";
+import { LocalStorageKey, readLocalStorageItem, writeLocalStorageItem } from "@/storage/local-storage-store";
 import { getStackedPrTerminalTaskIdMatcher, parseStackedPrTerminalCounter } from "@/terminal/pr-terminal-task-id";
 import type { JiraPullRequest } from "@/types/jira";
+
+const LAYOUT_CYCLE: PrTerminalLayout[] = ["vertical", "tiled", "horizontal"];
+
+const LAYOUT_ICONS: Record<PrTerminalLayout, React.ReactElement> = {
+	vertical: <Rows2 size={16} />,
+	horizontal: <Columns2 size={16} />,
+	tiled: <LayoutGrid size={16} />,
+};
+
+function loadTerminalLayout(): PrTerminalLayout {
+	const stored = readLocalStorageItem(LocalStorageKey.JiraPullRequestDetailTerminalLayout);
+	if (stored === "vertical" || stored === "horizontal" || stored === "tiled") {
+		return stored;
+	}
+	return "vertical";
+}
 
 const SIDEBAR_RATIO_PREFERENCE: ResizeNumberPreference = {
 	key: LocalStorageKey.JiraPullRequestDetailSidebarRatio,
@@ -39,7 +58,17 @@ export function JiraPullRequestDetailView({
 }: JiraPullRequestDetailViewProps): React.ReactElement {
 	const [sidebarRatio, setSidebarRatioState] = useState(() => loadResizePreference(SIDEBAR_RATIO_PREFERENCE));
 	const [canAddTerminal, setCanAddTerminal] = useState(false);
+	const [terminalLayout, setTerminalLayout] = useState<PrTerminalLayout>(loadTerminalLayout);
 	const terminalPanelRef = useRef<PullRequestTerminalPanelHandle>(null);
+
+	const cycleLayout = useCallback(() => {
+		setTerminalLayout((current) => {
+			const idx = LAYOUT_CYCLE.indexOf(current);
+			const next = LAYOUT_CYCLE[(idx + 1) % LAYOUT_CYCLE.length] ?? "vertical";
+			writeLocalStorageItem(LocalStorageKey.JiraPullRequestDetailTerminalLayout, next);
+			return next;
+		});
+	}, []);
 
 	// Compute once on mount — captures which stacked PTYs are already alive for this PR.
 	const initialStackedTaskIds = useMemo(() => {
@@ -115,7 +144,16 @@ export function JiraPullRequestDetailView({
 								#{pullRequest.prNumber}
 							</Link>
 						)}
-						<div className="ml-auto shrink-0">
+						<div className="ml-auto flex shrink-0 items-center gap-1">
+							<Tooltip content={`Layout: ${terminalLayout}`}>
+								<Button
+									variant="ghost"
+									size="sm"
+									icon={LAYOUT_ICONS[terminalLayout]}
+									onClick={cycleLayout}
+									aria-label="Cycle terminal layout"
+								/>
+							</Tooltip>
 							<Tooltip content="Add stacked terminal">
 								<Button
 									variant="ghost"
@@ -151,6 +189,7 @@ export function JiraPullRequestDetailView({
 								ref={terminalPanelRef}
 								pullRequestId={pullRequest.id}
 								baseRef={pullRequest.baseRef}
+								layout={terminalLayout}
 								initialStackedTaskIds={initialStackedTaskIds}
 								sessions={sessions}
 								onOpenExternalUrl={handleOpenExternalUrl}

@@ -3,6 +3,7 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 07:51 | Background prefetch Jira card details after board load; ensureDetail dedup; error+retry UI | use-jira-board.ts, jira-card-detail-view.tsx, App.tsx, test files | 18 tests pass, tsc clean | ~1800 |
+| 20:43 | Tiled terminal layout: last terminal spans 2 cols when visible count is odd; filter expandedTaskId before render | pull-request-terminal-panel.tsx | done | ~600 |
 | 15:34 | Added fetchGhPullRequestDetail + interfaces + GH_PR_DETAIL_GRAPHQL_QUERY to jira-pr-scan.ts; added 8 tests | src/jira/jira-pr-scan.ts, test/runtime/jira/jira-pr-scan.test.ts | 14/14 tests pass | ~600 |
 | 18:05 | Task 2: fetchSubtaskDetail TRPC route + auto-create worktree in startSubtaskSession + Zod schemas + route registration + dep wiring | src/trpc/jira-api.ts, src/core/api-contract.ts, src/trpc/app-router.ts, src/server/runtime-server.ts, test/runtime/trpc/jira-api.test.ts | committed 2cb7241, 372 tests passing | ~2800 |
 | 12:44 | Task 5: update startSubtaskSession for openUrl fallback; add vi.mock with importOriginal for node:fs/promises | src/trpc/jira-api.ts, test/runtime/trpc/jira-api.test.ts | 365 tests pass, committed 651fba0 | ~800 |
@@ -1118,3 +1119,99 @@
 | 12:47 | Edited test/runtime/trpc/jira-api.test.ts | expanded (+28 lines) | ~304 |
 | 12:47 | Edited src/trpc/jira-api.ts | 3→2 lines | ~6 |
 | 12:47 | Edited src/trpc/jira-api.ts | 2→1 lines | ~4 |
+| 18:41 | Session end: 15 writes across 6 files (when-i-open-three-reflective-hoare.md, pr-terminal-task-id.ts, pull-request-terminal-panel.tsx, jira-pull-request-detail-view.tsx, App.tsx) | 10 reads | ~43689 tok |
+
+## Session: 2026-04-28 18:41
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-28 18:56
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:57 | Edited ../../../.claude/statusline-command.sh | 2→2 lines | ~35 |
+| 18:57 | Session end: 1 writes across 1 files (statusline-command.sh) | 1 reads | ~38 tok |
+
+## Session: 2026-04-28 18:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-28 18:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-28 19:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-28 19:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-28 19:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-28 19:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-28 20:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:15 | Created ../../../.claude/plans/implement-expand-on-stacked-snoopy-avalanche.md | — | ~1746 |
+| 20:17 | Edited web-ui/src/components/detail-panels/agent-terminal-panel.tsx | inline fix | ~17 |
+| 20:17 | Edited web-ui/src/components/detail-panels/agent-terminal-panel.tsx | 1→2 lines | ~14 |
+| 20:17 | Edited web-ui/src/components/detail-panels/agent-terminal-panel.tsx | 2→3 lines | ~15 |
+| 20:17 | Edited web-ui/src/components/detail-panels/agent-terminal-panel.tsx | inline fix | ~9 |
+| 20:17 | Edited web-ui/src/components/detail-panels/agent-terminal-panel.tsx | expanded (+13 lines) | ~258 |
+| 20:17 | Created web-ui/src/components/detail-panels/pr-terminal-expanded-dialog.tsx | — | ~763 |
+| 20:17 | Edited web-ui/src/components/detail-panels/pr-terminal-expanded-dialog.tsx | "@/terminal/theme-colors" → "@/hooks/use-theme" | ~18 |
+| 20:18 | Edited web-ui/src/components/detail-panels/pr-terminal-expanded-dialog.tsx | inline fix | ~12 |
+| 20:18 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | added 1 import(s) | ~69 |
+| 20:18 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | 1→2 lines | ~45 |
+| 20:18 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | CSS: null, sessionSummary, updated | ~880 |
+| 20:19 | Expand terminal popup in PR details — Maximize2 button on primary+stacked, fullscreen RadixDialog z-60, terminal state preserved via persistent-terminal-manager mount | agent-terminal-panel.tsx, pull-request-terminal-panel.tsx, pr-terminal-expanded-dialog.tsx (new) | tsc clean | ~900 |
+| 20:19 | Session end: 12 writes across 4 files (implement-expand-on-stacked-snoopy-avalanche.md, agent-terminal-panel.tsx, pr-terminal-expanded-dialog.tsx, pull-request-terminal-panel.tsx) | 6 reads | ~19434 tok |
+| 20:25 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | added optional chaining | ~132 |
+| 20:25 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | reduced (-13 lines) | ~65 |
+| 20:26 | Session end: 14 writes across 4 files (implement-expand-on-stacked-snoopy-avalanche.md, agent-terminal-panel.tsx, pr-terminal-expanded-dialog.tsx, pull-request-terminal-panel.tsx) | 6 reads | ~19631 tok |
+
+## Session: 2026-04-28 20:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-28 20:27
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:30 | Created ../../../.claude/plans/add-layout-icon-button-effervescent-pnueli.md | — | ~1243 |
+| 20:30 | Edited web-ui/src/storage/local-storage-store.ts | 1→2 lines | ~50 |
+| 20:31 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | 8→11 lines | ~105 |
+| 20:31 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | modified PullRequestTerminalPanel() | ~84 |
+| 20:32 | Created web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | — | ~3254 |
+| 20:32 | Edited web-ui/src/components/jira-pull-request-detail-view.tsx | added 1 condition(s) | ~524 |
+| 20:32 | Edited web-ui/src/components/jira-pull-request-detail-view.tsx | added nullish coalescing | ~187 |
+| 20:32 | Edited web-ui/src/components/jira-pull-request-detail-view.tsx | CSS: Layout | ~193 |
+| 20:32 | Edited web-ui/src/components/jira-pull-request-detail-view.tsx | 9→10 lines | ~102 |
+| 20:33 | add layout cycle button (vertical/tiled/horizontal) to PR detail header; persist in localStorage | jira-pull-request-detail-view.tsx, pull-request-terminal-panel.tsx, local-storage-store.ts | done | ~700 |
+| 20:33 | Session end: 9 writes across 4 files (add-layout-icon-button-effervescent-pnueli.md, local-storage-store.ts, pull-request-terminal-panel.tsx, jira-pull-request-detail-view.tsx) | 6 reads | ~15931 tok |
+
+## Session: 2026-04-28 20:39
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:42 | Created ../../../.claude/plans/if-we-have-3-reactive-reddy.md | — | ~755 |
+| 20:42 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | 6→8 lines | ~114 |
+| 20:42 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | 5→2 lines | ~32 |
+| 20:43 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | CSS: gridColumn | ~96 |
+| 20:43 | Session end: 4 writes across 2 files (if-we-have-3-reactive-reddy.md, pull-request-terminal-panel.tsx) | 2 reads | ~6474 tok |

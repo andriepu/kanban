@@ -1,6 +1,6 @@
 import "@xterm/xterm/css/xterm.css";
 
-import { MessageSquare, X } from "lucide-react";
+import { Maximize2, MessageSquare, X } from "lucide-react";
 import type { MutableRefObject, ReactElement } from "react";
 import { useMemo } from "react";
 
@@ -37,6 +37,7 @@ export interface AgentTerminalPanelProps {
 	showMoveToTrash?: boolean;
 	showSessionToolbar?: boolean;
 	onClose?: () => void;
+	onExpand?: () => void;
 	autoFocus?: boolean;
 	minimalHeaderTitle?: string;
 	minimalHeaderSubtitle?: string | null;
@@ -156,6 +157,7 @@ function AgentTerminalPanelLayout({
 	showMoveToTrash,
 	showSessionToolbar = true,
 	onClose,
+	onExpand,
 	autoFocus: _autoFocus = false,
 	minimalHeaderTitle = "Terminal",
 	minimalHeaderSubtitle = null,
@@ -227,7 +229,7 @@ function AgentTerminalPanelLayout({
 					</div>
 					<div className="h-px bg-border" />
 				</>
-			) : onClose ? (
+			) : onClose || onExpand ? (
 				<div
 					style={{
 						display: "flex",
@@ -263,13 +265,26 @@ function AgentTerminalPanelLayout({
 								/>
 							</Tooltip>
 						) : null}
-						<Button
-							icon={<X size={14} />}
-							variant="ghost"
-							size="sm"
-							onClick={onClose}
-							aria-label="Close terminal"
-						/>
+						{onExpand ? (
+							<Tooltip side="top" content="Expand">
+								<Button
+									icon={<Maximize2 size={12} />}
+									variant="ghost"
+									size="sm"
+									onClick={onExpand}
+									aria-label="Expand terminal"
+								/>
+							</Tooltip>
+						) : null}
+						{onClose ? (
+							<Button
+								icon={<X size={14} />}
+								variant="ghost"
+								size="sm"
+								onClick={onClose}
+								aria-label="Close terminal"
+							/>
+						) : null}
 					</div>
 				</div>
 			) : null}
