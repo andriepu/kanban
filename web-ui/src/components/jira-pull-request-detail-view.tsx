@@ -1,10 +1,12 @@
 import * as RadixDialog from "@radix-ui/react-dialog";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Terminal } from "lucide-react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useCallback, useRef, useState } from "react";
+import type { PullRequestTerminalPanelHandle } from "@/components/detail-panels/pull-request-terminal-panel";
 import { PullRequestTerminalPanel } from "@/components/detail-panels/pull-request-terminal-panel";
 import { JiraPullRequestDetailSidebar } from "@/components/jira-pull-request-detail-sidebar";
 import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 import { clampBetween } from "@/resize/resize-persistence";
 import {
 	loadResizePreference,
@@ -31,6 +33,8 @@ export function JiraPullRequestDetailView({
 	onClose,
 }: JiraPullRequestDetailViewProps): React.ReactElement {
 	const [sidebarRatio, setSidebarRatioState] = useState(() => loadResizePreference(SIDEBAR_RATIO_PREFERENCE));
+	const [canAddTerminal, setCanAddTerminal] = useState(false);
+	const terminalPanelRef = useRef<PullRequestTerminalPanelHandle>(null);
 
 	const containerRef = useRef<HTMLDivElement>(null);
 	const { startDrag } = useResizeDrag();
@@ -76,7 +80,7 @@ export function JiraPullRequestDetailView({
 				<RadixDialog.Content
 					className="fixed inset-0 z-50 flex flex-col bg-surface-0 focus:outline-none"
 					style={{ transform: "none" }}
-					onEscapeKeyDown={onClose}
+					onEscapeKeyDown={(event) => event.preventDefault()}
 					aria-describedby={undefined}
 				>
 					<RadixDialog.Title className="sr-only">{pullRequest.title}</RadixDialog.Title>
@@ -88,6 +92,18 @@ export function JiraPullRequestDetailView({
 							{pullRequest.jiraKey}
 						</span>
 						<span className="min-w-0 truncate text-sm text-text-primary">{pullRequest.title}</span>
+						<div className="ml-auto shrink-0">
+							<Tooltip content="Add stacked terminal">
+								<Button
+									variant="ghost"
+									size="sm"
+									icon={<Terminal size={16} />}
+									onClick={() => void terminalPanelRef.current?.addStackedTerminal()}
+									disabled={!canAddTerminal}
+									aria-label="Add stacked terminal"
+								/>
+							</Tooltip>
+						</div>
 					</div>
 
 					{/* Body */}
@@ -109,9 +125,11 @@ export function JiraPullRequestDetailView({
 						{/* Terminal */}
 						<div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-surface-1">
 							<PullRequestTerminalPanel
+								ref={terminalPanelRef}
 								pullRequestId={pullRequest.id}
 								baseRef={pullRequest.baseRef}
 								onOpenExternalUrl={handleOpenExternalUrl}
+								onReadyChange={setCanAddTerminal}
 							/>
 						</div>
 					</div>

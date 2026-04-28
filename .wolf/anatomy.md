@@ -1,12 +1,13 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-28T01:14:49.834Z
-> Files: 649 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-28T03:18:37.849Z
+> Files: 652 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
 
 - `1-api-trpc-jira-importfromjira-batch-1-i-quirky-pancake.md` — Speed up `/api/trpc/jira.importFromJira` + Syncing status polish (~2277 tok)
 - `1-merged-pr-on-enumerated-brooks.md` — Plan: Sticky-Merged PR State + Two-Line Subtask Row (~1003 tok)
+- `1-revert-adding-run-cryptic-pillow.md` — PR Detail: Revert Run, Disable Esc, Add Stacked Terminal Button (~1641 tok)
 - `1-when-pr-card-prancy-blum.md` — PR Card Click → Floating Fullscreen Modal + URL Routing (~1986 tok)
 - `again-merged-pr-is-smooth-bentley.md` — Plan: Fix merged PR icon flipping purple → green after auto-scan (~1456 tok)
 - `also-read-the-current-zany-garden.md` — Plan: Scan Open GitHub PRs → Attach as Subtasks on Matching Jira Cards (~1630 tok)
@@ -34,6 +35,7 @@
 - `open-to-task-will-delightful-twilight.md` — Open Task Tab → Clear Selected Repo (~743 tok)
 - `remove-kanban-agent-from-synchronous-bentley.md` — Remove Kanban Agent Panel from Project-Tab Sidebar (~1241 tok)
 - `rename-sidebar-tab-to-bubbly-goose.md` — Rename: Project → Repo, Subtask → PullRequest (~7386 tok)
+- `show-run-button-at-hidden-giraffe.md` — Show Run button in PR details pane header (~2946 tok)
 - `statusline-should-always-been-wobbly-donut.md` — Make JIRA sync statusline globally visible (~1505 tok)
 - `use-same-style-for-indexed-dahl.md` — PR Terminal: Style Parity + Auto-On on PR Tab (~1817 tok)
 - `when-card-in-pr-bright-deer.md` — PR Board Card Click → Fullscreen PR Detail Modal (~1972 tok)
@@ -329,7 +331,7 @@
 ## .worktrees/pr-detail-modal/web-ui/src/components/
 
 - `jira-pull-request-detail-sidebar.tsx` — ThreadCard (~911 tok)
-- `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1335 tok)
+- `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE. Fullscreen RadixDialog with resizable sidebar + PR terminal. Now renders ShortcutRunButton in mini-header once PR terminal session is ready. Accepts sendTaskSessionInput + prepareWaitForTerminalConnectionReady props from App. (~2200 tok)
 - `jira-subtask-detail-sidebar.tsx` — ThreadCard (~898 tok)
 - `jira-subtask-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1312 tok)
 
@@ -815,7 +817,7 @@
 
 ## web-ui/src/
 
-- `App.tsx` — Main React composition root for the browser app. (~11193 tok)
+- `App.tsx` — Main React composition root for the browser app. (~11206 tok)
 - `main.tsx` — _savedTheme (~441 tok)
 - `vite-env.d.ts` — / <reference types="vite/client" /> (~66 tok)
 
@@ -841,7 +843,7 @@
 - `jira-card-detail-view.test.tsx` — mockScanPRs (~3024 tok)
 - `jira-card-detail-view.tsx` — PULL_REQUEST_STATUS_COLORS (~1635 tok)
 - `jira-pull-request-detail-sidebar.tsx` — ThreadCard (~1064 tok)
-- `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1147 tok)
+- `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1373 tok)
 - `kanban-board.test.tsx` — dndMock — uses useEffect (~1704 tok)
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
 - `markdown-text.tsx` — MarkdownText (~489 tok)
@@ -855,6 +857,7 @@
 - `runtime-settings-dialog.test.tsx` — RadixSelectCtx — uses useContext (~2853 tok)
 - `runtime-settings-dialog.tsx` — Settings dialog composition for Kanban. (~14678 tok)
 - `search-select-dropdown.tsx` — MATCHED_TEXT_STYLE — uses useState, useMemo, useCallback, useEffect (~3277 tok)
+- `shortcut-run-button.tsx` — Extracted reusable Run button + shortcut dropdown + first-shortcut dialog. Props: shortcuts, selectedShortcutLabel, runningShortcutLabel, onRunShortcut, onSelectShortcutLabel, onCreateFirstShortcut, onAddShortcut. Used in TopBar and PR detail view. (~3600 tok)
 - `startup-onboarding-dialog.tsx` — StartupOnboardingDialog — renders modal (~2512 tok)
 - `task-create-dialog.tsx` — Default agent ID from runtimeConfig.selectedAgentId, used to show "Default (AgentName)" in picker (~6375 tok)
 - `task-image-input-utils.ts` — Synchronously collect accepted image files from a DataTransfer. (~716 tok)
@@ -864,7 +867,7 @@
 - `task-start-agent-onboarding-carousel.tsx` — TASK_START_ONBOARDING_SLIDES — uses useState, useEffect, useMemo, useCallback (~4689 tok)
 - `task-trash-warning-dialog.tsx` — getTrashWarningGuidance (~806 tok)
 - `top-bar.test.tsx` — findButtonByText (~1210 tok)
-- `top-bar.tsx` — MOBILE_TOUCH_TARGET — uses useState (~7300 tok)
+- `top-bar.tsx` — MOBILE_TOUCH_TARGET (~4608 tok)
 
 ## web-ui/src/components/ (continued)
 
@@ -886,7 +889,7 @@
 - `diff-viewer-panel.test.tsx` — hotkeyRegistrations (~3243 tok)
 - `diff-viewer-panel.tsx` — Identifies a single row for highlight tracking. (~10429 tok)
 - `file-tree-panel.tsx` — FileTreeRow — uses useMemo (~1050 tok)
-- `pull-request-terminal-panel.tsx` — PR_TERMINAL_TASK_PREFIX (~1412 tok)
+- `pull-request-terminal-panel.tsx` — PR_TERMINAL_TASK_PREFIX (~2442 tok)
 
 ## web-ui/src/components/git-history/
 
