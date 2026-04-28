@@ -3,7 +3,26 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { JiraPullRequestBoard } from "@/components/jira-pull-request-board";
+import type { RuntimeTaskSessionSummary } from "@/runtime/types";
 import type { JiraPullRequest } from "@/types/jira";
+
+function makeSummary(overrides: Partial<RuntimeTaskSessionSummary> = {}): RuntimeTaskSessionSummary {
+	return {
+		taskId: "task-1",
+		state: "running",
+		agentId: null,
+		workspacePath: null,
+		pid: null,
+		startedAt: null,
+		updatedAt: 1000,
+		lastOutputAt: null,
+		reviewReason: null,
+		exitCode: null,
+		lastHookAt: null,
+		latestHookActivity: null,
+		...overrides,
+	};
+}
 
 function makePullRequest(overrides: Partial<JiraPullRequest> = {}): JiraPullRequest {
 	return {
@@ -208,5 +227,130 @@ describe("JiraPullRequestBoard", () => {
 		const repoNameEl = container.querySelector("[data-pull-request-id='s1']")?.querySelector("[data-repo-name]");
 		expect(repoNameEl).not.toBeNull();
 		expect(repoNameEl?.textContent).toBe("alpha");
+	});
+
+	describe("activity indicator", () => {
+		it("shows no indicator when no PR terminal session exists", () => {
+			const pullRequest = makePullRequest({ id: "s1", prState: "open" });
+			act(() => {
+				root.render(
+					<JiraPullRequestBoard
+						pullRequests={[pullRequest]}
+						repoFilter={null}
+						sessions={{}}
+						onPullRequestClick={() => {}}
+					/>,
+				);
+			});
+			expect(container.querySelector("[data-pull-request-activity]")).toBeNull();
+		});
+
+		it("shows indicator when primary terminal is running", () => {
+			const pullRequest = makePullRequest({ id: "s1", prState: "open" });
+			const summary = makeSummary({
+				taskId: "__pr_terminal__:s1",
+				state: "running",
+				latestHookActivity: {
+					activityText: "Using Bash: git status",
+					toolName: "Bash",
+					toolInputSummary: "git status",
+					finalMessage: null,
+					hookEventName: "tool_use",
+					notificationType: null,
+					source: null,
+				},
+			});
+			act(() => {
+				root.render(
+					<JiraPullRequestBoard
+						pullRequests={[pullRequest]}
+						repoFilter={null}
+						sessions={{ "__pr_terminal__:s1": summary }}
+						onPullRequestClick={() => {}}
+					/>,
+				);
+			});
+			const indicator = container.querySelector("[data-pull-request-activity]");
+			expect(indicator).not.toBeNull();
+			expect(indicator?.textContent).toContain("Bash");
+		});
+
+		it("shows indicator from stacked terminal when primary is absent", () => {
+			const pullRequest = makePullRequest({ id: "s1", prState: "open" });
+			const stackedSummary = makeSummary({
+				taskId: "__pr_terminal__:s1:stacked:1",
+				state: "running",
+			});
+			act(() => {
+				root.render(
+					<JiraPullRequestBoard
+						pullRequests={[pullRequest]}
+						repoFilter={null}
+						sessions={{ "__pr_terminal__:s1:stacked:1": stackedSummary }}
+						onPullRequestClick={() => {}}
+					/>,
+				);
+			});
+			expect(container.querySelector("[data-pull-request-activity]")).not.toBeNull();
+		});
+
+		it("shows indicator with green dot when terminal awaiting review with finalMessage", () => {
+			const pullRequest = makePullRequest({ id: "s1", prState: "open" });
+			const summary = makeSummary({
+				taskId: "__pr_terminal__:s1",
+				state: "awaiting_review",
+				reviewReason: "hook",
+				latestHookActivity: {
+					activityText: null,
+					toolName: null,
+					toolInputSummary: null,
+					finalMessage: "Done with review",
+					hookEventName: "agent_end",
+					notificationType: null,
+					source: null,
+				},
+			});
+			act(() => {
+				root.render(
+					<JiraPullRequestBoard
+						pullRequests={[pullRequest]}
+						repoFilter={null}
+						sessions={{ "__pr_terminal__:s1": summary }}
+						onPullRequestClick={() => {}}
+					/>,
+				);
+			});
+			const indicator = container.querySelector("[data-pull-request-activity]");
+			expect(indicator?.textContent).toContain("Done with review");
+		});
+
+		it("priority-pick: failed primary wins over running stacked", () => {
+			const pullRequest = makePullRequest({ id: "s1", prState: "open" });
+			const failedSummary = makeSummary({
+				taskId: "__pr_terminal__:s1",
+				state: "failed",
+			});
+			const runningSummary = makeSummary({
+				taskId: "__pr_terminal__:s1:stacked:1",
+				state: "running",
+			});
+			act(() => {
+				root.render(
+					<JiraPullRequestBoard
+						pullRequests={[pullRequest]}
+						repoFilter={null}
+						sessions={{
+							"__pr_terminal__:s1": failedSummary,
+							"__pr_terminal__:s1:stacked:1": runningSummary,
+						}}
+						onPullRequestClick={() => {}}
+					/>,
+				);
+			});
+			const indicator = container.querySelector("[data-pull-request-activity]");
+			expect(indicator).not.toBeNull();
+			// Failed state renders "Task failed to start" text
+			expect(indicator?.textContent).toContain("Task failed to start");
+		});
 	});
 });

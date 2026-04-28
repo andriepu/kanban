@@ -1,6 +1,8 @@
+import { SessionActivityIndicator } from "@/components/shared/session-activity-indicator";
 import { cn } from "@/components/ui/cn";
 import { ColumnIndicator } from "@/components/ui/column-indicator";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
+import { selectActivePrTerminalSummary } from "@/terminal/pr-terminal-task-id";
 import type { JiraPullRequest } from "@/types/jira";
 
 type PrColumn = "draft" | "open" | "done";
@@ -84,7 +86,7 @@ function PullRequestColumn({
 					<PullRequestCard
 						key={pullRequest.id}
 						pullRequest={pullRequest}
-						isRunning={Boolean(sessions[pullRequest.id])}
+						activitySummary={selectActivePrTerminalSummary(sessions, pullRequest.id)}
 						showRepoName={showRepoName}
 						onClick={onPullRequestClick}
 					/>
@@ -96,16 +98,17 @@ function PullRequestColumn({
 
 function PullRequestCard({
 	pullRequest,
-	isRunning,
+	activitySummary,
 	showRepoName,
 	onClick,
 }: {
 	pullRequest: JiraPullRequest;
-	isRunning: boolean;
+	activitySummary: RuntimeTaskSessionSummary | null;
 	showRepoName: boolean;
 	onClick: (pullRequest: JiraPullRequest) => void;
 }): React.ReactElement {
 	const repoName = pullRequest.repoPath.split("/").pop() ?? pullRequest.repoPath;
+	const isActive = activitySummary !== null;
 
 	return (
 		<button
@@ -118,16 +121,16 @@ function PullRequestCard({
 				<span className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-xs text-text-secondary shrink-0">
 					{pullRequest.jiraKey}
 				</span>
-				{isRunning && <span className="inline-flex size-2 rounded-full bg-status-green shrink-0" title="Running" />}
 			</div>
 			<p className="text-sm text-text-primary font-medium truncate">{pullRequest.title}</p>
 			<p className="font-mono text-[11px] text-text-tertiary truncate mt-0.5">{pullRequest.branchName}</p>
+			<SessionActivityIndicator summary={activitySummary} identityKey={pullRequest.id} compact className="mt-1" />
 			{showRepoName && (
 				<p
 					data-repo-name=""
 					className={cn(
 						"font-mono text-[10px] mt-1 truncate",
-						isRunning ? "text-status-green" : "text-text-tertiary",
+						isActive ? "text-status-green" : "text-text-tertiary",
 					)}
 				>
 					{repoName}

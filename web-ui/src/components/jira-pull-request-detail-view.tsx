@@ -1,7 +1,7 @@
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { ArrowLeft, Terminal } from "lucide-react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { PullRequestTerminalPanelHandle } from "@/components/detail-panels/pull-request-terminal-panel";
 import { PullRequestTerminalPanel } from "@/components/detail-panels/pull-request-terminal-panel";
 import { JiraPullRequestDetailSidebar } from "@/components/jira-pull-request-detail-sidebar";
@@ -15,7 +15,9 @@ import {
 	type ResizeNumberPreference,
 } from "@/resize/resize-preferences";
 import { useResizeDrag } from "@/resize/use-resize-drag";
+import type { RuntimeTaskSessionSummary } from "@/runtime/types";
 import { LocalStorageKey } from "@/storage/local-storage-store";
+import { getStackedPrTerminalTaskIdMatcher, parseStackedPrTerminalCounter } from "@/terminal/pr-terminal-task-id";
 import type { JiraPullRequest } from "@/types/jira";
 
 const SIDEBAR_RATIO_PREFERENCE: ResizeNumberPreference = {
@@ -26,16 +28,31 @@ const SIDEBAR_RATIO_PREFERENCE: ResizeNumberPreference = {
 
 interface JiraPullRequestDetailViewProps {
 	pullRequest: JiraPullRequest;
+	sessions: Record<string, RuntimeTaskSessionSummary>;
 	onClose: () => void;
 }
 
 export function JiraPullRequestDetailView({
 	pullRequest,
+	sessions,
 	onClose,
 }: JiraPullRequestDetailViewProps): React.ReactElement {
 	const [sidebarRatio, setSidebarRatioState] = useState(() => loadResizePreference(SIDEBAR_RATIO_PREFERENCE));
 	const [canAddTerminal, setCanAddTerminal] = useState(false);
 	const terminalPanelRef = useRef<PullRequestTerminalPanelHandle>(null);
+
+	// Compute once on mount — captures which stacked PTYs are already alive for this PR.
+	const initialStackedTaskIds = useMemo(() => {
+		const isStacked = getStackedPrTerminalTaskIdMatcher(pullRequest.id);
+		return Object.keys(sessions)
+			.filter(isStacked)
+			.sort((a, b) => {
+				const na = parseStackedPrTerminalCounter(a, pullRequest.id) ?? 0;
+				const nb = parseStackedPrTerminalCounter(b, pullRequest.id) ?? 0;
+				return na - nb;
+			});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [pullRequest.id]); // intentional: snapshot at mount, not reactive to sessions changes
 
 	const containerRef = useRef<HTMLDivElement>(null);
 	const { startDrag } = useResizeDrag();
@@ -134,6 +151,8 @@ export function JiraPullRequestDetailView({
 								ref={terminalPanelRef}
 								pullRequestId={pullRequest.id}
 								baseRef={pullRequest.baseRef}
+								initialStackedTaskIds={initialStackedTaskIds}
+								sessions={sessions}
 								onOpenExternalUrl={handleOpenExternalUrl}
 								onReadyChange={setCanAddTerminal}
 							/>

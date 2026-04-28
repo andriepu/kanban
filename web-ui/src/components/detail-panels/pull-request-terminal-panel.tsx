@@ -6,10 +6,14 @@ import { Spinner } from "@/components/ui/spinner";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
 import { useRuntimeRepoConfig } from "@/runtime/use-runtime-repo-config";
+import {
+	getPrTerminalTaskId,
+	PR_TERMINAL_TASK_PREFIX,
+	parseStackedPrTerminalCounter,
+} from "@/terminal/pr-terminal-task-id";
 import { sendShellTerminalInput, startShellTerminalSession } from "@/terminal/shell-session-flow";
 import { useTerminalThemeColors } from "@/terminal/theme-colors";
 
-const PR_TERMINAL_TASK_PREFIX = "__pr_terminal__:";
 const PR_TERMINAL_INITIAL_COLS = 120;
 const PR_TERMINAL_INITIAL_ROWS = 16;
 const PR_TERMINAL_INITIAL_COMMAND = "claude";
@@ -21,7 +25,7 @@ interface ActiveShellSession {
 
 interface StackedSession {
 	taskId: string;
-	summary: RuntimeTaskSessionSummary;
+	summary: RuntimeTaskSessionSummary | null;
 }
 
 export interface PullRequestTerminalPanelHandle {
@@ -31,12 +35,17 @@ export interface PullRequestTerminalPanelHandle {
 export interface PullRequestTerminalPanelProps {
 	pullRequestId: string;
 	baseRef: string;
+	initialStackedTaskIds?: string[];
+	sessions?: Record<string, RuntimeTaskSessionSummary>;
 	onOpenExternalUrl: (url: string) => void;
 	onReadyChange?: (ready: boolean) => void;
 }
 
 export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandle, PullRequestTerminalPanelProps>(
-	function PullRequestTerminalPanel({ pullRequestId, baseRef, onOpenExternalUrl, onReadyChange }, ref): ReactElement {
+	function PullRequestTerminalPanel(
+		{ pullRequestId, baseRef, initialStackedTaskIds, sessions, onOpenExternalUrl, onReadyChange },
+		ref,
+	): ReactElement {
 		const terminalThemeColors = useTerminalThemeColors();
 		const [activeSession, setActiveSession] = useState<ActiveShellSession | null>(null);
 		const [isStartingSession, setIsStartingSession] = useState(false);
@@ -47,6 +56,8 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 
 		const stackedCounterRef = useRef(0);
 		const sessionContextRef = useRef<{ workspaceId: string; worktreePath: string | undefined } | null>(null);
+		const sessionsRef = useRef(sessions);
+		sessionsRef.current = sessions;
 		const onOpenExternalUrlRef = useRef(onOpenExternalUrl);
 		onOpenExternalUrlRef.current = onOpenExternalUrl;
 		const onReadyChangeRef = useRef(onReadyChange);
@@ -76,16 +87,6 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 							return;
 						}
 						setStackedSessions((prev) => [...prev, { taskId, summary: shellResult.summary! }]);
-						const needle = PR_TERMINAL_INITIAL_COMMAND.toLowerCase();
-						const agentRunning = shellResult.descendantCommands.some((cmd) => cmd.toLowerCase().includes(needle));
-						if (!agentRunning) {
-							await sendShellTerminalInput({
-								workspaceId: ctx.workspaceId,
-								taskId,
-								text: PR_TERMINAL_INITIAL_COMMAND,
-								appendNewline: true,
-							});
-						}
 					} catch (err: unknown) {
 						notifyError(err instanceof Error ? err.message : "Failed to start stacked terminal.");
 					}
@@ -100,9 +101,27 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 			setActiveSession(null);
 			setSessionError(null);
 			setSessionSummary(null);
-			setStackedSessions([]);
 			sessionContextRef.current = null;
 			onReadyChangeRef.current?.(false);
+
+			// Rehydrate stacked terminals from sessions already alive on the server.
+			if (initialStackedTaskIds && initialStackedTaskIds.length > 0) {
+				const snapshot = sessionsRef.current ?? {};
+				const rehydrated: StackedSession[] = initialStackedTaskIds.map((taskId) => ({
+					taskId,
+					summary: snapshot[taskId] ?? null,
+				}));
+				setStackedSessions(rehydrated);
+				const maxCounter = initialStackedTaskIds.reduce<number>((max, id) => {
+					const n = parseStackedPrTerminalCounter(id, pullRequestId);
+					return n !== null && n > max ? n : max;
+				}, 0);
+				stackedCounterRef.current = maxCounter;
+			} else {
+				setStackedSessions([]);
+				stackedCounterRef.current = 0;
+			}
+
 			const trpc = getRuntimeTrpcClient(null);
 			void (async () => {
 				try {
@@ -119,7 +138,7 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 						return;
 					}
 
-					const taskId = `${PR_TERMINAL_TASK_PREFIX}${pullRequestId}`;
+					const taskId = getPrTerminalTaskId(pullRequestId);
 					const shellResult = await startShellTerminalSession({
 						workspaceId: result.workspaceId,
 						taskId,

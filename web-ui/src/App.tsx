@@ -1007,7 +1007,11 @@ export default function App(): ReactElement {
 							</div>
 						) : null}
 						{resolvedPullRequest ? (
-							<JiraPullRequestDetailView pullRequest={resolvedPullRequest} onClose={closePullRequestModal} />
+							<JiraPullRequestDetailView
+								pullRequest={resolvedPullRequest}
+								sessions={sessions}
+								onClose={closePullRequestModal}
+							/>
 						) : null}
 					</div>
 				</div>
