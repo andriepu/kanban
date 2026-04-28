@@ -195,6 +195,12 @@ export async function createJiraPullRequest(
 	return pullRequest;
 }
 
+export async function saveJiraPullRequests(pullRequests: Record<string, JiraPullRequest>): Promise<void> {
+	await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests, {
+		lock: getPullRequestsLockRequest(),
+	});
+}
+
 export async function loadJiraDetails(): Promise<Record<string, JiraDetail>> {
 	const data = await readJsonFile<Record<string, JiraDetail>>(getDetailsFilePath());
 	if (data === null || typeof data !== "object") {

@@ -15,6 +15,9 @@ export interface StartShellTerminalSessionResult {
 	ok: boolean;
 	summary: RuntimeTaskSessionSummary | null;
 	shellBinary: string | null;
+	created: boolean;
+	foregroundProcess: string | null;
+	descendantCommands: string[];
 	error?: string;
 }
 
@@ -33,6 +36,9 @@ export async function startShellTerminalSession(
 	return {
 		...result,
 		shellBinary: result.shellBinary ?? null,
+		created: result.created ?? false,
+		foregroundProcess: result.foregroundProcess ?? null,
+		descendantCommands: result.descendantCommands ?? [],
 	};
 }
 

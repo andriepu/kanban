@@ -5,6 +5,7 @@ import {
 	resolveWindowsComSpec,
 	shouldUseWindowsCmdLaunch,
 } from "../core/windows-cmd-launch";
+import { getDescendantCommandLines } from "./process-tree";
 
 export interface PtyExitEvent {
 	exitCode: number;
@@ -105,6 +106,19 @@ export class PtySession {
 
 	get pid(): number {
 		return this.ptyProcess.pid;
+	}
+
+	getForegroundProcess(): string | null {
+		try {
+			const name = this.ptyProcess.process;
+			return typeof name === "string" && name.length > 0 ? name : null;
+		} catch {
+			return null;
+		}
+	}
+
+	getDescendantCommandLines(): string[] {
+		return getDescendantCommandLines(this.ptyProcess.pid);
 	}
 
 	write(data: string | Buffer): void {

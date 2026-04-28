@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { MarkdownText } from "@/components/markdown-text";
+import { cn } from "@/components/ui/cn";
 import { Spinner } from "@/components/ui/spinner";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import type { JiraPullRequestDetail, JiraPullRequestDetailThread } from "@/types/jira";
@@ -38,8 +39,10 @@ export function JiraPullRequestDetailSidebar({ pullRequestId }: JiraPullRequestD
 	const [detail, setDetail] = useState<JiraPullRequestDetail | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
 	useEffect(() => {
+		setIsDescriptionExpanded(false);
 		setDetail(null);
 		setError(null);
 		setIsLoading(true);
@@ -79,9 +82,22 @@ export function JiraPullRequestDetailSidebar({ pullRequestId }: JiraPullRequestD
 			{detail.body ? (
 				<div>
 					<div className="mb-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">Description</div>
-					<div className="text-sm text-text-primary">
+					<div
+						className={cn("overflow-hidden text-sm text-text-primary", !isDescriptionExpanded && "line-clamp-6")}
+					>
 						<MarkdownText>{detail.body}</MarkdownText>
 					</div>
+					{!isDescriptionExpanded && (
+						<button
+							type="button"
+							onClick={() => setIsDescriptionExpanded(true)}
+							aria-expanded={false}
+							aria-label="Expand description"
+							className="mt-1 text-xs text-text-tertiary hover:text-text-secondary"
+						>
+							Show more
+						</button>
+					)}
 				</div>
 			) : null}
 

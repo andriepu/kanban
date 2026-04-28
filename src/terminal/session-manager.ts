@@ -499,14 +499,24 @@ export class TerminalSessionManager implements TerminalSessionService {
 		return cloneSummary(entry.summary);
 	}
 
-	async startShellSession(request: StartShellSessionRequest): Promise<RuntimeTaskSessionSummary> {
+	async startShellSession(request: StartShellSessionRequest): Promise<{
+		summary: RuntimeTaskSessionSummary;
+		created: boolean;
+		foregroundProcess: string | null;
+		descendantCommands: string[];
+	}> {
 		const entry = this.ensureEntry(request.taskId);
 		entry.restartRequest = {
 			kind: "shell",
 			request: cloneStartShellSessionRequest(request),
 		};
 		if (entry.active && entry.summary.state === "running") {
-			return cloneSummary(entry.summary);
+			return {
+				summary: cloneSummary(entry.summary),
+				created: false,
+				foregroundProcess: entry.active.session.getForegroundProcess(),
+				descendantCommands: entry.active.session.getDescendantCommandLines(),
+			};
 		}
 
 		if (entry.active) {
@@ -647,7 +657,12 @@ export class TerminalSessionManager implements TerminalSessionService {
 		});
 		this.emitSummary(entry.summary);
 
-		return cloneSummary(entry.summary);
+		return {
+			summary: cloneSummary(entry.summary),
+			created: true,
+			foregroundProcess: session.getForegroundProcess(),
+			descendantCommands: session.getDescendantCommandLines(),
+		};
 	}
 
 	recoverStaleSession(taskId: string): RuntimeTaskSessionSummary | null {

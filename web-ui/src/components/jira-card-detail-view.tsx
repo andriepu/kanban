@@ -85,7 +85,7 @@ export function JiraCardDetailView({
 							</h2>
 							{issueData?.description && (
 								<div className="mt-2">
-									<div className={cn("overflow-hidden", !isDescriptionExpanded && "line-clamp-3")}>
+									<div className={cn("overflow-hidden", !isDescriptionExpanded && "line-clamp-6")}>
 										<MarkdownText>{issueData.description}</MarkdownText>
 									</div>
 									{!isDescriptionExpanded && (

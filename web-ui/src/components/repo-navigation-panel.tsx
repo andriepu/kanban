@@ -69,7 +69,7 @@ export function RepoNavigationPanel({
 	onSidebarTabChange: (tab: "task" | "pr") => void;
 	hasJiraConfig: boolean;
 	repoFilter: string | null;
-	onFilterRepo: (repoPath: string) => void;
+	onFilterRepo: (repoPath: string | null) => void;
 }): React.ReactElement {
 	const sortedRepos = [...repos].sort((a, b) => a.path.localeCompare(b.path));
 
@@ -425,9 +425,13 @@ export function RepoNavigationPanel({
 							removingRepoId={removingRepoId}
 							onSelect={(repoId, repoPath) => {
 								onSelectRepo(repoId);
-								onFilterRepo(repoPath);
-								if (isMobile) {
-									setCollapsed(true);
+								if (repoPath === repoFilter) {
+									onFilterRepo(null);
+								} else {
+									onFilterRepo(repoPath);
+									if (isMobile) {
+										setCollapsed(true);
+									}
 								}
 							}}
 							onRemove={(repoId) => {

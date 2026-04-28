@@ -1,8 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { access } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import { lockedFileSystem } from "../fs/locked-file-system.js";
 import type { JiraBoard, JiraCard, JiraDetail, JiraPullRequest } from "../jira/jira-board-state.js";
 import { extractJiraKey } from "../jira/jira-key-extract.js";
 import type { GhPullRequest, GhPullRequestDetail, GhPullRequestReviewThread } from "../jira/jira-pr-scan.js";
@@ -14,6 +11,7 @@ export interface CreateJiraApiDependencies {
 	loadJiraBoard: () => Promise<JiraBoard>;
 	saveJiraBoard: (board: JiraBoard) => Promise<void>;
 	loadJiraPullRequests: () => Promise<Record<string, JiraPullRequest>>;
+	saveJiraPullRequests: (pullRequests: Record<string, JiraPullRequest>) => Promise<void>;
 	loadJiraDetails: () => Promise<Record<string, JiraDetail>>;
 	saveJiraDetail: (detail: JiraDetail) => Promise<void>;
 	createJiraPullRequest: (input: Omit<JiraPullRequest, "id" | "createdAt" | "updatedAt">) => Promise<JiraPullRequest>;
@@ -44,10 +42,6 @@ export interface CreateJiraApiDependencies {
 	fetchGhPullRequestDetail: (owner: string, repo: string, number: number) => Promise<GhPullRequestDetail>;
 	getJiraProjectKey: () => string | null;
 	broadcastRuntimeReposUpdated?: () => void;
-}
-
-function getPullRequestsFilePath(): string {
-	return join(homedir(), ".kanban", "kanban", "jira-pull-requests.json");
 }
 
 const JIRA_STATUS_MAP: Record<string, "todo" | "in_progress" | "done"> = {
@@ -255,7 +249,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 				if (worktreeAccessible) {
 					const workspaceId = await deps.addWorkspace(pullRequest.repoPath);
 					pullRequests[pullRequestId] = { ...pullRequest, status: "in_progress", updatedAt: Date.now() };
-					await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
+					await deps.saveJiraPullRequests(pullRequests);
 					return {
 						started: true,
 						workspacePath: pullRequest.repoPath,
@@ -288,11 +282,11 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 							updatedAt: Date.now(),
 						};
 						pullRequests[pullRequestId] = updatedPr;
-						await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
+						await deps.saveJiraPullRequests(pullRequests);
 
 						const workspaceId = await deps.addWorkspace(updatedPr.repoPath);
 						pullRequests[pullRequestId] = { ...updatedPr, status: "in_progress", updatedAt: Date.now() };
-						await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
+						await deps.saveJiraPullRequests(pullRequests);
 						return {
 							started: true,
 							workspacePath: updatedPr.repoPath,
@@ -327,7 +321,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			const updated: JiraPullRequest = { ...pullRequest, status, updatedAt: Date.now() };
 			pullRequests[pullRequestId] = updated;
 
-			await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), pullRequests);
+			await deps.saveJiraPullRequests(pullRequests);
 
 			return { pullRequest: updated };
 		},
@@ -440,7 +434,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 				}
 			}
 
-			await lockedFileSystem.writeJsonFileAtomic(getPullRequestsFilePath(), updatedPullRequests);
+			await deps.saveJiraPullRequests(updatedPullRequests);
 
 			deps.broadcastRuntimeReposUpdated?.();
 

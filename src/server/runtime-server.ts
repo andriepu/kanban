@@ -20,6 +20,7 @@ import {
 	loadJiraPullRequests,
 	saveJiraBoard,
 	saveJiraDetail,
+	saveJiraPullRequests,
 } from "../jira/jira-board-state";
 import { fetchGhPullRequestDetail, listAuthoredGhPullRequestsForProject } from "../jira/jira-pr-scan";
 import type { JiraRestCredentials } from "../jira/jira-rest";
@@ -183,6 +184,7 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 		loadJiraBoard,
 		saveJiraBoard,
 		loadJiraPullRequests,
+		saveJiraPullRequests,
 		loadJiraDetails,
 		saveJiraDetail,
 		createJiraPullRequest,

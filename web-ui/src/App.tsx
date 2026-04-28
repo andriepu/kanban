@@ -506,20 +506,29 @@ export default function App(): ReactElement {
 		}
 	}, [closeHomeTerminal, currentRepoId, hasNoRepos, isHomeTerminalOpen, selectedCard]);
 
-	const previousSidebarTabRef = useRef(sidebarTab);
 	useEffect(() => {
-		const previous = previousSidebarTabRef.current;
-		previousSidebarTabRef.current = sidebarTab;
-		if (sidebarTab !== "pr" || previous === "pr") {
+		if (sidebarTab !== "pr" || selectedCard || hasNoRepos || !currentRepoId) {
 			return;
 		}
-		if (selectedCard || hasNoRepos || !currentRepoId) {
-			return;
+		if (repoFilter === null) {
+			if (isHomeTerminalOpen) {
+				closeHomeTerminal();
+			}
+		} else {
+			if (!isHomeTerminalOpen) {
+				openHomeTerminal();
+			}
 		}
-		if (!isHomeTerminalOpen) {
-			openHomeTerminal();
-		}
-	}, [sidebarTab, selectedCard, hasNoRepos, currentRepoId, isHomeTerminalOpen, openHomeTerminal]);
+	}, [
+		sidebarTab,
+		repoFilter,
+		selectedCard,
+		hasNoRepos,
+		currentRepoId,
+		isHomeTerminalOpen,
+		openHomeTerminal,
+		closeHomeTerminal,
+	]);
 
 	useEffect(() => {
 		if (selectedCard || hasNoRepos || !currentRepoId) {
@@ -528,8 +537,11 @@ export default function App(): ReactElement {
 		if (homeTerminalDefaultOpenedRepoIdRef.current === currentRepoId) {
 			return;
 		}
+		const isInitialLoad = homeTerminalDefaultOpenedRepoIdRef.current === null;
 		homeTerminalDefaultOpenedRepoIdRef.current = currentRepoId;
-		openHomeTerminal();
+		if (!isInitialLoad) {
+			openHomeTerminal();
+		}
 	}, [currentRepoId, hasNoRepos, openHomeTerminal, selectedCard]);
 
 	const showHomeBottomTerminal = !selectedCard && !hasNoRepos && isHomeTerminalOpen;

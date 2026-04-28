@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AgentTerminalPanel } from "@/components/detail-panels/agent-terminal-panel";
 import { Spinner } from "@/components/ui/spinner";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
@@ -29,7 +29,6 @@ export function PullRequestTerminalPanel({
 	baseRef,
 	onOpenExternalUrl,
 }: PullRequestTerminalPanelProps): ReactElement {
-	const trpc = getRuntimeTrpcClient(null);
 	const terminalThemeColors = useTerminalThemeColors();
 	const [activeSession, setActiveSession] = useState<ActiveShellSession | null>(null);
 	const [isStartingSession, setIsStartingSession] = useState(false);
@@ -37,12 +36,16 @@ export function PullRequestTerminalPanel({
 	const [sessionSummary, setSessionSummary] = useState<RuntimeTaskSessionSummary | null>(null);
 	const { config: runtimeRepoConfig } = useRuntimeRepoConfig(activeSession?.workspaceId ?? null);
 
+	const onOpenExternalUrlRef = useRef(onOpenExternalUrl);
+	onOpenExternalUrlRef.current = onOpenExternalUrl;
+
 	useEffect(() => {
 		let isCancelled = false;
 		setIsStartingSession(true);
 		setActiveSession(null);
 		setSessionError(null);
 		setSessionSummary(null);
+		const trpc = getRuntimeTrpcClient(null);
 		void (async () => {
 			try {
 				const result = await trpc.jira.startPullRequestSession.mutate({ pullRequestId });
@@ -50,7 +53,7 @@ export function PullRequestTerminalPanel({
 					return;
 				}
 				if (result.openUrl) {
-					onOpenExternalUrl(result.openUrl);
+					onOpenExternalUrlRef.current(result.openUrl);
 					return;
 				}
 				if (!result.workspaceId) {
@@ -78,14 +81,19 @@ export function PullRequestTerminalPanel({
 				setActiveSession({ workspaceId: result.workspaceId, taskId });
 				setSessionSummary(shellResult.summary);
 
-				const commandResult = await sendShellTerminalInput({
-					workspaceId: result.workspaceId,
-					taskId,
-					text: PR_TERMINAL_INITIAL_COMMAND,
-					appendNewline: true,
-				});
-				if (isCancelled || commandResult.ok) {
-					return;
+				// Bootstrap the agent CLI when no claude process is running under this
+				// shell. We scan the PTY's descendant process tree because IPty.process
+				// reports COMM (e.g. "node" for Node-based CLIs), which doesn't reliably
+				// identify claude. Argv-based matching catches `node /path/claude/cli.js`.
+				const needle = PR_TERMINAL_INITIAL_COMMAND.toLowerCase();
+				const agentRunning = shellResult.descendantCommands.some((cmd) => cmd.toLowerCase().includes(needle));
+				if (!agentRunning) {
+					await sendShellTerminalInput({
+						workspaceId: result.workspaceId,
+						taskId,
+						text: PR_TERMINAL_INITIAL_COMMAND,
+						appendNewline: true,
+					});
 				}
 			} catch (err: unknown) {
 				if (isCancelled) {
@@ -101,7 +109,7 @@ export function PullRequestTerminalPanel({
 		return () => {
 			isCancelled = true;
 		};
-	}, [baseRef, onOpenExternalUrl, pullRequestId, trpc]);
+	}, [pullRequestId, baseRef]);
 
 	if (isStartingSession) {
 		return (

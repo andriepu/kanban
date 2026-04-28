@@ -747,6 +747,9 @@ export const runtimeShellSessionStartResponseSchema = z.object({
 	ok: z.boolean(),
 	summary: runtimeTaskSessionSummarySchema.nullable(),
 	shellBinary: z.string().nullable().optional(),
+	created: z.boolean().optional(),
+	foregroundProcess: z.string().nullable().optional(),
+	descendantCommands: z.array(z.string()).optional(),
 	error: z.string().optional(),
 });
 export type RuntimeShellSessionStartResponse = z.infer<typeof runtimeShellSessionStartResponseSchema>;

@@ -350,18 +350,23 @@ export function createRuntimeApi(deps: CreateRuntimeApiDependencies): RuntimeTrp
 								ensure: true,
 							})
 						: workspaceScope.workspacePath;
-				const summary = await terminalManager.startShellSession({
-					taskId: body.taskId,
-					cwd: shellCwd,
-					cols: body.cols,
-					rows: body.rows,
-					binary: shell.binary,
-					args: shell.args,
-				});
+				const { summary, created, foregroundProcess, descendantCommands } = await terminalManager.startShellSession(
+					{
+						taskId: body.taskId,
+						cwd: shellCwd,
+						cols: body.cols,
+						rows: body.rows,
+						binary: shell.binary,
+						args: shell.args,
+					},
+				);
 				return {
 					ok: true,
 					summary,
 					shellBinary: shell.binary,
+					created,
+					foregroundProcess,
+					descendantCommands,
 				};
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-27T22:32:16.839Z
-> Files: 642 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-28T01:14:49.834Z
+> Files: 649 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
 
@@ -10,6 +10,7 @@
 - `1-when-pr-card-prancy-blum.md` — PR Card Click → Floating Fullscreen Modal + URL Routing (~1986 tok)
 - `again-merged-pr-is-smooth-bentley.md` — Plan: Fix merged PR icon flipping purple → green after auto-scan (~1456 tok)
 - `also-read-the-current-zany-garden.md` — Plan: Scan Open GitHub PRs → Attach as Subtasks on Matching Jira Cards (~1630 tok)
+- `and-push-vectorized-tulip.md` — Commit + Push (~592 tok)
 - `click-pr-list-on-flickering-crane.md` — Plan: Task-tab PR-row click opens PR detail modal (parity with PR card click) (~1209 tok)
 - `collapsed-tab-sidebar-styling-cryptic-kitten.md` — Restore collapsed project-tab sidebar button styling (~877 tok)
 - `continue-zippy-diffie.md` — Plan: Reuse existing worktree when branch already exists (~870 tok)
@@ -28,6 +29,7 @@
 - `in-project-tab-list-encapsulated-steele.md` — Plan: Gray out repos in Projects tab when no Jira subtasks (~1441 tok)
 - `jira-task-details-need-peppy-corbato.md` — Jira Task Details Polish (~1311 tok)
 - `jira-task-details-need-snazzy-cherny.md` — Jira Task Details: Snazzier Display (~2096 tok)
+- `make-pr-details-description-streamed-ripple.md` — Plan — Collapse PR Detail Description by Default (JIRA Parity) (~973 tok)
 - `now-it-s-flashing-to-precious-wave.md` — Plan: Fix PR Icon Color Flash (root cause) (~1646 tok)
 - `open-to-task-will-delightful-twilight.md` — Open Task Tab → Clear Selected Repo (~743 tok)
 - `remove-kanban-agent-from-synchronous-bentley.md` — Remove Kanban Agent Panel from Project-Tab Sidebar (~1241 tok)
@@ -37,6 +39,7 @@
 - `when-card-in-pr-bright-deer.md` — PR Board Card Click → Fullscreen PR Detail Modal (~1972 tok)
 - `when-first-jira-card-cozy-puddle.md` — Fix: PR icon missing on first Jira card click after board load (~1737 tok)
 - `when-i-first-load-curried-scroll.md` — Plan: Stay on `/` when no repo selected; redirect to `/<repo>` only on user action (~1926 tok)
+- `when-i-open-pr-website-nuxt-pol-4509-ema-quiet-fox.md` — PR Terminal: "claude" prefilled twice on open (~1542 tok)
 - `when-i-switch-back-twinkling-bear.md` — PR tab reset on tab switch (~1232 tok)
 - `when-i-switch-to-memoized-clover.md` — Plan: Make Task tab repo-agnostic; reset PR repo filter on PR-tab switch (~1197 tok)
 - `when-task-tab-active-serene-moon.md` — Plan: Tab-Aware URL Routing (`/task`, `/pr`, `/pr/<repo_name>`) (~1956 tok)
@@ -594,7 +597,7 @@
 ## src/core/
 
 - `agent-catalog.ts` — Exports RuntimeAgentCatalogEntry, RUNTIME_AGENT_CATALOG, RUNTIME_LAUNCH_SUPPORTED_AGENT_IDS, isRuntimeAgentLaunchSupported + 2 more (~350 tok)
-- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceCha (~10900 tok)
+- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceCha (~11189 tok)
 - `api-validation.ts` — API routes: GET (6 endpoints) (~3242 tok)
 - `git-process-env.ts` — Exports createGitProcessEnv (~173 tok)
 - `graceful-shutdown.ts` — Exports HandledShutdownSignal, GracefulShutdownProcess, getExitCodeForSignal, shouldSuppressImmediateDuplicateShutdownSignals, installGracefulShutd... (~1807 tok)
@@ -613,7 +616,7 @@
 
 ## src/jira/
 
-- `jira-board-state.ts` — Exports JiraCard, JiraBoard, JiraDetail, JiraPullRequest + 7 more (~2347 tok)
+- `jira-board-state.ts` — Exports JiraCard, JiraBoard, JiraDetail, JiraPullRequest + 8 more (~2416 tok)
 - `jira-pr-scan.ts` — listAuthoredGhPullRequestsForProject(projectKey): dual-alias GraphQL (open + closed in:title KEY), GhPullRequest has state field (~750 tok)
 - `jira-rest.ts` — Exports JiraRestCredentials, JiraIssueRaw, JiraRestAuthError, searchJiraIssuesViaRest + 2 more (~1839 tok)
 - `jira-worktree.ts` — Derive a kebab branch name: "{jiraKey}-{slug}" — max 63 chars total. (~1624 tok)
@@ -635,7 +638,7 @@
 - `browser.ts` — Exports openInBrowser (~270 tok)
 - `directory-picker.ts` — Exports pickDirectoryPathFromSystemDialog (~1345 tok)
 - `process-termination.ts` — Exports terminateProcessForTimeout (~252 tok)
-- `runtime-server.ts` — API routes: GET (1 endpoints) (~4223 tok)
+- `runtime-server.ts` — API routes: GET (1 endpoints) (~4244 tok)
 - `runtime-state-hub.ts` — Streams live runtime state to browser clients over websocket. (~4867 tok)
 - `shell.ts` (~19 tok)
 - `shutdown-coordinator.ts` — Exports RuntimeShutdownCoordinatorDependencies, shutdownRuntimeServer (~2010 tok)
@@ -658,8 +661,9 @@
 - `hook-runtime-context.ts` — Exports KANBAN_HOOK_TASK_ID_ENV, KANBAN_HOOK_WORKSPACE_ID_ENV, HookRuntimeContext, createHookRuntimeEnv, parseHookRuntimeContextFromEnv (~264 tok)
 - `opencode-paths.ts` — Exports getOpenCodeConfigPathCandidates, getOpenCodeModelStatePathCandidates, getOpenCodeAuthPathCandidates (~828 tok)
 - `output-utils.ts` — Exports stripAnsi (~248 tok)
-- `pty-session.ts` — Exports PtyExitEvent, SpawnPtySessionRequest, PtySession (~1194 tok)
-- `session-manager.ts` — PTY-backed runtime for non-Cline task sessions and the workspace shell terminal. (~8901 tok)
+- `process-tree.ts` — Exports getDescendantCommandLines (~489 tok)
+- `pty-session.ts` — Exports PtyExitEvent, SpawnPtySessionRequest, PtySession (~1296 tok)
+- `session-manager.ts` — PTY-backed runtime for non-Cline task sessions and the workspace shell terminal. (~9024 tok)
 - `session-state-machine.ts` — Exports SessionTransitionEvent, SessionTransitionResult, reduceSessionTransition (~600 tok)
 - `task-image-prompt.ts` — Exports prepareTaskPromptWithImages (~724 tok)
 - `terminal-protocol-filter.ts` — Exports TerminalProtocolFilterState, CreateTerminalProtocolFilterStateOptions, FilterTerminalProtocolOutputOptions, createTerminalProtocolFilterSta... (~1348 tok)
@@ -671,9 +675,9 @@
 
 - `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. (~6483 tok)
 - `hooks-api.ts` — Exports CreateHooksApiDependencies, createHooksApi (~1298 tok)
-- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~4604 tok)
+- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~4502 tok)
 - `projects-api.ts` — Exports CreateProjectsApiDependencies, createProjectsApi (~3949 tok)
-- `runtime-api.ts` — Coordinates the runtime-side TRPC handlers used by the browser. (~3797 tok)
+- `runtime-api.ts` — Coordinates the runtime-side TRPC handlers used by the browser. (~3844 tok)
 - `workspace-api.ts` — Exports CreateWorkspaceApiDependencies, createWorkspaceApi (~3436 tok)
 
 ## src/update/
@@ -768,7 +772,7 @@
 ## test/runtime/trpc/
 
 - `hooks-api.test.ts` — Declares createSummary (~1268 tok)
-- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~9702 tok)
+- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~9742 tok)
 - `projects-api.test.ts` — actual: createTestCwd, createDefaultDeps (~4823 tok)
 - `runtime-api.test.ts` — agentRegistryMocks: createSummary, createRuntimeConfigState (~2718 tok)
 - `workspace-api.test.ts` — workspaceTaskWorktreeMocks: createSummary, createChangesResponse (~1748 tok)
@@ -811,7 +815,7 @@
 
 ## web-ui/src/
 
-- `App.tsx` — Main React composition root for the browser app. (~11210 tok)
+- `App.tsx` — Main React composition root for the browser app. (~11193 tok)
 - `main.tsx` — _savedTheme (~441 tok)
 - `vite-env.d.ts` — / <reference types="vite/client" /> (~66 tok)
 
@@ -836,6 +840,7 @@
 - `jira-board.tsx` — COLUMNS (~1808 tok)
 - `jira-card-detail-view.test.tsx` — mockScanPRs (~3024 tok)
 - `jira-card-detail-view.tsx` — PULL_REQUEST_STATUS_COLORS (~1635 tok)
+- `jira-pull-request-detail-sidebar.tsx` — ThreadCard (~1064 tok)
 - `jira-pull-request-detail-view.tsx` — SIDEBAR_RATIO_PREFERENCE (~1147 tok)
 - `kanban-board.test.tsx` — dndMock — uses useEffect (~1704 tok)
 - `kanban-board.tsx` — BOARD_COLUMN_ORDER — uses useRef, useEffect, useCallback (~4525 tok)
@@ -846,7 +851,7 @@
 - `project-navigation-panel.test.tsx` — Wrapper that owns the sidebar layout state via the hook and passes it as props. (~2373 tok)
 - `project-navigation-panel.tsx` — COLLAPSED_WIDTH (~6025 tok)
 - `repo-navigation-panel.test.tsx` — Wrapper that owns the sidebar layout state via the hook and passes it as props. (~2149 tok)
-- `repo-navigation-panel.tsx` — COLLAPSED_WIDTH (~6124 tok)
+- `repo-navigation-panel.tsx` — COLLAPSED_WIDTH (~6154 tok)
 - `runtime-settings-dialog.test.tsx` — RadixSelectCtx — uses useContext (~2853 tok)
 - `runtime-settings-dialog.tsx` — Settings dialog composition for Kanban. (~14678 tok)
 - `search-select-dropdown.tsx` — MATCHED_TEXT_STYLE — uses useState, useMemo, useCallback, useEffect (~3277 tok)
@@ -881,6 +886,7 @@
 - `diff-viewer-panel.test.tsx` — hotkeyRegistrations (~3243 tok)
 - `diff-viewer-panel.tsx` — Identifies a single row for highlight tracking. (~10429 tok)
 - `file-tree-panel.tsx` — FileTreeRow — uses useMemo (~1050 tok)
+- `pull-request-terminal-panel.tsx` — PR_TERMINAL_TASK_PREFIX (~1412 tok)
 
 ## web-ui/src/components/git-history/
 
@@ -1038,6 +1044,7 @@
 ## web-ui/src/terminal/
 
 - `persistent-terminal-manager.ts` — ThemeTerminalColors: generateTerminalClientId, getTerminalIoWebSocketUrl, getTerminalControlWebSocketUrl + 6 more (~6001 tok)
+- `shell-session-flow.ts` — Exports StartShellTerminalSessionInput, StartShellTerminalSessionResult, startShellTerminalSession, (~477 tok)
 - `terminal-controller-registry.ts` — Exports TerminalController, getTerminalController, waitForTerminalLikelyPrompt, registerTerminalController (~265 tok)
 - `terminal-geometry-registry.ts` — Exports TerminalGeometry, reportTerminalGeometry, clearTerminalGeometry, getTerminalGeometry, prepareWaitForTerminalGeometry (~472 tok)
 - `terminal-input.ts` — Exports SendTerminalInputOptions (~36 tok)

@@ -15,6 +15,7 @@ function createMockDeps(): CreateJiraApiDependencies {
 		loadJiraBoard: vi.fn().mockResolvedValue({ cards: [] }),
 		saveJiraBoard: vi.fn().mockResolvedValue(undefined),
 		loadJiraPullRequests: vi.fn().mockResolvedValue({}),
+		saveJiraPullRequests: vi.fn().mockResolvedValue(undefined),
 		loadJiraDetails: vi.fn().mockResolvedValue({}),
 		saveJiraDetail: vi.fn().mockResolvedValue(undefined),
 		createJiraPullRequest: vi.fn().mockResolvedValue({
