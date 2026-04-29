@@ -397,6 +397,15 @@ export default function App(): ReactElement {
 		);
 	}, [selectedPrBranch, repoFilter, jiraBoard.pullRequests]);
 
+	const relatedPullRequests = useMemo((): JiraPullRequest[] => {
+		if (!resolvedPullRequest) return [];
+		const card = jiraBoard.board.cards.find((c) => c.jiraKey === resolvedPullRequest.jiraKey);
+		if (!card) return [];
+		return card.pullRequestIds
+			.map((id) => jiraBoard.pullRequests[id])
+			.filter((pr): pr is JiraPullRequest => Boolean(pr) && pr.id !== resolvedPullRequest.id);
+	}, [resolvedPullRequest, jiraBoard.board, jiraBoard.pullRequests]);
+
 	const persistWorkspaceStateAsync = useCallback(
 		async (input: { workspaceId: string; payload: Parameters<typeof saveWorkspaceState>[1] }) =>
 			await saveWorkspaceState(input.workspaceId, input.payload),
@@ -1012,6 +1021,8 @@ export default function App(): ReactElement {
 							<JiraPullRequestDetailView
 								pullRequest={resolvedPullRequest}
 								sessions={sessions}
+								relatedPullRequests={relatedPullRequests}
+								onOpenPullRequest={handlePullRequestClick}
 								onClose={closePullRequestModal}
 							/>
 						) : null}

@@ -37,6 +37,8 @@ export type PrTerminalLayout = "vertical" | "horizontal" | "tiled";
 
 export interface PullRequestTerminalPanelProps {
 	pullRequestId: string;
+	repoPath: string;
+	branchName: string;
 	baseRef: string;
 	layout?: PrTerminalLayout;
 	initialStackedTaskIds?: string[];
@@ -50,6 +52,8 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 	function PullRequestTerminalPanel(
 		{
 			pullRequestId,
+			repoPath,
+			branchName,
 			baseRef,
 			layout = "vertical",
 			initialStackedTaskIds,
@@ -162,7 +166,7 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 			const trpc = getRuntimeTrpcClient(null);
 			void (async () => {
 				try {
-					const result = await trpc.jira.startPullRequestSession.mutate({ pullRequestId });
+					const result = await trpc.jira.startPullRequestSession.mutate({ pullRequestId, repoPath, branchName });
 					if (isCancelled) {
 						return;
 					}
@@ -229,7 +233,7 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 				isCancelled = true;
 				onReadyChangeRef.current?.(false);
 			};
-		}, [pullRequestId, baseRef]);
+		}, [pullRequestId, repoPath, branchName, baseRef]);
 
 		if (isStartingSession) {
 			return (

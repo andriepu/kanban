@@ -587,7 +587,7 @@ export const runtimeAppRouter = t.router({
 			.query(({ ctx, input }) => ctx.jiraApi.fetchPullRequestDetail(input.pullRequestId)),
 		startPullRequestSession: t.procedure
 			.input(jiraPullRequestSessionStartRequestSchema)
-			.mutation(({ ctx, input }) => ctx.jiraApi.startPullRequestSession(input.pullRequestId)),
+			.mutation(({ ctx, input }) => ctx.jiraApi.startPullRequestSession(input)),
 		stopPullRequestSession: t.procedure
 			.input(jiraPullRequestSessionStopRequestSchema)
 			.mutation(({ ctx, input }) => ctx.jiraApi.stopPullRequestSession(input.pullRequestId, input.workspacePath)),

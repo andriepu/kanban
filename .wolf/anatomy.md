@@ -1,10 +1,12 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-29T05:46:23.943Z
-> Files: 458 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-29T07:41:22.590Z
+> Files: 462 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
 
+- `i-got-this-for-structured-pony.md` — Fix: `startPullRequestSession` fails with stale UUID on freshly-resolved PR route (~1594 tok)
+- `if-i-focus-on-zazzy-cocoa.md` — Plan: Show related PRs (same Jira key) in PR detail sidebar (~1752 tok)
 - `typing-exit-on-additional-woolly-beaver.md` — Fix: typing `exit` in stacked PR terminal does not close the panel (~1044 tok)
 
 ## ./
@@ -216,7 +218,7 @@
 ## src/core/
 
 - `agent-catalog.ts` — Exports RuntimeAgentCatalogEntry, RUNTIME_AGENT_CATALOG, RUNTIME_LAUNCH_SUPPORTED_AGENT_IDS, isRuntimeAgentLaunchSupported + 2 more (~350 tok)
-- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceChangesRequestSchema, runtimeWorkspaceChangesModeS... (~11143 tok)
+- `api-contract.ts` — Zod schemas: runtimeWorkspaceFileStatusSchema, runtimeWorkspaceFileChangeSchema, runtimeWorkspaceCha (~11166 tok)
 - `api-validation.ts` — API routes: GET (6 endpoints) (~3285 tok)
 - `git-process-env.ts` — Exports createGitProcessEnv (~173 tok)
 - `graceful-shutdown.ts` — Exports HandledShutdownSignal, GracefulShutdownProcess, getExitCodeForSignal, shouldSuppressImmediateDuplicateShutdownSignals, installGracefulShutd... (~1807 tok)
@@ -287,9 +289,9 @@
 
 ## src/trpc/
 
-- `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. (~6752 tok)
+- `app-router.ts` — Defines the typed TRPC boundary between the browser and the local runtime. (~6748 tok)
 - `hooks-api.ts` — Exports CreateHooksApiDependencies, createHooksApi (~1298 tok)
-- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~5241 tok)
+- `jira-api.ts` — Exports CreateJiraApiDependencies, createJiraApi (~5507 tok)
 - `repos-api.ts` — Exports CreateReposApiDependencies, createReposApi (~3881 tok)
 - `runtime-api.ts` — Coordinates the runtime-side TRPC handlers used by the browser. (~4095 tok)
 - `workspace-api.ts` — Exports CreateWorkspaceApiDependencies, createWorkspaceApi (~3432 tok)
@@ -383,7 +385,7 @@
 ## test/runtime/trpc/
 
 - `hooks-api.test.ts` — Declares createSummary (~1268 tok)
-- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~11592 tok)
+- `jira-api.test.ts` — CreateJiraApiDependencies: createMockDeps (~12393 tok)
 - `projects-api.test.ts` — actual: createTestCwd, createDefaultDeps (~4778 tok)
 - `runtime-api.test.ts` — agentRegistryMocks: createSummary, createRuntimeConfigState, createApi (~3371 tok)
 - `workspace-api.test.ts` — workspaceTaskWorktreeMocks: createSummary, createChangesResponse (~1745 tok)
@@ -426,7 +428,7 @@
 
 ## web-ui/src/
 
-- `App.tsx` — Main React composition root for the browser app. (~10687 tok)
+- `App.tsx` — Main React composition root for the browser app. (~10846 tok)
 - `main.tsx` — Migrate legacy localStorage keys from old naming conventions. (~395 tok)
 - `vite-env.d.ts` — / <reference types="vite/client" /> (~23 tok)
 
@@ -450,11 +452,13 @@
 - `jira-board.test.tsx` — mockJiraBoard (~2572 tok)
 - `jira-board.tsx` — COLUMNS (~1833 tok)
 - `jira-card-detail-view.test.tsx` — mockScanPRs (~2997 tok)
-- `jira-card-detail-view.tsx` — PR_STATE_COLORS — uses useState, useEffect (~1542 tok)
+- `jira-card-detail-view.tsx` — JiraCardDetailView (~1221 tok)
 - `jira-pull-request-board.test.tsx` — makeSummary (~3105 tok)
 - `jira-pull-request-board.tsx` — PULL_REQUEST_COLUMNS (~1240 tok)
-- `jira-pull-request-detail-sidebar.tsx` — ThreadCard — uses useState, useEffect (~1067 tok)
-- `jira-pull-request-detail-view.tsx` — LAYOUT_CYCLE (~2118 tok)
+- `jira-pull-request-detail-sidebar.test.tsx` — mockFetchPullRequestDetail (~1375 tok)
+- `jira-pull-request-detail-sidebar.tsx` — ThreadCard (~1268 tok)
+- `jira-pull-request-detail-view.tsx` — LAYOUT_CYCLE (~2215 tok)
+- `jira-pull-request-row.tsx` — PR_STATE_COLORS (~445 tok)
 - `markdown-text.tsx` — MarkdownText (~489 tok)
 - `open-workspace-button.tsx` — OpenTargetIcon — uses useState (~891 tok)
 - `pr-repo-list.test.tsx` — makeRepo (~1371 tok)
@@ -491,7 +495,7 @@
 - `diff-viewer-panel.tsx` — Identifies a single row for highlight tracking. (~10429 tok)
 - `file-tree-panel.tsx` — FileTreeRow — uses useMemo (~1050 tok)
 - `pr-terminal-expanded-dialog.tsx` — PrTerminalExpandedDialog (~793 tok)
-- `pull-request-terminal-panel.tsx` — PR_TERMINAL_INITIAL_COLS (~3562 tok)
+- `pull-request-terminal-panel.tsx` — PR_TERMINAL_INITIAL_COLS (~3582 tok)
 
 ## web-ui/src/components/git-history/
 

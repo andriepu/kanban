@@ -1003,7 +1003,11 @@ export const jiraScanReposResponseSchema = z.object({
 	repos: z.array(z.object({ id: z.string(), path: z.string() })),
 });
 
-export const jiraPullRequestSessionStartRequestSchema = z.object({ pullRequestId: z.string() });
+export const jiraPullRequestSessionStartRequestSchema = z.object({
+	pullRequestId: z.string().optional(),
+	repoPath: z.string().optional(),
+	branchName: z.string().optional(),
+});
 export const jiraPullRequestSessionStartResponseSchema = z.object({
 	started: z.boolean(),
 	workspacePath: z.string(),

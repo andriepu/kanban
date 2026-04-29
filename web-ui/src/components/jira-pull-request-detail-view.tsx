@@ -48,12 +48,16 @@ const SIDEBAR_RATIO_PREFERENCE: ResizeNumberPreference = {
 interface JiraPullRequestDetailViewProps {
 	pullRequest: JiraPullRequest;
 	sessions: Record<string, RuntimeTaskSessionSummary>;
+	relatedPullRequests: JiraPullRequest[];
+	onOpenPullRequest: (pullRequest: JiraPullRequest) => void;
 	onClose: () => void;
 }
 
 export function JiraPullRequestDetailView({
 	pullRequest,
 	sessions,
+	relatedPullRequests,
+	onOpenPullRequest,
 	onClose,
 }: JiraPullRequestDetailViewProps): React.ReactElement {
 	const [sidebarRatio, setSidebarRatioState] = useState(() => loadResizePreference(SIDEBAR_RATIO_PREFERENCE));
@@ -174,7 +178,11 @@ export function JiraPullRequestDetailView({
 							className="min-w-0 overflow-hidden"
 							style={{ flexBasis: `${sidebarRatio * 100}%`, flexShrink: 0 }}
 						>
-							<JiraPullRequestDetailSidebar pullRequestId={pullRequest.id} />
+							<JiraPullRequestDetailSidebar
+								pullRequestId={pullRequest.id}
+								relatedPullRequests={relatedPullRequests}
+								onOpenPullRequest={onOpenPullRequest}
+							/>
 						</div>
 
 						{/* Resize divider */}
@@ -188,6 +196,8 @@ export function JiraPullRequestDetailView({
 							<PullRequestTerminalPanel
 								ref={terminalPanelRef}
 								pullRequestId={pullRequest.id}
+								repoPath={pullRequest.repoPath}
+								branchName={pullRequest.branchName}
 								baseRef={pullRequest.baseRef}
 								layout={terminalLayout}
 								initialStackedTaskIds={initialStackedTaskIds}

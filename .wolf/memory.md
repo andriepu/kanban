@@ -3,6 +3,7 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 07:51 | Background prefetch Jira card details after board load; ensureDetail dedup; error+retry UI | use-jira-board.ts, jira-card-detail-view.tsx, App.tsx, test files | 18 tests pass, tsc clean | ~1800 |
+| 06:44 | Fix: scanAndAttachPRs now always saves newly-attached PRs to disk (no-orphan path skipped save) | src/trpc/jira-api.ts, test/runtime/trpc/jira-api.test.ts | 50 tests pass | ~600 |
 | 09:56 | fix terminal flashing on PR tab switch — openHomeTerminal recreated on isHomeTerminalOpen change, re-triggering selectedJiraKey effect in loop; used isHomeTerminalOpenRef to break cycle | use-terminal-panels.ts | 8 tests pass | ~800 |
 | 01:32 | Home terminal per-card cwd: when Jira detail opens, home terminal opens at worktreesRoot/jiraKey; per-card taskId; auto-open; mkdir | jira-worktree.ts, api-contract.ts, runtime-api.ts, app-router.ts, use-terminal-panels.ts, App.tsx + tests | 433+371 tests pass, tsc clean | ~2200 |
 | 20:43 | Tiled terminal layout: last terminal spans 2 cols when visible count is odd; filter expandedTaskId before render | pull-request-terminal-panel.tsx | done | ~600 |
@@ -1346,6 +1347,70 @@
 | 12:47 | Session end: 4 writes across 2 files (typing-exit-on-additional-woolly-beaver.md, pull-request-terminal-panel.tsx) | 5 reads | ~14584 tok |
 
 ## Session: 2026-04-29 12:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:12 | Created ../../../.claude/plans/i-got-this-for-structured-pony.md | — | ~1701 |
+| 13:17 | Edited src/core/api-contract.ts | 1→5 lines | ~52 |
+| 13:17 | Edited src/trpc/app-router.ts | 3→3 lines | ~48 |
+| 13:17 | Edited src/trpc/jira-api.ts | added nullish coalescing | ~304 |
+| 13:18 | Edited src/trpc/jira-api.ts | modified if() | ~114 |
+| 13:18 | Edited src/trpc/jira-api.ts | 6→6 lines | ~91 |
+| 13:18 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | CSS: repoPath, branchName | ~103 |
+| 13:18 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | modified PullRequestTerminalPanel() | ~35 |
+| 13:18 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | inline fix | ~31 |
+| 13:18 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | inline fix | ~16 |
+| 13:18 | Edited web-ui/src/components/jira-pull-request-detail-view.tsx | 11→13 lines | ~134 |
+| 13:19 | Edited test/runtime/trpc/jira-api.test.ts | inline fix | ~26 |
+| 13:19 | Edited test/runtime/trpc/jira-api.test.ts | inline fix | ~24 |
+| 13:19 | Edited test/runtime/trpc/jira-api.test.ts | inline fix | ~26 |
+| 13:19 | Edited test/runtime/trpc/jira-api.test.ts | inline fix | ~38 |
+| 13:19 | Edited test/runtime/trpc/jira-api.test.ts | inline fix | ~24 |
+| 13:19 | Edited test/runtime/trpc/jira-api.test.ts | inline fix | ~25 |
+| 13:19 | Edited test/runtime/trpc/jira-api.test.ts | inline fix | ~25 |
+| 13:20 | Edited test/runtime/trpc/jira-api.test.ts | expanded (+39 lines) | ~477 |
+| 13:22 | Fix startPullRequestSession stale UUID: add (repoPath, branchName) pair-lookup fallback; update schema, router, panel props | src/core/api-contract.ts, src/trpc/jira-api.ts, src/trpc/app-router.ts, web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx, web-ui/src/components/jira-pull-request-detail-view.tsx, test/runtime/trpc/jira-api.test.ts | 49 backend tests pass, 12 web-ui tests pass | ~2200 |
+| 13:23 | Session end: 19 writes across 7 files (i-got-this-for-structured-pony.md, api-contract.ts, app-router.ts, jira-api.ts, pull-request-terminal-panel.tsx) | 16 reads | ~71426 tok |
+
+## Session: 2026-04-29 13:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:43 | Edited src/trpc/jira-api.ts | 5→9 lines | ~149 |
+| 13:43 | Edited test/runtime/trpc/jira-api.test.ts | added optional chaining | ~531 |
+| 13:44 | Session end: 2 writes across 2 files (jira-api.ts, jira-api.test.ts) | 6 reads | ~41812 tok |
+
+## Session: 2026-04-29 14:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:34 | Created ../../../.claude/plans/if-i-focus-on-zazzy-cocoa.md | — | ~1869 |
+| 14:36 | Created web-ui/src/components/jira-pull-request-row.tsx | — | ~436 |
+| 14:36 | Edited web-ui/src/components/jira-card-detail-view.tsx | added 1 import(s) | ~160 |
+| 14:36 | Edited web-ui/src/components/jira-card-detail-view.tsx | removed 7 lines | ~11 |
+| 14:36 | Edited web-ui/src/components/jira-card-detail-view.tsx | removed 30 lines | ~46 |
+| 14:37 | Created web-ui/src/components/jira-pull-request-detail-sidebar.tsx | — | ~1268 |
+| 14:37 | Edited web-ui/src/components/jira-pull-request-detail-view.tsx | CSS: relatedPullRequests, onOpenPullRequest | ~124 |
+| 14:37 | Edited web-ui/src/components/jira-pull-request-detail-view.tsx | 1→5 lines | ~52 |
+| 14:37 | Edited web-ui/src/App.tsx | added 2 condition(s) | ~236 |
+| 14:37 | Edited web-ui/src/App.tsx | 7→9 lines | ~86 |
+| 14:38 | Created web-ui/src/components/jira-pull-request-detail-sidebar.test.tsx | — | ~1375 |
+| 14:40 | Related PRs section in PR detail sidebar: extract JiraPullRequestRow, wire relatedPullRequests+onOpenPullRequest through App→view→sidebar | jira-pull-request-row.tsx (new), jira-pull-request-detail-sidebar.tsx, jira-pull-request-detail-view.tsx, App.tsx, jira-card-detail-view.tsx | 377/377 tests pass | ~900 |
+| 14:40 | Session end: 11 writes across 7 files (if-i-focus-on-zazzy-cocoa.md, jira-pull-request-row.tsx, jira-card-detail-view.tsx, jira-pull-request-detail-sidebar.tsx, jira-pull-request-detail-view.tsx) | 20 reads | ~66138 tok |
+
+## Session: 2026-04-29 14:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:41 | Edited web-ui/src/components/jira-pull-request-row.tsx | 1→3 lines | ~38 |
+| 14:41 | Session end: 1 writes across 1 files (jira-pull-request-row.tsx) | 5 reads | ~5476 tok |
+
+## Session: 2026-04-29 14:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-29 14:51
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|

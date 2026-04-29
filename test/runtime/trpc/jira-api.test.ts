@@ -762,7 +762,7 @@ describe("jira-api", () => {
 			(deps.addWorkspace as ReturnType<typeof vi.fn>).mockResolvedValue("ws-id-1");
 			fsMocks.access.mockResolvedValueOnce(undefined);
 			const api = createJiraApi(deps);
-			const result = await api.startPullRequestSession("sub-with-tree");
+			const result = await api.startPullRequestSession({ pullRequestId: "sub-with-tree" });
 			expect(result.started).toBe(true);
 			expect(result.workspaceId).toBe("ws-id-1");
 			expect(result.worktreePath).toBe("/worktrees/POL-1-fix");
@@ -791,7 +791,7 @@ describe("jira-api", () => {
 			};
 			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "pr-sub": pullRequest });
 			const api = createJiraApi(deps);
-			const result = await api.startPullRequestSession("pr-sub");
+			const result = await api.startPullRequestSession({ pullRequestId: "pr-sub" });
 			expect(result.openUrl).toBe("https://github.com/a/b/pull/42");
 			expect(result.started).toBe(false);
 			expect(result.workspaceId).toBe("");
@@ -820,7 +820,7 @@ describe("jira-api", () => {
 			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "stale-tree-sub": pullRequest });
 			fsMocks.access.mockRejectedValueOnce(new Error("ENOENT: no such file or directory"));
 			const api = createJiraApi(deps);
-			const result = await api.startPullRequestSession("stale-tree-sub");
+			const result = await api.startPullRequestSession({ pullRequestId: "stale-tree-sub" });
 			expect(result.openUrl).toBe("https://github.com/a/b/pull/55");
 			expect(result.started).toBe(false);
 			expect(deps.startTaskSession).not.toHaveBeenCalled();
@@ -844,7 +844,48 @@ describe("jira-api", () => {
 			};
 			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "no-tree-no-pr": pullRequest });
 			const api = createJiraApi(deps);
-			await expect(api.startPullRequestSession("no-tree-no-pr")).rejects.toThrow(/no worktree path and no PR URL/i);
+			await expect(api.startPullRequestSession({ pullRequestId: "no-tree-no-pr" })).rejects.toThrow(
+				/no worktree path and no PR URL/i,
+			);
+		});
+
+		it("falls back to (repoPath, branchName) lookup when UUID is stale", async () => {
+			const deps = createMockDeps();
+			const pullRequest = {
+				id: "real-uuid",
+				jiraKey: "POL-5",
+				repoId: "repo",
+				repoPath: "/repos/repo",
+				prompt: "",
+				title: "t",
+				baseRef: "main",
+				branchName: "POL-5-fix",
+				worktreePath: "/worktrees/POL-5-fix",
+				createdAt: 1,
+				updatedAt: 1,
+			};
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "real-uuid": pullRequest });
+			(deps.addWorkspace as ReturnType<typeof vi.fn>).mockResolvedValue("ws-fallback");
+			fsMocks.access.mockResolvedValueOnce(undefined);
+			const api = createJiraApi(deps);
+			// Client has stale UUID "stale-uuid"; server has "real-uuid" for same (repoPath, branchName).
+			const result = await api.startPullRequestSession({
+				pullRequestId: "stale-uuid",
+				repoPath: "/repos/repo",
+				branchName: "POL-5-fix",
+			});
+			expect(result.started).toBe(true);
+			expect(result.workspaceId).toBe("ws-fallback");
+			expect(result.worktreePath).toBe("/worktrees/POL-5-fix");
+		});
+
+		it("throws descriptive error when both UUID and pair are missing", async () => {
+			const deps = createMockDeps();
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({});
+			const api = createJiraApi(deps);
+			await expect(
+				api.startPullRequestSession({ repoPath: "/repos/repo", branchName: "POL-6-feature" }),
+			).rejects.toThrow(/POL-6-feature/);
 		});
 	});
 
@@ -995,7 +1036,7 @@ describe("jira-api", () => {
 			(deps.addWorkspace as ReturnType<typeof vi.fn>).mockResolvedValue("ws-auto");
 			fsMocks.access.mockRejectedValueOnce(new Error("ENOENT"));
 			const api = createJiraApi(deps);
-			const result = await api.startPullRequestSession("auto-sub");
+			const result = await api.startPullRequestSession({ pullRequestId: "auto-sub" });
 			expect(deps.createPullRequestWorktree).toHaveBeenCalledWith(
 				expect.objectContaining({ repoPath: "/repos/myrepo", branchName: "POL-2-feature" }),
 			);
@@ -1026,7 +1067,7 @@ describe("jira-api", () => {
 			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "no-repo-sub": pullRequest });
 			(deps.getWorktreesRoot as ReturnType<typeof vi.fn>).mockReturnValue("/work");
 			const api = createJiraApi(deps);
-			const result = await api.startPullRequestSession("no-repo-sub");
+			const result = await api.startPullRequestSession({ pullRequestId: "no-repo-sub" });
 			expect(deps.createPullRequestWorktree).not.toHaveBeenCalled();
 			expect(result.openUrl).toBe("https://github.com/org/myrepo/pull/8");
 			expect(result.started).toBe(false);
@@ -1053,7 +1094,7 @@ describe("jira-api", () => {
 			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({ "no-root-sub": pullRequest });
 			(deps.getWorktreesRoot as ReturnType<typeof vi.fn>).mockReturnValue(null);
 			const api = createJiraApi(deps);
-			const result = await api.startPullRequestSession("no-root-sub");
+			const result = await api.startPullRequestSession({ pullRequestId: "no-root-sub" });
 			expect(deps.createPullRequestWorktree).not.toHaveBeenCalled();
 			expect(result.openUrl).toBe("https://github.com/org/myrepo/pull/9");
 			expect(result.started).toBe(false);
@@ -1177,6 +1218,36 @@ describe("jira-api", () => {
 
 			expect(result.pullRequests).toEqual({});
 			expect(deps.saveJiraPullRequests).toHaveBeenCalledWith({});
+		});
+
+		it("scanAndAttachPRs persists newly attached PRs even when there are no orphans", async () => {
+			const deps = createMockDeps();
+			(deps.loadJiraBoard as ReturnType<typeof vi.fn>).mockResolvedValue({ cards: [makeCard("POL-1")] });
+			(deps.loadJiraPullRequests as ReturnType<typeof vi.fn>).mockResolvedValue({});
+			(deps.listAuthoredGhPullRequestsForProject as ReturnType<typeof vi.fn>).mockResolvedValue([
+				{
+					number: 7,
+					title: "POL-1 add feature",
+					url: "https://github.com/a/b/pull/7",
+					headRefName: "POL-1-add-feature",
+					isDraft: false,
+					state: "OPEN" as const,
+					repository: { nameWithOwner: "a/b" },
+				},
+			]);
+
+			const api = createJiraApi(deps);
+			const result = await api.scanAndAttachPRs();
+
+			expect(result.attached).toBe(1);
+			// Must be saved to disk so startPullRequestSession can find it after re-load
+			expect(deps.saveJiraPullRequests).toHaveBeenCalled();
+			const savedArg = (deps.saveJiraPullRequests as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as Record<
+				string,
+				unknown
+			>;
+			const savedPr = Object.values(savedArg)[0] as { branchName: string };
+			expect(savedPr.branchName).toBe("POL-1-add-feature");
 		});
 	});
 });

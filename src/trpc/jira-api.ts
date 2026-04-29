@@ -328,16 +328,35 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			return { body: detail.body, threads: unresolvedThreads };
 		},
 
-		async startPullRequestSession(pullRequestId: string): Promise<{
+		async startPullRequestSession(input: {
+			pullRequestId?: string;
+			repoPath?: string;
+			branchName?: string;
+		}): Promise<{
 			started: boolean;
 			workspacePath: string;
 			workspaceId: string;
 			worktreePath?: string;
 			openUrl?: string;
 		}> {
+			const { pullRequestId, repoPath, branchName } = input;
 			const pullRequests = await deps.loadJiraPullRequests();
-			const pullRequest = pullRequests[pullRequestId];
-			if (!pullRequest) throw new Error(`Pull request ${pullRequestId} not found`);
+
+			// Lookup by UUID first; fall back to (repoPath, branchName) pair if stale.
+			let pullRequest = pullRequestId != null ? pullRequests[pullRequestId] : undefined;
+			if (!pullRequest && repoPath && branchName) {
+				pullRequest = Object.values(pullRequests).find(
+					(pr) => pr.repoPath === repoPath && pr.branchName === branchName,
+				);
+			}
+			if (!pullRequest) {
+				const identifier =
+					repoPath && branchName ? `branch "${branchName}" in "${repoPath}"` : `id "${pullRequestId ?? "(none)"}"`;
+				throw new Error(
+					`Pull request ${identifier} not found. Try refreshing the Jira board to re-sync pull requests.`,
+				);
+			}
+			const resolvedPullRequestId = pullRequest.id;
 
 			if (pullRequest.worktreePath) {
 				let worktreeAccessible = false;
@@ -348,7 +367,7 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 
 				if (worktreeAccessible) {
 					const workspaceId = await deps.addWorkspace(pullRequest.repoPath);
-					pullRequests[pullRequestId] = { ...pullRequest, updatedAt: Date.now() };
+					pullRequests[resolvedPullRequestId] = { ...pullRequest, updatedAt: Date.now() };
 					await deps.saveJiraPullRequests(pullRequests);
 					return {
 						started: true,
@@ -381,11 +400,11 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 							worktreePath: resolvedWorktreePath,
 							updatedAt: Date.now(),
 						};
-						pullRequests[pullRequestId] = updatedPr;
+						pullRequests[resolvedPullRequestId] = updatedPr;
 						await deps.saveJiraPullRequests(pullRequests);
 
 						const workspaceId = await deps.addWorkspace(updatedPr.repoPath);
-						pullRequests[pullRequestId] = { ...updatedPr, updatedAt: Date.now() };
+						pullRequests[resolvedPullRequestId] = { ...updatedPr, updatedAt: Date.now() };
 						await deps.saveJiraPullRequests(pullRequests);
 						return {
 							started: true,
@@ -517,6 +536,10 @@ export function createJiraApi(deps: CreateJiraApiDependencies) {
 			// Sweep orphans: PRs whose jiraKey is no longer on the board (disk drift)
 			const finalKeySet = new Set(updatedBoard.cards.map((c) => c.jiraKey));
 			const finalPullRequests = await pruneOrphanPullRequests(updatedPullRequests, finalKeySet, deps);
+
+			// pruneOrphanPullRequests skips saving when there are no orphans (early return).
+			// Always persist here so newly-attached PRs survive a server restart or re-load.
+			await deps.saveJiraPullRequests(finalPullRequests);
 
 			deps.broadcastRuntimeReposUpdated?.();
 

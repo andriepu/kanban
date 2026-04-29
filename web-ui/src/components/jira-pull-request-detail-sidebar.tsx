@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
+import { JiraPullRequestRow } from "@/components/jira-pull-request-row";
 import { MarkdownText } from "@/components/markdown-text";
 import { cn } from "@/components/ui/cn";
 import { Spinner } from "@/components/ui/spinner";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
-import type { JiraPullRequestDetail, JiraPullRequestDetailThread } from "@/types/jira";
+import type { JiraPullRequest, JiraPullRequestDetail, JiraPullRequestDetailThread } from "@/types/jira";
 
 interface JiraPullRequestDetailSidebarProps {
 	pullRequestId: string;
+	relatedPullRequests: JiraPullRequest[];
+	onOpenPullRequest: (pullRequest: JiraPullRequest) => void;
 }
 
 function ThreadCard({ thread }: { thread: JiraPullRequestDetailThread }): React.ReactElement {
@@ -34,7 +37,11 @@ function ThreadCard({ thread }: { thread: JiraPullRequestDetailThread }): React.
 	);
 }
 
-export function JiraPullRequestDetailSidebar({ pullRequestId }: JiraPullRequestDetailSidebarProps): React.ReactElement {
+export function JiraPullRequestDetailSidebar({
+	pullRequestId,
+	relatedPullRequests,
+	onOpenPullRequest,
+}: JiraPullRequestDetailSidebarProps): React.ReactElement {
 	const trpc = getRuntimeTrpcClient(null);
 	const [detail, setDetail] = useState<JiraPullRequestDetail | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
@@ -57,64 +64,74 @@ export function JiraPullRequestDetailSidebar({ pullRequestId }: JiraPullRequestD
 			});
 	}, [pullRequestId, trpc]);
 
-	if (isLoading) {
-		return (
-			<div className="flex h-full items-center justify-center">
-				<Spinner size={20} />
-			</div>
-		);
-	}
-
-	if (error) {
-		return (
-			<div className="flex h-full items-center justify-center p-4">
-				<p className="text-center text-sm text-status-red">{error}</p>
-			</div>
-		);
-	}
-
-	if (!detail) return <></>;
-
-	const unresolvedThreads = detail.threads.filter((t) => !t.isResolved);
+	const unresolvedThreads = detail?.threads.filter((t) => !t.isResolved) ?? [];
 
 	return (
 		<div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-			{detail.body ? (
+			{relatedPullRequests.length > 0 && (
 				<div>
-					<div className="mb-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">Description</div>
-					<div
-						className={cn("overflow-hidden text-sm text-text-primary", !isDescriptionExpanded && "line-clamp-6")}
-					>
-						<MarkdownText>{detail.body}</MarkdownText>
-					</div>
-					{!isDescriptionExpanded && (
-						<button
-							type="button"
-							onClick={() => setIsDescriptionExpanded(true)}
-							aria-expanded={false}
-							aria-label="Expand description"
-							className="mt-1 text-xs text-text-tertiary hover:text-text-secondary"
-						>
-							Show more
-						</button>
-					)}
-				</div>
-			) : null}
-
-			<div>
-				<div className="mb-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">
-					Unresolved Comments
-				</div>
-				{unresolvedThreads.length === 0 ? (
-					<p className="text-sm text-text-tertiary">No unresolved comments.</p>
-				) : (
-					<div className="flex flex-col gap-2">
-						{unresolvedThreads.map((thread) => (
-							<ThreadCard key={thread.path + thread.comments[0]?.url} thread={thread} />
+					<div className="mb-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">Related PRs</div>
+					<div className="flex flex-col">
+						{relatedPullRequests.map((pr) => (
+							<JiraPullRequestRow key={pr.id} pullRequest={pr} onClick={onOpenPullRequest} />
 						))}
 					</div>
-				)}
-			</div>
+				</div>
+			)}
+
+			{isLoading ? (
+				<div className="flex flex-1 items-center justify-center">
+					<Spinner size={20} />
+				</div>
+			) : error ? (
+				<div className="flex flex-1 items-center justify-center">
+					<p className="text-center text-sm text-status-red">{error}</p>
+				</div>
+			) : detail ? (
+				<>
+					{detail.body ? (
+						<div>
+							<div className="mb-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">
+								Description
+							</div>
+							<div
+								className={cn(
+									"overflow-hidden text-sm text-text-primary",
+									!isDescriptionExpanded && "line-clamp-6",
+								)}
+							>
+								<MarkdownText>{detail.body}</MarkdownText>
+							</div>
+							{!isDescriptionExpanded && (
+								<button
+									type="button"
+									onClick={() => setIsDescriptionExpanded(true)}
+									aria-expanded={false}
+									aria-label="Expand description"
+									className="mt-1 text-xs text-text-tertiary hover:text-text-secondary"
+								>
+									Show more
+								</button>
+							)}
+						</div>
+					) : null}
+
+					<div>
+						<div className="mb-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">
+							Unresolved Comments
+						</div>
+						{unresolvedThreads.length === 0 ? (
+							<p className="text-sm text-text-tertiary">No unresolved comments.</p>
+						) : (
+							<div className="flex flex-col gap-2">
+								{unresolvedThreads.map((thread) => (
+									<ThreadCard key={thread.path + thread.comments[0]?.url} thread={thread} />
+								))}
+							</div>
+						)}
+					</div>
+				</>
+			) : null}
 		</div>
 	);
 }
