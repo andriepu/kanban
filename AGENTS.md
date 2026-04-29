@@ -91,3 +91,25 @@ Misc. tribal knowledge
 - Kanban is launched from the user's shell and inherits its environment. For agent detection and task-agent startup, prefer direct PATH checks and direct process launches over spawning an interactive shell. Avoid `zsh -i`, shell fallback command discovery, or "launch shell then type command into it" on hot paths. On setups with heavy shell init like `conda` or `nvm`, doing that per task can freeze the runtime and even make new Terminal.app windows feel hung when several tasks start at once. It's fine to use an actual interactive shell for explicit shell terminals, not for normal agent session work.
 - If CI hangs on Node 22 after tests seem to finish, suspect a live subprocess or SDK-host startup path before assuming a slow test body. Read `.plan/docs/node22-ci-hanging-tests-investigation.md` before repeating that investigation. `test/runtime/cline-sdk/cline-task-session-service.test.ts` was the big prior culprit because a unit-style suite was still booting the real Cline SDK host.
 - When Kanban runs on a headless remote Linux instance (for example over SSH+tunnel), native folder picker commands may be unavailable (`zenity`/`kdialog`). Treat this as a normal remote-runtime limitation and use manual path entry fallback instead of requiring desktop packages.
+
+TRPC / hooks
+- **TRPC client is a proxy** — uses `createTRPCProxyClient`. Calls are `.query()` and `.mutate()` inside `useEffect`/`useCallback`. NEVER use `.useQuery()` or `.useMutation()` (those are React Query — not installed).
+- `getRuntimeTrpcClient(workspaceId: string | null)` — board-level (unscoped) hooks pass `null`.
+- Custom `useTrpcQuery` at `web-ui/src/runtime/use-trpc-query.ts` — async queries with loading state, race protection, unmount safety. For simpler hooks, direct useEffect+fetch also used.
+- `JiraBoardView` accepts `jiraBoard: UseJiraBoardResult` prop — hook called in App.tsx and passed down, not called internally.
+- `startSubtaskSession` returns `{ started, workspacePath, workspaceId }`.
+
+Testing
+- **Web-UI tests use `createRoot`, NOT `@testing-library/react`** — use `react-dom/client` createRoot + HookHarness + `act()`. Never import from `@testing-library/react`.
+- Run tests with `cd web-ui && ./node_modules/.bin/vitest run <file>` — never `npx vitest` (resolves wrong vitest at root).
+- In hook tests: mock never-settling async queries with `new Promise<never>(() => undefined)` to prevent timeout.
+- After `if (snapshot === null) throw new Error(...)`, TypeScript narrows `snapshot` to `never` for `let` bindings. After EACH null guard, assign to typed const: `const snap: MyType = snapshot;` and use that. Do NOT use `snapshot!`.
+
+Do-not-repeat gotchas
+- `execFile` has no `input` option for stdin. To spawn `claude -p` with stdin closed, use `spawn("claude", args, { stdio: ["ignore", "pipe", "pipe"] })`. Without this, Claude CLI waits 3s for stdin and exits code 1.
+- `claude -p --output-format json` returns `{ type: "result", result: "<string>", ... }` — `result` is a **string**, not a parsed object. Must `JSON.parse(raw.result)`.
+- `claude -p` subprocess inherits project CLAUDE.md/hooks/settings and user SessionStart injections — consumes 3-5 turns before executing. To isolate: spawn with `cwd: os.tmpdir()` + `--disable-slash-commands` + `--allowedTools <only-needed-tools>` + `--append-system-prompt`.
+- Jira status names use hyphens/spaces: `"To-Do"` not `"Todo"`, `"In Progress"` not `"In-Progress"`. Always verify against real API response.
+- When adding a field to `JiraSubtask` (disk type), also update `jiraSubtaskSchema` in `src/core/api-contract.ts`. tRPC `.output(schema)` uses zod's `.strip()` — unknown keys silently dropped.
+- `updateRuntimeConfig` / `saveRuntimeConfig` take `(config)` only — no `cwd` arg.
+- `useCallback` that reads React state gets a new reference on every state change, re-triggering any `useEffect` listing it as dep. Use a ref updated each render to read state inside callback without adding it to deps.
