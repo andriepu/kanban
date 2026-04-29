@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-29T11:45:35.417Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-29T14:44:18.800Z
 > Files: 465 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
@@ -429,7 +429,7 @@
 
 ## web-ui/src/
 
-- `App.tsx` — Main React composition root for the browser app. (~10846 tok)
+- `App.tsx` — Main React composition root for the browser app. (~10847 tok)
 - `main.tsx` — Migrate legacy localStorage keys from old naming conventions. (~395 tok)
 - `vite-env.d.ts` — / <reference types="vite/client" /> (~23 tok)
 

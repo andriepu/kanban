@@ -403,7 +403,7 @@ export default function App(): ReactElement {
 		if (!card) return [];
 		return card.pullRequestIds
 			.map((id) => jiraBoard.pullRequests[id])
-			.filter((pr): pr is JiraPullRequest => Boolean(pr) && pr.id !== resolvedPullRequest.id);
+			.filter((pr): pr is JiraPullRequest => pr !== undefined && pr.id !== resolvedPullRequest.id);
 	}, [resolvedPullRequest, jiraBoard.board, jiraBoard.pullRequests]);
 
 	const persistWorkspaceStateAsync = useCallback(

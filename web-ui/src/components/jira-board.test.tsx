@@ -37,7 +37,7 @@ const mockJiraBoard: UseJiraBoardResult = {
 			baseRef: "main",
 			branchName: "b",
 			worktreePath: "/w",
-			status: "backlog",
+			prState: "open",
 			prUrl: "https://github.com/example/repo/pull/1",
 			createdAt: 1,
 			updatedAt: 1,
