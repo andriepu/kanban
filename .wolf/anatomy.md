@@ -1,10 +1,11 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-29T07:41:22.590Z
-> Files: 462 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-29T11:45:35.417Z
+> Files: 465 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../.claude/plans/
 
+- `i-got-display-like-crystalline-quilt.md` — Clean Up Bot-Generated Markup in Unresolved PR Comments (~1677 tok)
 - `i-got-this-for-structured-pony.md` — Fix: `startPullRequestSession` fails with stale UUID on freshly-resolved PR route (~1594 tok)
 - `if-i-focus-on-zazzy-cocoa.md` — Plan: Show related PRs (same Jira key) in PR detail sidebar (~1752 tok)
 - `typing-exit-on-additional-woolly-beaver.md` — Fix: typing `exit` in stacked PR terminal does not close the panel (~1044 tok)
@@ -456,7 +457,7 @@
 - `jira-pull-request-board.test.tsx` — makeSummary (~3105 tok)
 - `jira-pull-request-board.tsx` — PULL_REQUEST_COLUMNS (~1240 tok)
 - `jira-pull-request-detail-sidebar.test.tsx` — mockFetchPullRequestDetail (~1375 tok)
-- `jira-pull-request-detail-sidebar.tsx` — ThreadCard (~1268 tok)
+- `jira-pull-request-detail-sidebar.tsx` — ThreadCard (~1303 tok)
 - `jira-pull-request-detail-view.tsx` — LAYOUT_CYCLE (~2215 tok)
 - `jira-pull-request-row.tsx` — PR_STATE_COLORS (~445 tok)
 - `markdown-text.tsx` — MarkdownText (~489 tok)
@@ -678,6 +679,8 @@
 - `jira-utils.ts` — Exports derivePullRequestBranchName (~89 tok)
 - `localhost-detection.test.ts` — Declares setHostname (~369 tok)
 - `localhost-detection.ts` — Returns true when the browser is accessing Kanban from the same machine (~157 tok)
+- `normalize-pr-comment-body.test.ts` — Declares BUGBOT_BODY (~1123 tok)
+- `normalize-pr-comment-body.ts` — Exports normalizePrCommentBody (~265 tok)
 - `notification-badge-sync.ts` — Exports createNotificationBadgeSyncSourceId, broadcastNotificationBadgeClear, subscribeToNotificationBadgeClear (~686 tok)
 - `notification-permission.ts` — Exports BrowserNotificationPermission, getBrowserNotificationPermission, hasPromptedForBrowserNotificationPermission, markBrowserNotificationPermis... (~449 tok)
 - `open-targets.test.ts` — Declares windowsOptions (~602 tok)

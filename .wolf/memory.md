@@ -1414,3 +1414,26 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+
+## Session: 2026-04-29 18:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:30 | Created ../../../.claude/plans/i-got-display-like-crystalline-quilt.md | — | ~1789 |
+| 18:45 | Created web-ui/src/utils/normalize-pr-comment-body.ts | — | ~265 |
+| 18:45 | Created web-ui/src/utils/normalize-pr-comment-body.test.ts | — | ~1123 |
+| 18:45 | Edited web-ui/src/components/jira-pull-request-detail-sidebar.tsx | added 1 import(s) | ~146 |
+| 18:45 | Edited web-ui/src/components/jira-pull-request-detail-sidebar.tsx | inline fix | ~21 |
+| 18:45 | Edited web-ui/src/components/jira-pull-request-detail-sidebar.tsx | inline fix | ~22 |
+| 18:46 | Add normalizePrCommentBody util to strip bot HTML (Bugbot/Cursor) from PR comment bodies before rendering | web-ui/src/utils/normalize-pr-comment-body.ts, jira-pull-request-detail-sidebar.tsx | 8 new tests pass, 5 sidebar tests pass | ~300 |
+| 18:46 | Session end: 6 writes across 4 files (i-got-display-like-crystalline-quilt.md, normalize-pr-comment-body.ts, normalize-pr-comment-body.test.ts, jira-pull-request-detail-sidebar.tsx) | 8 reads | ~27365 tok |
+
+## Session: 2026-04-29 19:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-29 20:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

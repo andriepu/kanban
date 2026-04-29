@@ -5,6 +5,7 @@ import { cn } from "@/components/ui/cn";
 import { Spinner } from "@/components/ui/spinner";
 import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import type { JiraPullRequest, JiraPullRequestDetail, JiraPullRequestDetailThread } from "@/types/jira";
+import { normalizePrCommentBody } from "@/utils/normalize-pr-comment-body";
 
 interface JiraPullRequestDetailSidebarProps {
 	pullRequestId: string;
@@ -29,7 +30,7 @@ function ThreadCard({ thread }: { thread: JiraPullRequestDetailThread }): React.
 						</span>
 					</div>
 					<div className="text-sm text-text-primary">
-						<MarkdownText>{comment.body}</MarkdownText>
+						<MarkdownText>{normalizePrCommentBody(comment.body)}</MarkdownText>
 					</div>
 				</div>
 			))}
@@ -100,7 +101,7 @@ export function JiraPullRequestDetailSidebar({
 									!isDescriptionExpanded && "line-clamp-6",
 								)}
 							>
-								<MarkdownText>{detail.body}</MarkdownText>
+								<MarkdownText>{normalizePrCommentBody(detail.body)}</MarkdownText>
 							</div>
 							{!isDescriptionExpanded && (
 								<button
