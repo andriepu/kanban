@@ -12,6 +12,7 @@ interface UsePersistentTerminalSessionInput {
 	enabled?: boolean;
 	onSummary?: (summary: RuntimeTaskSessionSummary) => void;
 	onConnectionReady?: (taskId: string) => void;
+	onShellExit?: (code: number | null) => void;
 	autoFocus?: boolean;
 	isVisible?: boolean;
 	sessionStartedAt?: number | null;
@@ -34,6 +35,7 @@ export function usePersistentTerminalSession({
 	enabled = true,
 	onSummary,
 	onConnectionReady,
+	onShellExit,
 	autoFocus = false,
 	isVisible = true,
 	sessionStartedAt = null,
@@ -48,9 +50,11 @@ export function usePersistentTerminalSession({
 	const callbackRef = useRef<{
 		onSummary?: (summary: RuntimeTaskSessionSummary) => void;
 		onConnectionReady?: (taskId: string) => void;
+		onShellExit?: (code: number | null) => void;
 	}>({
 		onSummary,
 		onConnectionReady,
+		onShellExit,
 	});
 	const previousSessionRef = useRef<{
 		workspaceId: string;
@@ -62,6 +66,7 @@ export function usePersistentTerminalSession({
 	callbackRef.current = {
 		onSummary,
 		onConnectionReady,
+		onShellExit,
 	};
 
 	useEffect(() => {
@@ -124,6 +129,9 @@ export function usePersistentTerminalSession({
 			onLastError: setLastError,
 			onSummary: (summary) => {
 				callbackRef.current.onSummary?.(summary);
+			},
+			onExit: (code) => {
+				callbackRef.current.onShellExit?.(code);
 			},
 		});
 		terminal.mount(

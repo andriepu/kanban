@@ -38,6 +38,7 @@ interface PersistentTerminalSubscriber {
 	onLastError?: (message: string | null) => void;
 	onSummary?: (summary: RuntimeTaskSessionSummary) => void;
 	onOutputText?: (text: string) => void;
+	onExit?: (code: number | null) => void;
 }
 
 interface MountPersistentTerminalOptions {
@@ -254,6 +255,12 @@ class PersistentTerminal {
 		}
 	}
 
+	private notifyExit(code: number | null): void {
+		for (const subscriber of this.subscribers) {
+			subscriber.onExit?.(code);
+		}
+	}
+
 	private notifyConnectionReady(): void {
 		this.connectionReady = true;
 		for (const subscriber of this.subscribers) {
@@ -453,6 +460,7 @@ class PersistentTerminal {
 			if (payload.type === "exit") {
 				const label = payload.code == null ? "session exited" : `session exited with code ${payload.code}`;
 				void this.enqueueTerminalWrite(`\r\n[kanban] ${label}\r\n`);
+				this.notifyExit(payload.code ?? null);
 				return;
 			}
 			if (payload.type === "error") {

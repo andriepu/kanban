@@ -13,6 +13,7 @@ interface PrTerminalExpandedDialogProps {
 	summary: RuntimeTaskSessionSummary | null;
 	onSummary: (summary: RuntimeTaskSessionSummary) => void;
 	onCollapse: () => void;
+	onShellExit?: (code: number | null) => void;
 	terminalThemeColors: ThemeTerminalColors;
 	terminalFontFamily: string | null;
 }
@@ -23,6 +24,7 @@ export function PrTerminalExpandedDialog({
 	summary,
 	onSummary,
 	onCollapse,
+	onShellExit,
 	terminalThemeColors,
 	terminalFontFamily,
 }: PrTerminalExpandedDialogProps): ReactElement {
@@ -64,6 +66,7 @@ export function PrTerminalExpandedDialog({
 							workspaceId={workspaceId}
 							summary={summary}
 							onSummary={onSummary}
+							onShellExit={onShellExit}
 							showSessionToolbar={false}
 							showMoveToTrash={false}
 							panelBackgroundColor="var(--color-surface-1)"

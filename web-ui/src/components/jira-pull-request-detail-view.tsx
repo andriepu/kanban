@@ -70,11 +70,11 @@ export function JiraPullRequestDetailView({
 		});
 	}, []);
 
-	// Compute once on mount — captures which stacked PTYs are already alive for this PR.
+	// Compute once on mount — captures which stacked PTYs are currently alive for this PR.
 	const initialStackedTaskIds = useMemo(() => {
 		const isStacked = getStackedPrTerminalTaskIdMatcher(pullRequest.id);
 		return Object.keys(sessions)
-			.filter(isStacked)
+			.filter((taskId) => isStacked(taskId) && sessions[taskId]?.exitCode === null)
 			.sort((a, b) => {
 				const na = parseStackedPrTerminalCounter(a, pullRequest.id) ?? 0;
 				const nb = parseStackedPrTerminalCounter(b, pullRequest.id) ?? 0;
@@ -194,6 +194,7 @@ export function JiraPullRequestDetailView({
 								sessions={sessions}
 								onOpenExternalUrl={handleOpenExternalUrl}
 								onReadyChange={setCanAddTerminal}
+								onClose={onClose}
 							/>
 						</div>
 					</div>

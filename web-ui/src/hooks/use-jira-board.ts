@@ -50,6 +50,7 @@ export function useJiraBoard(
 	const [isLoading, setIsLoading] = useState(false);
 	const [isImporting, setIsImporting] = useState(false);
 	const [prScanning, setPrScanning] = useState(false);
+	const prScanningRef = useRef(false);
 	const requestIdRef = useRef(0);
 	const isMountedRef = useRef(true);
 	const isImportingRef = useRef(false);
@@ -194,7 +195,8 @@ export function useJiraBoard(
 	}, [fetchBoard]);
 
 	const scanPRs = useCallback(async (): Promise<void> => {
-		if (prScanning) return;
+		if (prScanningRef.current) return;
+		prScanningRef.current = true;
 		setPrScanning(true);
 		try {
 			const result = await trpc.jira.scanAndAttachPRs.mutate();
@@ -211,11 +213,12 @@ export function useJiraBoard(
 				toast.error(message);
 			}
 		} finally {
+			prScanningRef.current = false;
 			if (isMountedRef.current) {
 				setPrScanning(false);
 			}
 		}
-	}, [trpc, prScanning]);
+	}, [trpc]);
 
 	useEffect(() => {
 		scanPRsRef.current = scanPRs;

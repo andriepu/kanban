@@ -374,6 +374,8 @@ export default function App(): ReactElement {
 		agentCommand,
 		upsertSession,
 		sendTaskSessionInput,
+		selectedJiraKey,
+		worktreesRoot: runtimeRepoConfig?.worktreesRoot ?? null,
 	});
 	const homeTerminalSummary = sessions[homeTerminalTaskId] ?? null;
 	const jiraSyncIntervalMs = runtimeRepoConfig?.jiraSyncIntervalMs ?? 60 * 60 * 1000;

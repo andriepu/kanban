@@ -1,5 +1,5 @@
 import { execFile as execFileCb } from "node:child_process";
-import { access, readdir, rm, symlink } from "node:fs/promises";
+import { access, mkdir, readdir, rm, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { runGit } from "../workspace/git-utils.js";
@@ -196,6 +196,15 @@ export async function deleteLocalBranch(opts: { repoPath: string; branchName: st
 export async function deleteRemoteBranch(opts: { repoPath: string; branchName: string }): Promise<void> {
 	await runGit(opts.repoPath, ["push", "origin", "--delete", opts.branchName]);
 	// runGit never throws — branch may not exist remotely
+}
+
+export async function ensureJiraCardWorktreeParent(opts: {
+	worktreesRoot: string;
+	jiraKey: string;
+}): Promise<{ parentPath: string }> {
+	const parentPath = join(opts.worktreesRoot, opts.jiraKey);
+	await mkdir(parentPath, { recursive: true });
+	return { parentPath };
 }
 
 export async function removeJiraCardWorktreeParent(opts: { worktreesRoot: string; jiraKey: string }): Promise<void> {

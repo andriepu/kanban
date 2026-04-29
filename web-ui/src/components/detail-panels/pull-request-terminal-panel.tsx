@@ -43,6 +43,7 @@ export interface PullRequestTerminalPanelProps {
 	sessions?: Record<string, RuntimeTaskSessionSummary>;
 	onOpenExternalUrl: (url: string) => void;
 	onReadyChange?: (ready: boolean) => void;
+	onClose?: () => void;
 }
 
 export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandle, PullRequestTerminalPanelProps>(
@@ -55,6 +56,7 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 			sessions,
 			onOpenExternalUrl,
 			onReadyChange,
+			onClose,
 		},
 		ref,
 	): ReactElement {
@@ -75,6 +77,9 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 		onOpenExternalUrlRef.current = onOpenExternalUrl;
 		const onReadyChangeRef = useRef(onReadyChange);
 		onReadyChangeRef.current = onReadyChange;
+		const onCloseRef = useRef(onClose);
+		onCloseRef.current = onClose;
+		const hasShellExitedRef = useRef(false);
 
 		useImperativeHandle(
 			ref,
@@ -108,6 +113,11 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 			[pullRequestId, baseRef],
 		);
 
+		const removeStackedTerminal = useCallback((id: string) => {
+			setExpandedTaskId((current) => (current === id ? null : current));
+			setStackedSessions((prev) => prev.filter((s) => s.taskId !== id));
+		}, []);
+
 		const handleExpandedSummaryChange = useCallback(
 			(updated: RuntimeTaskSessionSummary) => {
 				if (expandedTaskId === activeSession?.taskId) {
@@ -128,6 +138,7 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 			setSessionError(null);
 			setSessionSummary(null);
 			sessionContextRef.current = null;
+			hasShellExitedRef.current = false;
 			onReadyChangeRef.current?.(false);
 
 			// Rehydrate stacked terminals from sessions already alive on the server.
@@ -322,16 +333,17 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 								terminalBackgroundColor={terminalThemeColors.surfaceRaised}
 								cursorColor={terminalThemeColors.textPrimary}
 								terminalFontFamily={runtimeRepoConfig?.terminalFontFamily ?? null}
-								onClose={
+								onShellExit={
 									isActive
-										? undefined
-										: () => {
-												if (expandedTaskId === taskId) {
-													setExpandedTaskId(null);
+										? () => {
+												if (!hasShellExitedRef.current) {
+													hasShellExitedRef.current = true;
+													onCloseRef.current?.();
 												}
-												setStackedSessions((prev) => prev.filter((s) => s.taskId !== taskId));
 											}
+										: () => removeStackedTerminal(taskId)
 								}
+								onClose={isActive ? undefined : () => removeStackedTerminal(taskId)}
 								onExpand={() => setExpandedTaskId(taskId)}
 							/>
 						</div>
@@ -352,6 +364,16 @@ export const PullRequestTerminalPanel = forwardRef<PullRequestTerminalPanelHandl
 						summary={expandedSummary}
 						onSummary={handleExpandedSummaryChange}
 						onCollapse={() => setExpandedTaskId(null)}
+						onShellExit={
+							expandedTaskId === activeSession.taskId
+								? () => {
+										if (!hasShellExitedRef.current) {
+											hasShellExitedRef.current = true;
+											onCloseRef.current?.();
+										}
+									}
+								: () => removeStackedTerminal(expandedTaskId)
+						}
 						terminalThemeColors={terminalThemeColors}
 						terminalFontFamily={runtimeRepoConfig?.terminalFontFamily ?? null}
 					/>

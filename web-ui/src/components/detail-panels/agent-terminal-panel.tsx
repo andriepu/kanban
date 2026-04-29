@@ -49,6 +49,7 @@ export interface AgentTerminalPanelProps {
 	onConnectionReady?: (taskId: string) => void;
 	agentCommand?: string | null;
 	onSendAgentCommand?: () => void;
+	onShellExit?: (code: number | null) => void;
 }
 
 function describeState(summary: RuntimeTaskSessionSummary | null): string {
@@ -333,6 +334,7 @@ export function AgentTerminalPanel(props: AgentTerminalPanelProps): ReactElement
 		enabled: props.terminalEnabled ?? true,
 		onSummary: props.onSummary,
 		onConnectionReady: props.onConnectionReady,
+		onShellExit: props.onShellExit,
 		autoFocus: props.autoFocus,
 		isVisible: props.isVisible,
 		sessionStartedAt: props.summary?.startedAt ?? null,

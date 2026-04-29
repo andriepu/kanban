@@ -16,6 +16,10 @@ const turnCheckpointMocks = vi.hoisted(() => ({
 	captureTaskTurnCheckpoint: vi.fn(),
 }));
 
+const jiraWorktreeMocks = vi.hoisted(() => ({
+	ensureJiraCardWorktreeParent: vi.fn(),
+}));
+
 vi.mock("../../../src/terminal/agent-registry.js", () => ({
 	resolveAgentCommand: agentRegistryMocks.resolveAgentCommand,
 	buildRuntimeConfigResponse: agentRegistryMocks.buildRuntimeConfigResponse,
@@ -27,6 +31,10 @@ vi.mock("../../../src/workspace/task-worktree.js", () => ({
 
 vi.mock("../../../src/workspace/turn-checkpoints.js", () => ({
 	captureTaskTurnCheckpoint: turnCheckpointMocks.captureTaskTurnCheckpoint,
+}));
+
+vi.mock("../../../src/jira/jira-worktree.js", () => ({
+	ensureJiraCardWorktreeParent: jiraWorktreeMocks.ensureJiraCardWorktreeParent,
 }));
 
 import { createRuntimeApi } from "../../../src/trpc/runtime-api";
@@ -327,5 +335,62 @@ describe("createRuntimeApi startTaskSession", () => {
 				images,
 			}),
 		);
+	});
+});
+
+describe("createRuntimeApi ensureJiraCardWorktreeParent", () => {
+	beforeEach(() => {
+		jiraWorktreeMocks.ensureJiraCardWorktreeParent.mockReset();
+	});
+
+	function createApi(configOverrides: Partial<ReturnType<typeof createRuntimeConfigState>> = {}) {
+		return createRuntimeApi({
+			getActiveWorkspaceId: vi.fn(() => "workspace-1"),
+			loadScopedRuntimeConfig: vi.fn(async () => ({
+				...createRuntimeConfigState(),
+				...configOverrides,
+			})),
+			setActiveRuntimeConfig: vi.fn(),
+			getScopedTerminalManager: vi.fn(),
+			resolveInteractiveShellCommand: vi.fn(),
+			runCommand: vi.fn(),
+		});
+	}
+
+	const workspaceScope = { workspaceId: "workspace-1", workspacePath: "/tmp/repo" };
+
+	it("returns ok with parentPath when worktreesRoot is configured", async () => {
+		jiraWorktreeMocks.ensureJiraCardWorktreeParent.mockResolvedValue({
+			parentPath: "/work/worktrees/POL-42",
+		});
+
+		const api = createApi({ worktreesRoot: "/work/worktrees" });
+		const response = await api.ensureJiraCardWorktreeParent(workspaceScope, { jiraKey: "POL-42" });
+
+		expect(response.ok).toBe(true);
+		expect(response.parentPath).toBe("/work/worktrees/POL-42");
+		expect(jiraWorktreeMocks.ensureJiraCardWorktreeParent).toHaveBeenCalledWith({
+			worktreesRoot: "/work/worktrees",
+			jiraKey: "POL-42",
+		});
+	});
+
+	it("returns ok:false when worktreesRoot is not configured", async () => {
+		const api = createApi({ worktreesRoot: null });
+		const response = await api.ensureJiraCardWorktreeParent(workspaceScope, { jiraKey: "POL-42" });
+
+		expect(response.ok).toBe(false);
+		expect(response.error).toBe("worktreesRoot not configured");
+		expect(jiraWorktreeMocks.ensureJiraCardWorktreeParent).not.toHaveBeenCalled();
+	});
+
+	it("returns ok:false when mkdir throws", async () => {
+		jiraWorktreeMocks.ensureJiraCardWorktreeParent.mockRejectedValue(new Error("EACCES: permission denied"));
+
+		const api = createApi({ worktreesRoot: "/work/worktrees" });
+		const response = await api.ensureJiraCardWorktreeParent(workspaceScope, { jiraKey: "POL-99" });
+
+		expect(response.ok).toBe(false);
+		expect(response.error).toContain("EACCES");
 	});
 });

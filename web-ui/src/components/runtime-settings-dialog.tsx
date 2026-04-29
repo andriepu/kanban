@@ -972,7 +972,7 @@ export function RuntimeSettingsDialog({
 							<p className="text-xs text-text-tertiary m-0">
 								Directory where git worktrees are created for pull requests.
 							</p>
-							<div className="flex gap-2">
+							<div className="flex items-center gap-2">
 								<input
 									id="settings-worktrees-root"
 									type="text"
@@ -1004,7 +1004,7 @@ export function RuntimeSettingsDialog({
 							<p className="text-xs text-text-tertiary m-0">
 								Parent directory scanned 1 level deep for git repos.
 							</p>
-							<div className="flex gap-2">
+							<div className="flex items-center gap-2">
 								<input
 									id="settings-repos-root"
 									type="text"

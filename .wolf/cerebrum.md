@@ -38,6 +38,7 @@
 
 - [2026-04-28] When nuking a full feature from runtime config, `repoConfigPath` and other removed fields must also be stripped from ALL test fixtures that have a `RuntimeConfigState` / `RuntimeConfigResponse` literal, not just the fields explicitly listed in the plan. Grep for removed field names across all test files after tsc to find stragglers.
 - [2026-04-28] `updateRuntimeConfig` and `saveRuntimeConfig` signature change: previously took `(cwd, config)`, now takes `(config)` only. All test callers in `test/runtime/config/runtime-config.test.ts` must be updated.
+- [2026-04-29] `useCallback` that reads React state will get a new reference every time that state changes, which re-triggers any `useEffect` that lists the callback in its deps. When an auto-open effect (`openHomeTerminal`) is triggered by data (selectedJiraKey), and the callback itself reads `isHomeTerminalOpen` state, external code that closes the terminal recreates the callback, re-runs the effect, and reopens it → oscillation/flashing. Fix: use a ref (`isHomeTerminalOpenRef`) updated each render to read the value inside the callback without making it a dep.
 
 ## Decision Log
 

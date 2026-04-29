@@ -6,6 +6,7 @@ import {
 	readOptionalPersistedResizeNumber,
 	writePersistedResizeNumber,
 } from "@/resize/resize-persistence";
+import { getRuntimeTrpcClient } from "@/runtime/trpc-client";
 import type { RuntimeGitRepositoryInfo, RuntimeTaskSessionSummary } from "@/runtime/types";
 import { LocalStorageKey, removeLocalStorageItem } from "@/storage/local-storage-store";
 import { startShellTerminalSession } from "@/terminal/shell-session-flow";
@@ -13,7 +14,11 @@ import { getTerminalGeometry, prepareWaitForTerminalGeometry } from "@/terminal/
 import type { SendTerminalInputOptions } from "@/terminal/terminal-input";
 import type { BoardCard, CardSelection } from "@/types";
 
-const HOME_TERMINAL_TASK_ID = "__home_terminal__";
+const HOME_TERMINAL_TASK_PREFIX = "__home_terminal__";
+
+function getHomeTerminalTaskId(jiraKey: string | null): string {
+	return jiraKey ? `${HOME_TERMINAL_TASK_PREFIX}:${jiraKey}` : HOME_TERMINAL_TASK_PREFIX;
+}
 const HOME_TERMINAL_ROWS = 16;
 const DETAIL_TERMINAL_TASK_PREFIX = "__detail_terminal__:";
 const APPROX_TERMINAL_CELL_WIDTH_PX = 8;
@@ -67,6 +72,8 @@ interface UseTerminalPanelsInput {
 		text: string,
 		options?: SendTerminalInputOptions,
 	) => Promise<{ ok: boolean; message?: string }>;
+	selectedJiraKey: string | null;
+	worktreesRoot: string | null;
 }
 
 interface DetailTerminalPanelState {
@@ -109,10 +116,19 @@ export function useTerminalPanels({
 	agentCommand,
 	upsertSession,
 	sendTaskSessionInput,
+	selectedJiraKey,
+	worktreesRoot,
 }: UseTerminalPanelsInput): UseTerminalPanelsResult {
-	const homeTerminalRepoIdRef = useRef<string | null>(null);
+	const homeTerminalKeyRef = useRef<string | null>(null);
+	// Always-current refs so callbacks don't need these in their dep arrays.
+	const selectedJiraKeyRef = useRef(selectedJiraKey);
+	selectedJiraKeyRef.current = selectedJiraKey;
+	const worktreesRootRef = useRef(worktreesRoot);
+	worktreesRootRef.current = worktreesRoot;
+	const isHomeTerminalOpenRef = useRef(false);
 	const detailTerminalSelectionKeyRef = useRef<string | null>(null);
 	const [isHomeTerminalOpen, setIsHomeTerminalOpen] = useState(false);
+	isHomeTerminalOpenRef.current = isHomeTerminalOpen;
 	const [isHomeTerminalStarting, setIsHomeTerminalStarting] = useState(false);
 	const [homeTerminalShellBinary, setHomeTerminalShellBinary] = useState<string | null>(null);
 	const [lastBottomTerminalPaneHeight, setLastBottomTerminalPaneHeight] = useState<number | undefined>(
@@ -122,6 +138,7 @@ export function useTerminalPanels({
 		Record<string, DetailTerminalPanelState>
 	>({});
 	const [isDetailTerminalStarting, setIsDetailTerminalStarting] = useState(false);
+	const homeTerminalTaskId = getHomeTerminalTaskId(selectedJiraKey);
 	const detailTerminalTaskId = selectedCard ? getDetailTerminalTaskId(selectedCard.card.id) : null;
 	const currentDetailTerminalPanelState = detailTerminalTaskId
 		? (detailTerminalPanelStateByTaskId[detailTerminalTaskId] ?? DEFAULT_DETAIL_TERMINAL_PANEL_STATE)
@@ -163,7 +180,7 @@ export function useTerminalPanels({
 
 	const closeHomeTerminal = useCallback(() => {
 		setIsHomeTerminalOpen(false);
-		homeTerminalRepoIdRef.current = null;
+		homeTerminalKeyRef.current = null;
 	}, []);
 
 	const closeDetailTerminal = useCallback(() => {
@@ -203,13 +220,26 @@ export function useTerminalPanels({
 		}
 		setIsHomeTerminalStarting(true);
 		try {
-			const geometry = await resolveShellTerminalGeometry(HOME_TERMINAL_TASK_ID);
+			const jiraKey = selectedJiraKeyRef.current;
+			const taskId = getHomeTerminalTaskId(jiraKey);
+
+			let customCwd: string | undefined;
+			if (jiraKey && worktreesRootRef.current) {
+				const trpcClient = getRuntimeTrpcClient(currentRepoId);
+				const result = await trpcClient.runtime.ensureJiraCardWorktreeParent.mutate({ jiraKey });
+				if (result.ok && result.parentPath) {
+					customCwd = result.parentPath;
+				}
+			}
+
+			const geometry = await resolveShellTerminalGeometry(taskId);
 			const payload = await startShellTerminalSession({
 				workspaceId: currentRepoId,
-				taskId: HOME_TERMINAL_TASK_ID,
+				taskId,
 				cols: geometry.cols,
 				rows: geometry.rows,
 				baseRef: workspaceGit?.currentBranch ?? workspaceGit?.defaultBranch ?? "HEAD",
+				customCwd,
 			});
 			if (!payload.ok || !payload.summary) {
 				throw new Error(payload.error ?? "Could not start terminal session.");
@@ -232,13 +262,14 @@ export function useTerminalPanels({
 		if (!currentRepoId) {
 			return;
 		}
-		if (isHomeTerminalOpen && homeTerminalRepoIdRef.current === currentRepoId) {
+		const key = `${currentRepoId}:${selectedJiraKeyRef.current ?? ""}:${worktreesRootRef.current ?? ""}`;
+		if (isHomeTerminalOpenRef.current && homeTerminalKeyRef.current === key) {
 			return;
 		}
-		homeTerminalRepoIdRef.current = currentRepoId;
+		homeTerminalKeyRef.current = key;
 		setIsHomeTerminalOpen(true);
 		void startHomeTerminalSession();
-	}, [currentRepoId, isHomeTerminalOpen, startHomeTerminalSession]);
+	}, [currentRepoId, startHomeTerminalSession]);
 
 	const handleToggleHomeTerminal = useCallback(() => {
 		if (isHomeTerminalOpen) {
@@ -330,27 +361,35 @@ export function useTerminalPanels({
 
 	useEffect(() => {
 		if (!isHomeTerminalOpen) {
-			homeTerminalRepoIdRef.current = null;
+			homeTerminalKeyRef.current = null;
 			return;
 		}
-		if (!currentRepoId || homeTerminalRepoIdRef.current === currentRepoId) {
+		const key = `${currentRepoId ?? ""}:${selectedJiraKeyRef.current ?? ""}:${worktreesRoot ?? ""}`;
+		if (!currentRepoId || homeTerminalKeyRef.current === key) {
 			return;
 		}
-		homeTerminalRepoIdRef.current = currentRepoId;
+		homeTerminalKeyRef.current = key;
 		void (async () => {
 			const started = await startHomeTerminalSession();
 			if (!started) {
 				closeHomeTerminal();
 			}
 		})();
-	}, [closeHomeTerminal, currentRepoId, isHomeTerminalOpen, startHomeTerminalSession]);
+	}, [closeHomeTerminal, currentRepoId, isHomeTerminalOpen, startHomeTerminalSession, worktreesRoot]);
+
+	useEffect(() => {
+		if (!selectedJiraKey || !currentRepoId) {
+			return;
+		}
+		openHomeTerminal();
+	}, [selectedJiraKey, currentRepoId, openHomeTerminal]);
 
 	const handleSendAgentCommandToHomeTerminal = useCallback(() => {
 		if (!agentCommand) {
 			return;
 		}
-		void sendTaskSessionInput(HOME_TERMINAL_TASK_ID, agentCommand, { appendNewline: true });
-	}, [agentCommand, sendTaskSessionInput]);
+		void sendTaskSessionInput(homeTerminalTaskId, agentCommand, { appendNewline: true });
+	}, [agentCommand, homeTerminalTaskId, sendTaskSessionInput]);
 
 	const handleSendAgentCommandToDetailTerminal = useCallback(() => {
 		if (!agentCommand || !selectedCard) {
@@ -370,7 +409,7 @@ export function useTerminalPanels({
 	}, [closeHomeTerminal]);
 
 	return {
-		homeTerminalTaskId: HOME_TERMINAL_TASK_ID,
+		homeTerminalTaskId,
 		isHomeTerminalOpen,
 		isHomeTerminalStarting,
 		homeTerminalShellBinary,

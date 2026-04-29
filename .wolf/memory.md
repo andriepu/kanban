@@ -3,6 +3,8 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 07:51 | Background prefetch Jira card details after board load; ensureDetail dedup; error+retry UI | use-jira-board.ts, jira-card-detail-view.tsx, App.tsx, test files | 18 tests pass, tsc clean | ~1800 |
+| 09:56 | fix terminal flashing on PR tab switch — openHomeTerminal recreated on isHomeTerminalOpen change, re-triggering selectedJiraKey effect in loop; used isHomeTerminalOpenRef to break cycle | use-terminal-panels.ts | 8 tests pass | ~800 |
+| 01:32 | Home terminal per-card cwd: when Jira detail opens, home terminal opens at worktreesRoot/jiraKey; per-card taskId; auto-open; mkdir | jira-worktree.ts, api-contract.ts, runtime-api.ts, app-router.ts, use-terminal-panels.ts, App.tsx + tests | 433+371 tests pass, tsc clean | ~2200 |
 | 20:43 | Tiled terminal layout: last terminal spans 2 cols when visible count is odd; filter expandedTaskId before render | pull-request-terminal-panel.tsx | done | ~600 |
 | 15:34 | Added fetchGhPullRequestDetail + interfaces + GH_PR_DETAIL_GRAPHQL_QUERY to jira-pr-scan.ts; added 8 tests | src/jira/jira-pr-scan.ts, test/runtime/jira/jira-pr-scan.test.ts | 14/14 tests pass | ~600 |
 | 18:05 | Task 2: fetchSubtaskDetail TRPC route + auto-create worktree in startSubtaskSession + Zod schemas + route registration + dep wiring | src/trpc/jira-api.ts, src/core/api-contract.ts, src/trpc/app-router.ts, src/server/runtime-server.ts, test/runtime/trpc/jira-api.test.ts | committed 2cb7241, 372 tests passing | ~2800 |
@@ -1215,3 +1217,135 @@
 | 20:42 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | 5→2 lines | ~32 |
 | 20:43 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | CSS: gridColumn | ~96 |
 | 20:43 | Session end: 4 writes across 2 files (if-we-have-3-reactive-reddy.md, pull-request-terminal-panel.tsx) | 2 reads | ~6474 tok |
+| 20:46 | Session end: 4 writes across 2 files (if-we-have-3-reactive-reddy.md, pull-request-terminal-panel.tsx) | 2 reads | ~6474 tok |
+
+## Session: 2026-04-28 06:21
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:23 | Created ../../../.claude/plans/when-task-detail-is-kind-bee.md | — | ~1706 |
+| 08:27 | Edited src/jira/jira-worktree.ts | 3→3 lines | ~48 |
+| 08:27 | Edited src/jira/jira-worktree.ts | modified ensureJiraCardWorktreeParent() | ~112 |
+| 08:27 | Edited src/core/api-contract.ts | expanded (+16 lines) | ~176 |
+| 08:27 | Edited src/trpc/runtime-api.ts | added 1 import(s) | ~67 |
+| 08:27 | Edited src/trpc/runtime-api.ts | added error handling | ~284 |
+| 08:27 | Edited src/trpc/app-router.ts | 5→7 lines | ~71 |
+| 08:27 | Edited src/trpc/app-router.ts | 5→7 lines | ~81 |
+| 08:27 | Edited src/trpc/app-router.ts | 2→6 lines | ~78 |
+| 08:27 | Edited src/trpc/app-router.ts | expanded (+6 lines) | ~148 |
+| 08:28 | Edited web-ui/src/hooks/use-terminal-panels.ts | modified getHomeTerminalTaskId() | ~292 |
+| 08:28 | Edited web-ui/src/hooks/use-terminal-panels.ts | 12→14 lines | ~130 |
+| 08:28 | Edited web-ui/src/hooks/use-terminal-panels.ts | modified useTerminalPanels() | ~157 |
+| 08:28 | Edited web-ui/src/hooks/use-terminal-panels.ts | modified getDetailTerminalTaskId() | ~89 |
+| 08:28 | Edited web-ui/src/hooks/use-terminal-panels.ts | 4→4 lines | ~36 |
+| 08:28 | Edited web-ui/src/hooks/use-terminal-panels.ts | added 2 condition(s) | ~431 |
+| 08:28 | Edited web-ui/src/hooks/use-terminal-panels.ts | added nullish coalescing | ~116 |
+| 08:29 | Edited web-ui/src/hooks/use-terminal-panels.ts | added nullish coalescing | ~191 |
+| 08:29 | Edited web-ui/src/hooks/use-terminal-panels.ts | modified if() | ~73 |
+| 08:29 | Edited web-ui/src/hooks/use-terminal-panels.ts | inline fix | ~6 |
+| 08:29 | Edited web-ui/src/App.tsx | added optional chaining | ~61 |
+| 08:29 | Edited web-ui/src/hooks/use-terminal-panels.test.tsx | modified HookHarness() | ~146 |
+| 08:30 | Edited web-ui/src/hooks/use-terminal-panels.test.tsx | CSS: ensureJiraCardWorktreeParent | ~116 |
+| 08:30 | Edited web-ui/src/hooks/use-terminal-panels.test.tsx | CSS: parentPath | ~117 |
+| 08:31 | Edited web-ui/src/hooks/use-terminal-panels.test.tsx | expanded (+85 lines) | ~737 |
+| 08:31 | Edited test/runtime/jira/jira-worktree.test.ts | added 2 import(s) | ~110 |
+| 08:31 | Edited test/runtime/jira/jira-worktree.test.ts | expanded (+25 lines) | ~297 |
+| 08:31 | Edited test/runtime/trpc/runtime-api.test.ts | expanded (+8 lines) | ~282 |
+| 08:32 | Edited test/runtime/trpc/runtime-api.test.ts | modified createApi() | ~658 |
+| 08:33 | Session end: 29 writes across 10 files (when-task-detail-is-kind-bee.md, jira-worktree.ts, api-contract.ts, runtime-api.ts, app-router.ts) | 20 reads | ~78764 tok |
+
+## Session: 2026-04-29 09:17
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:18 | Edited web-ui/src/components/runtime-settings-dialog.tsx | 3→3 lines | ~28 |
+| 09:18 | Session end: 1 writes across 1 files (runtime-settings-dialog.tsx) | 1 reads | ~12686 tok |
+
+## Session: 2026-04-29 09:20
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-29 09:20
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:20 | Edited web-ui/src/components/runtime-settings-dialog.tsx | 3→3 lines | ~29 |
+| 09:20 | Session end: 1 writes across 1 files (runtime-settings-dialog.tsx) | 1 reads | ~12691 tok |
+
+## Session: 2026-04-29 09:21
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:23 | Edited web-ui/src/hooks/use-terminal-panels.ts | modified if() | ~126 |
+| 09:23 | Edited web-ui/src/hooks/use-terminal-panels.ts | modified if() | ~156 |
+| 09:23 | Edited web-ui/src/hooks/use-terminal-panels.test.tsx | expanded (+42 lines) | ~359 |
+| 09:23 | Session end: 3 writes across 2 files (use-terminal-panels.ts, use-terminal-panels.test.tsx) | 6 reads | ~41730 tok |
+
+## Session: 2026-04-29 09:24
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:27 | Edited web-ui/src/hooks/use-jira-board.ts | 2→3 lines | ~36 |
+| 09:27 | Edited web-ui/src/hooks/use-jira-board.ts | modified useCallback() | ~212 |
+| 09:28 | Session end: 2 writes across 1 files (use-jira-board.ts) | 2 reads | ~4601 tok |
+
+## Session: 2026-04-29 09:41
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-29 09:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:56 | Edited web-ui/src/hooks/use-terminal-panels.ts | 6→7 lines | ~106 |
+| 09:56 | Edited web-ui/src/hooks/use-terminal-panels.ts | 1→2 lines | ~35 |
+| 09:56 | Edited web-ui/src/hooks/use-terminal-panels.ts | modified if() | ~123 |
+| 09:56 | Session end: 3 writes across 1 files (use-terminal-panels.ts) | 3 reads | ~18517 tok |
+
+## Session: 2026-04-29 12:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:09 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | 9→10 lines | ~92 |
+| 12:09 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | modified PullRequestTerminalPanel() | ~398 |
+| 12:09 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | 8→9 lines | ~78 |
+| 12:09 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | added optional chaining | ~96 |
+| 12:10 | Edited web-ui/src/components/jira-pull-request-detail-view.tsx | 10→11 lines | ~109 |
+| 12:10 | Session end: 5 writes across 2 files (pull-request-terminal-panel.tsx, jira-pull-request-detail-view.tsx) | 6 reads | ~24604 tok |
+| 12:15 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | modified if() | ~69 |
+| 12:15 | Session end: 6 writes across 2 files (pull-request-terminal-panel.tsx, jira-pull-request-detail-view.tsx) | 11 reads | ~47018 tok |
+| 12:20 | Edited web-ui/src/terminal/persistent-terminal-manager.ts | 6→7 lines | ~80 |
+| 12:20 | Edited web-ui/src/terminal/persistent-terminal-manager.ts | modified notifyOutputText() | ~78 |
+| 12:20 | Edited web-ui/src/terminal/persistent-terminal-manager.ts | added nullish coalescing | ~75 |
+| 12:20 | Edited web-ui/src/terminal/use-persistent-terminal-session.ts | 13→14 lines | ~125 |
+| 12:21 | Edited web-ui/src/terminal/use-persistent-terminal-session.ts | modified usePersistentTerminalSession() | ~96 |
+| 12:21 | Edited web-ui/src/terminal/use-persistent-terminal-session.ts | 7→9 lines | ~70 |
+| 12:21 | Edited web-ui/src/terminal/use-persistent-terminal-session.ts | 4→5 lines | ~22 |
+| 12:21 | Edited web-ui/src/terminal/use-persistent-terminal-session.ts | 9→12 lines | ~99 |
+| 12:21 | Edited web-ui/src/components/detail-panels/agent-terminal-panel.tsx | CSS: code | ~52 |
+| 12:21 | Edited web-ui/src/components/detail-panels/agent-terminal-panel.tsx | CSS: onShellExit | ~167 |
+| 12:21 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | — | ~0 |
+| 12:21 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | added 1 condition(s) | ~187 |
+| 12:22 | Session end: 18 writes across 5 files (pull-request-terminal-panel.tsx, jira-pull-request-detail-view.tsx, persistent-terminal-manager.ts, use-persistent-terminal-session.ts, agent-terminal-panel.tsx) | 13 reads | ~52563 tok |
+| 12:30 | Edited web-ui/src/components/jira-pull-request-detail-view.tsx | added optional chaining | ~188 |
+| 12:30 | Edited web-ui/src/components/detail-panels/pr-terminal-expanded-dialog.tsx | CSS: code | ~156 |
+| 12:31 | Edited web-ui/src/components/detail-panels/pr-terminal-expanded-dialog.tsx | 13→14 lines | ~137 |
+| 12:31 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | added 1 condition(s) | ~190 |
+| 12:31 | Session end: 22 writes across 6 files (pull-request-terminal-panel.tsx, jira-pull-request-detail-view.tsx, persistent-terminal-manager.ts, use-persistent-terminal-session.ts, agent-terminal-panel.tsx) | 16 reads | ~68523 tok |
+
+## Session: 2026-04-29 12:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:45 | Created ../../../.claude/plans/typing-exit-on-additional-woolly-beaver.md | — | ~1114 |
+| 12:46 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | CSS: id, null | ~179 |
+| 12:46 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | modified if() | ~112 |
+| 12:46 | Edited web-ui/src/components/detail-panels/pull-request-terminal-panel.tsx | modified if() | ~84 |
+| 12:47 | Session end: 4 writes across 2 files (typing-exit-on-additional-woolly-beaver.md, pull-request-terminal-panel.tsx) | 5 reads | ~14584 tok |
+
+## Session: 2026-04-29 12:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

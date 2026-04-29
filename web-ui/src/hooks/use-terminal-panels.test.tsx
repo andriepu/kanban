@@ -8,12 +8,16 @@ import { LocalStorageKey } from "@/storage/local-storage-store";
 import type { CardSelection } from "@/types";
 
 const startShellSessionMutateMock = vi.hoisted(() => vi.fn());
+const ensureJiraCardWorktreeParentMutateMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/runtime/trpc-client", () => ({
 	getRuntimeTrpcClient: () => ({
 		runtime: {
 			startShellSession: {
 				mutate: startShellSessionMutateMock,
+			},
+			ensureJiraCardWorktreeParent: {
+				mutate: ensureJiraCardWorktreeParentMutateMock,
 			},
 		},
 	}),
@@ -95,9 +99,13 @@ function requireSnapshot(snapshot: HookSnapshot | null): HookSnapshot {
 function HookHarness({
 	onSnapshot,
 	selectedCard,
+	selectedJiraKey = null,
+	worktreesRoot = null,
 }: {
 	onSnapshot: (snapshot: HookSnapshot) => void;
 	selectedCard: CardSelection | null;
+	selectedJiraKey?: string | null;
+	worktreesRoot?: string | null;
 }): null {
 	const result = useTerminalPanels({
 		currentRepoId: "project-1",
@@ -106,6 +114,8 @@ function HookHarness({
 		agentCommand: null,
 		upsertSession: () => {},
 		sendTaskSessionInput: async () => ({ ok: true }),
+		selectedJiraKey,
+		worktreesRoot,
 	});
 
 	useEffect(() => {
@@ -150,6 +160,8 @@ describe("useTerminalPanels", () => {
 			ok: true,
 			summary: createSummary(taskId),
 		}));
+		ensureJiraCardWorktreeParentMutateMock.mockReset();
+		ensureJiraCardWorktreeParentMutateMock.mockResolvedValue({ ok: true, parentPath: "/work/worktrees/POL-1" });
 		previousActEnvironment = (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
 			.IS_REACT_ACT_ENVIRONMENT;
 		(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -377,5 +389,132 @@ describe("useTerminalPanels", () => {
 
 		expect(requireSnapshot(latestSnapshot).homeTerminalPaneHeight).toBeUndefined();
 		expect(window.localStorage.getItem(LocalStorageKey.BottomTerminalPaneHeight)).toBeNull();
+	});
+
+	it("uses per-card taskId and customCwd when selectedJiraKey is set", async () => {
+		ensureJiraCardWorktreeParentMutateMock.mockResolvedValue({ ok: true, parentPath: "/work/worktrees/POL-1" });
+
+		await act(async () => {
+			root.render(
+				<HookHarness
+					selectedCard={null}
+					selectedJiraKey="POL-1"
+					worktreesRoot="/work/worktrees"
+					onSnapshot={() => {}}
+				/>,
+			);
+			await flushPromises();
+			await flushPromises();
+		});
+
+		expect(startShellSessionMutateMock).toHaveBeenCalledTimes(1);
+		expect(startShellSessionMutateMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				taskId: "__home_terminal__:POL-1",
+				customCwd: "/work/worktrees/POL-1",
+			}),
+		);
+		expect(ensureJiraCardWorktreeParentMutateMock).toHaveBeenCalledWith({ jiraKey: "POL-1" });
+	});
+
+	it("restarts home terminal when worktreesRoot changes", async () => {
+		ensureJiraCardWorktreeParentMutateMock
+			.mockResolvedValueOnce({ ok: true, parentPath: "/old/worktrees/POL-1" })
+			.mockResolvedValueOnce({ ok: true, parentPath: "/new/worktrees/POL-1" });
+
+		await act(async () => {
+			root.render(
+				<HookHarness
+					selectedCard={null}
+					selectedJiraKey="POL-1"
+					worktreesRoot="/old/worktrees"
+					onSnapshot={() => {}}
+				/>,
+			);
+			await flushPromises();
+			await flushPromises();
+		});
+
+		expect(startShellSessionMutateMock).toHaveBeenCalledTimes(1);
+		expect(startShellSessionMutateMock).toHaveBeenLastCalledWith(
+			expect.objectContaining({ customCwd: "/old/worktrees/POL-1" }),
+		);
+
+		await act(async () => {
+			root.render(
+				<HookHarness
+					selectedCard={null}
+					selectedJiraKey="POL-1"
+					worktreesRoot="/new/worktrees"
+					onSnapshot={() => {}}
+				/>,
+			);
+			await flushPromises();
+			await flushPromises();
+		});
+
+		expect(startShellSessionMutateMock).toHaveBeenCalledTimes(2);
+		expect(startShellSessionMutateMock).toHaveBeenLastCalledWith(
+			expect.objectContaining({ customCwd: "/new/worktrees/POL-1" }),
+		);
+	});
+
+	it("uses default taskId without customCwd when no jira card selected", async () => {
+		await act(async () => {
+			root.render(
+				<HookHarness
+					selectedCard={null}
+					selectedJiraKey={null}
+					worktreesRoot="/work/worktrees"
+					onSnapshot={() => {}}
+				/>,
+			);
+			await flushPromises();
+		});
+
+		expect(startShellSessionMutateMock).not.toHaveBeenCalled();
+		expect(ensureJiraCardWorktreeParentMutateMock).not.toHaveBeenCalled();
+	});
+
+	it("uses separate taskId per Jira card", async () => {
+		ensureJiraCardWorktreeParentMutateMock
+			.mockResolvedValueOnce({ ok: true, parentPath: "/work/worktrees/POL-1" })
+			.mockResolvedValueOnce({ ok: true, parentPath: "/work/worktrees/POL-2" });
+
+		await act(async () => {
+			root.render(
+				<HookHarness
+					selectedCard={null}
+					selectedJiraKey="POL-1"
+					worktreesRoot="/work/worktrees"
+					onSnapshot={() => {}}
+				/>,
+			);
+			await flushPromises();
+			await flushPromises();
+		});
+
+		expect(startShellSessionMutateMock).toHaveBeenCalledTimes(1);
+		expect(startShellSessionMutateMock).toHaveBeenCalledWith(
+			expect.objectContaining({ taskId: "__home_terminal__:POL-1" }),
+		);
+
+		await act(async () => {
+			root.render(
+				<HookHarness
+					selectedCard={null}
+					selectedJiraKey="POL-2"
+					worktreesRoot="/work/worktrees"
+					onSnapshot={() => {}}
+				/>,
+			);
+			await flushPromises();
+			await flushPromises();
+		});
+
+		expect(startShellSessionMutateMock).toHaveBeenCalledTimes(2);
+		expect(startShellSessionMutateMock).toHaveBeenLastCalledWith(
+			expect.objectContaining({ taskId: "__home_terminal__:POL-2" }),
+		);
 	});
 });

@@ -1,9 +1,12 @@
 import type { readdir as ReaddirFn } from "node:fs/promises";
+import * as fs from "node:fs/promises";
+import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
 	buildPullRequestWorktreePath,
 	derivePullRequestBranchName,
+	ensureJiraCardWorktreeParent,
 	scanReposInRoot,
 } from "../../../src/jira/jira-worktree.js";
 
@@ -28,6 +31,31 @@ describe("buildPullRequestWorktreePath", () => {
 	it("constructs correct path", () => {
 		const p = buildPullRequestWorktreePath("/work", "POL-1", "my-repo", "POL-1-fix-login");
 		expect(p).toBe(path.join("/work", "POL-1", "my-repo__POL-1-fix-login"));
+	});
+});
+
+describe("ensureJiraCardWorktreeParent", () => {
+	it("creates the directory and returns its absolute path", async () => {
+		const base = await fs.mkdtemp(path.join(tmpdir(), "kanban-test-"));
+		try {
+			const result = await ensureJiraCardWorktreeParent({ worktreesRoot: base, jiraKey: "POL-1234" });
+			expect(result.parentPath).toBe(path.join(base, "POL-1234"));
+			const stat = await fs.stat(result.parentPath);
+			expect(stat.isDirectory()).toBe(true);
+		} finally {
+			await fs.rm(base, { recursive: true, force: true });
+		}
+	});
+
+	it("is idempotent when directory already exists", async () => {
+		const base = await fs.mkdtemp(path.join(tmpdir(), "kanban-test-"));
+		try {
+			await ensureJiraCardWorktreeParent({ worktreesRoot: base, jiraKey: "POL-5" });
+			const result = await ensureJiraCardWorktreeParent({ worktreesRoot: base, jiraKey: "POL-5" });
+			expect(result.parentPath).toBe(path.join(base, "POL-5"));
+		} finally {
+			await fs.rm(base, { recursive: true, force: true });
+		}
 	});
 });
 

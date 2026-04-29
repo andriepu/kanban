@@ -742,6 +742,22 @@ export const runtimeShellSessionStartResponseSchema = z.object({
 });
 export type RuntimeShellSessionStartResponse = z.infer<typeof runtimeShellSessionStartResponseSchema>;
 
+export const runtimeEnsureJiraCardWorktreeParentRequestSchema = z.object({
+	jiraKey: z.string().regex(/^[A-Z][A-Z0-9_]*-\d+$/),
+});
+export type RuntimeEnsureJiraCardWorktreeParentRequest = z.infer<
+	typeof runtimeEnsureJiraCardWorktreeParentRequestSchema
+>;
+
+export const runtimeEnsureJiraCardWorktreeParentResponseSchema = z.object({
+	ok: z.boolean(),
+	parentPath: z.string().nullable(),
+	error: z.string().optional(),
+});
+export type RuntimeEnsureJiraCardWorktreeParentResponse = z.infer<
+	typeof runtimeEnsureJiraCardWorktreeParentResponseSchema
+>;
+
 export const runtimeTerminalWsResizeMessageSchema = z.object({
 	type: z.literal("resize"),
 	cols: z.number().int().positive(),

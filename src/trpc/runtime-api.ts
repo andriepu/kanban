@@ -9,7 +9,11 @@ import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import type { RuntimeConfigState } from "../config/runtime-config";
 import { loadJiraApiToken, updateGlobalRuntimeConfig, updateRuntimeConfig } from "../config/runtime-config";
-import type { RuntimeCommandRunResponse } from "../core/api-contract";
+import type {
+	RuntimeCommandRunResponse,
+	RuntimeEnsureJiraCardWorktreeParentRequest,
+	RuntimeEnsureJiraCardWorktreeParentResponse,
+} from "../core/api-contract";
 import {
 	parseCommandRunRequest,
 	parseRuntimeConfigSaveRequest,
@@ -22,6 +26,7 @@ import {
 	parseTaskSessionStopRequest,
 } from "../core/api-validation";
 import { isHomeAgentSessionId } from "../core/home-agent-session";
+import { ensureJiraCardWorktreeParent } from "../jira/jira-worktree.js";
 import { openInBrowser } from "../server/browser";
 import { buildRuntimeConfigResponse, resolveAgentCommand } from "../terminal/agent-registry";
 import type { TerminalSessionManager } from "../terminal/session-manager";
@@ -412,6 +417,25 @@ export function createRuntimeApi(deps: CreateRuntimeApiDependencies): RuntimeTrp
 			}
 			openInBrowser(filePath);
 			return { ok: true };
+		},
+		ensureJiraCardWorktreeParent: async (
+			workspaceScope,
+			input: RuntimeEnsureJiraCardWorktreeParentRequest,
+		): Promise<RuntimeEnsureJiraCardWorktreeParentResponse> => {
+			try {
+				const config = await deps.loadScopedRuntimeConfig(workspaceScope);
+				if (!config.worktreesRoot) {
+					return { ok: false, parentPath: null, error: "worktreesRoot not configured" };
+				}
+				const { parentPath } = await ensureJiraCardWorktreeParent({
+					worktreesRoot: config.worktreesRoot,
+					jiraKey: input.jiraKey,
+				});
+				return { ok: true, parentPath };
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error);
+				return { ok: false, parentPath: null, error: message };
+			}
 		},
 	};
 }

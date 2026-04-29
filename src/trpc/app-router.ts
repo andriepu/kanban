@@ -13,6 +13,8 @@ import type {
 	RuntimeDebugResetAllStateResponse,
 	RuntimeDirectoryListRequest,
 	RuntimeDirectoryListResponse,
+	RuntimeEnsureJiraCardWorktreeParentRequest,
+	RuntimeEnsureJiraCardWorktreeParentResponse,
 	RuntimeGitCheckoutRequest,
 	RuntimeGitCheckoutResponse,
 	RuntimeGitCommitDiffRequest,
@@ -90,6 +92,8 @@ import {
 	runtimeDebugResetAllStateResponseSchema,
 	runtimeDirectoryListRequestSchema,
 	runtimeDirectoryListResponseSchema,
+	runtimeEnsureJiraCardWorktreeParentRequestSchema,
+	runtimeEnsureJiraCardWorktreeParentResponseSchema,
 	runtimeGitCheckoutRequestSchema,
 	runtimeGitCheckoutResponseSchema,
 	runtimeGitCommitDiffRequestSchema,
@@ -201,6 +205,10 @@ export interface RuntimeTrpcContext {
 		) => Promise<RuntimeCommandRunResponse>;
 		resetAllState: (scope: RuntimeTrpcWorkspaceScope | null) => Promise<RuntimeDebugResetAllStateResponse>;
 		openFile: (input: RuntimeOpenFileRequest) => Promise<RuntimeOpenFileResponse>;
+		ensureJiraCardWorktreeParent: (
+			scope: RuntimeTrpcWorkspaceScope,
+			input: RuntimeEnsureJiraCardWorktreeParentRequest,
+		) => Promise<RuntimeEnsureJiraCardWorktreeParentResponse>;
 	};
 	workspaceApi: {
 		loadGitSummary: (
@@ -409,6 +417,12 @@ export const runtimeAppRouter = t.router({
 			.output(runtimeOpenFileResponseSchema)
 			.mutation(async ({ ctx, input }) => {
 				return await ctx.runtimeApi.openFile(input);
+			}),
+		ensureJiraCardWorktreeParent: workspaceProcedure
+			.input(runtimeEnsureJiraCardWorktreeParentRequestSchema)
+			.output(runtimeEnsureJiraCardWorktreeParentResponseSchema)
+			.mutation(async ({ ctx, input }) => {
+				return await ctx.runtimeApi.ensureJiraCardWorktreeParent(ctx.workspaceScope, input);
 			}),
 	}),
 	workspace: t.router({
